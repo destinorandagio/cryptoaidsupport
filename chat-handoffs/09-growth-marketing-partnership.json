@@ -1,19 +1,20 @@
 {
   "schema_version": "1.2",
   "chat": "CHAT09_GROWTH_MARKETING_PARTNERSHIP",
-  "cycle": "20260902-1712",
+  "cycle": "20260902-1741",
   "version": "0.4.0",
   "state": "MVP_MINIMUM_LIVE_IDENTITY_FIRST_COPY_CONTRACT_NO_GO",
   "scope": "conversion-critical public DApp copy/CTA/attribution only during 48H feature freeze",
   "ownership": {
     "owns": ["value-first CTA copy", "SIC-ID explanatory/resume copy", "ethical landing copy", "attribution event vocabulary", "no-purchase-needed presentation"],
-    "must_not_own": ["identity/auth truth", "product truth", "prices", "payment verification", "Case state", "Knowledge classification", "recovery outcome claims", "partnership truth"]
+    "must_not_own": ["identity/auth truth", "product truth", "prices", "payment verification", "Case state", "Knowledge classification", "recovery outcome claims", "partnership truth", "PWA cache/runtime authority"]
   },
   "principles": ["HELP_FIRST", "EVIDENCE_FIRST", "VALUE_BEFORE_CTA", "NO_PURCHASE_NEEDED_ALLOWED", "OFFICIAL_FREE_PATH_FIRST", "NO_FAKE_SCARCITY", "NO_FAKE_URGENCY", "NO_FAKE_TESTIMONIALS", "NO_RECOVERY_GUARANTEE", "NO_ROI"],
-  "consumes": {"chat04_ui": "2.1.0_CANDIDATE", "core_api": "1.0.0_READ_ONLY_CONTRACT", "product_truth": "READ_ONLY_UPSTREAM", "privacy_security": "FAIL_CLOSED"},
+  "consumes": {"chat04_ui": "2.1.0_CANDIDATE", "chat04_pwa_shell": "2.1.0_CANDIDATE", "core_api": "1.0.0_READ_ONLY_CONTRACT", "product_truth": "READ_ONLY_UPSTREAM", "privacy_security": "FAIL_CLOSED"},
   "mvp_copy_rule": "Explain that Search/+CASE require a LIVE SIC-ID projection without claiming authentication success. A stale/non-live identity is invited to resume through Core. Wallet stays optional and never identity. No paid activation is implied merely to understand the available support path.",
-  "runtime_delta": "LIVE_IDENTITY_BEFORE_SEARCH_RESUME_GUIDANCE_ONLY",
+  "runtime_delta": "NONE_THIS_CYCLE_PWA_SECURITY_MAINTENANCE_ONLY",
+  "campaign_expansion": "NONE_FEATURE_FREEZE_MAINTAINED",
   "experiments": "POST_MVP_UNLESS_RELEASE_BLOCKING",
-  "go_no_go": "NO_GO",
+  "go_no_go": "NO_GO_GLOBAL_SERIAL_RUNTIME_QA_GATES",
   "readback_required": true
 }
