@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 EVIDENCE_VERSION = "1.0"
-PAYMENT_VERSION = "1.0"
-ENTITLEMENT_VERSION = "1.0"
+PAYMENT_VERSION = "1.2"
+ENTITLEMENT_VERSION = "1.1"
 TREASURY_CONFIG_VERSION = "1.0"
 CHAIN_ID = 137
 DEFAULT_TREASURY = "0x3C320B3a0917fF44BF6551CDdee44402AFcF250C"
@@ -31,15 +31,42 @@ PAYMENT_TRANSITIONS = {
     "SETTLED": set(), "MANUAL_REVIEW": set(), "REJECTED": set(), "EXPIRED": set(),
 }
 
+
 class EvidencePaymentError(RuntimeError):
     def __init__(self, code: str, message: str):
-        super().__init__(message); self.code = code
+        super().__init__(message)
+        self.code = code
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+
 def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
+
+
+def _stable_json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _block_number(value: Any) -> int:
+    """Normalize JSON-RPC QUANTITY (hex) or integer/decimal string, rejecting ambiguity."""
+    if isinstance(value, bool):
+        raise ValueError("boolean is not a block number")
+    if isinstance(value, int):
+        number = value
+    elif isinstance(value, str):
+        text = value.strip().lower()
+        if not text:
+            raise ValueError("empty block number")
+        number = int(text, 16 if text.startswith("0x") else 10)
+    else:
+        raise ValueError("unsupported block number")
+    if number < 0:
+        raise ValueError("negative block number")
+    return number
+
 
 class EvidencePaymentEngine:
     def __init__(self, db_path: str | Path, private_root: str | Path):
@@ -52,7 +79,9 @@ class EvidencePaymentEngine:
 
     def _connect(self) -> sqlite3.Connection:
         c = sqlite3.connect(self.db_path, timeout=30, isolation_level=None)
-        c.row_factory = sqlite3.Row; c.execute("PRAGMA foreign_keys=ON"); c.execute("PRAGMA journal_mode=WAL")
+        c.row_factory = sqlite3.Row
+        c.execute("PRAGMA foreign_keys=ON")
+        c.execute("PRAGMA journal_mode=WAL")
         return c
 
     def _init_schema(self) -> None:
@@ -78,6 +107,13 @@ class EvidencePaymentEngine:
               entry_id TEXT PRIMARY KEY, entitlement_ref TEXT NOT NULL, case_id TEXT NOT NULL,
               intent_id TEXT NOT NULL UNIQUE, delta INTEGER NOT NULL, reason TEXT NOT NULL,
               lineage TEXT NOT NULL, created_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS settlement_certificates(
+              certificate_id TEXT PRIMARY KEY, intent_id TEXT NOT NULL UNIQUE,
+              case_id TEXT NOT NULL, entitlement_ref TEXT NOT NULL, tx_hash TEXT NOT NULL UNIQUE,
+              chain_id INTEGER NOT NULL, asset TEXT NOT NULL, settled_value TEXT NOT NULL,
+              treasury_address TEXT NOT NULL, provider_ids TEXT NOT NULL,
+              provider_fingerprint TEXT NOT NULL, observation_sha256 TEXT NOT NULL,
+              created_at TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS treasury_config(
               treasury_id TEXT NOT NULL, version INTEGER NOT NULL, address TEXT NOT NULL, chain_id INTEGER NOT NULL,
               asset TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL, routing_rule TEXT NOT NULL,
@@ -85,118 +121,283 @@ class EvidencePaymentEngine:
               created_at TEXT NOT NULL, PRIMARY KEY(treasury_id, version));
             """)
             if not c.execute("SELECT 1 FROM treasury_config LIMIT 1").fetchone():
-                c.execute("INSERT INTO treasury_config VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    ("treasury_primary",1,DEFAULT_TREASURY,CHAIN_ID,"POL","ACTIVE",1,"DEFAULT",_now(),None,"SYSTEM","SYSTEM",_now()))
+                c.execute(
+                    "INSERT INTO treasury_config VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    ("treasury_primary", 1, DEFAULT_TREASURY, CHAIN_ID, "POL", "ACTIVE", 1, "DEFAULT", _now(), None, "SYSTEM", "SYSTEM", _now()),
+                )
 
     def store_evidence(self, *, case_id: str, content: bytes, original_name: str, mime_declared: str,
                        mime_detected: str, uploader: str, consent_id: str, authorization: str,
-                       max_bytes: int = 25_000_000, allowed_mimes: Iterable[str] = ("application/pdf","image/png","image/jpeg"),
+                       max_bytes: int = 25_000_000, allowed_mimes: Iterable[str] = ("application/pdf", "image/png", "image/jpeg"),
                        parent_evidence_id: str | None = None, reason: str = "UPLOAD") -> dict[str, Any]:
-        if not authorization or authorization == "DENIED": raise EvidencePaymentError("UNAUTHORIZED", "Evidence authorization required")
-        if not consent_id: raise EvidencePaymentError("CONSENT_REQUIRED", "Consent binding required")
-        if len(content) > max_bytes: raise EvidencePaymentError("OVERSIZED", "Evidence exceeds size limit")
+        if not authorization or authorization == "DENIED":
+            raise EvidencePaymentError("UNAUTHORIZED", "Evidence authorization required")
+        if not consent_id:
+            raise EvidencePaymentError("CONSENT_REQUIRED", "Consent binding required")
+        if len(content) > max_bytes:
+            raise EvidencePaymentError("OVERSIZED", "Evidence exceeds size limit")
         allowed = set(allowed_mimes)
         if mime_declared not in allowed or mime_detected not in allowed or mime_declared != mime_detected:
             raise EvidencePaymentError("MIME_REJECTED", "MIME validation failed")
-        digest = hashlib.sha256(content).hexdigest(); evidence_id = _id("ev")
+        digest = hashlib.sha256(content).hexdigest()
+        evidence_id = _id("ev")
         with self._connect() as c:
             c.execute("BEGIN IMMEDIATE")
             version = 1
             if parent_evidence_id:
                 parent = c.execute("SELECT * FROM evidence_records WHERE evidence_id=?", (parent_evidence_id,)).fetchone()
-                if not parent or parent["case_id"] != case_id: raise EvidencePaymentError("BAD_LINEAGE", "Invalid evidence parent")
+                if not parent or parent["case_id"] != case_id:
+                    raise EvidencePaymentError("BAD_LINEAGE", "Invalid evidence parent")
                 version = int(parent["version"]) + 1
-            rel = Path(case_id) / evidence_id / f"v{version}.bin"; dest = self.private_root / rel
+            rel = Path(case_id) / evidence_id / f"v{version}.bin"
+            dest = self.private_root / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
-            tmp = dest.with_suffix(".quarantine"); tmp.write_bytes(content); os.replace(tmp, dest)
-            c.execute("INSERT INTO evidence_records VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (evidence_id,case_id,version,parent_evidence_id,"AVAILABLE",original_name,mime_declared,mime_detected,len(content),digest,str(rel),uploader,consent_id,authorization,reason,_now(),None))
+            tmp = dest.with_suffix(".quarantine")
+            tmp.write_bytes(content)
+            os.replace(tmp, dest)
+            c.execute(
+                "INSERT INTO evidence_records VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (evidence_id, case_id, version, parent_evidence_id, "AVAILABLE", original_name, mime_declared,
+                 mime_detected, len(content), digest, str(rel), uploader, consent_id, authorization, reason, _now(), None),
+            )
             if parent_evidence_id:
-                c.execute("UPDATE evidence_records SET status='SUPERSEDED', superseded_at=? WHERE evidence_id=?", (_now(),parent_evidence_id))
+                c.execute("UPDATE evidence_records SET status='SUPERSEDED', superseded_at=? WHERE evidence_id=?", (_now(), parent_evidence_id))
             c.execute("COMMIT")
-        return {"evidence_id":evidence_id,"case_id":case_id,"version":version,"sha256":digest,"status":"AVAILABLE"}
+        return {"evidence_id": evidence_id, "case_id": case_id, "version": version, "sha256": digest, "status": "AVAILABLE"}
 
     def configure_treasury(self, *, treasury_id: str, address: str, asset: str, status: str, priority: int,
                            routing_rule: str, valid_from: str, valid_to: str | None, created_by: str, approved_by: str) -> dict[str, Any]:
-        if status not in {"ACTIVE","INACTIVE","RETIRED"}: raise EvidencePaymentError("BAD_STATUS", "Invalid treasury status")
+        if status not in {"ACTIVE", "INACTIVE", "RETIRED"}:
+            raise EvidencePaymentError("BAD_STATUS", "Invalid treasury status")
         with self._connect() as c:
             c.execute("BEGIN IMMEDIATE")
             count = c.execute("SELECT COUNT(DISTINCT treasury_id) FROM treasury_config").fetchone()[0]
-            exists = c.execute("SELECT 1 FROM treasury_config WHERE treasury_id=? LIMIT 1",(treasury_id,)).fetchone()
-            if not exists and count >= 100: raise EvidencePaymentError("TREASURY_LIMIT", "Maximum 100 treasury entries")
-            version = c.execute("SELECT COALESCE(MAX(version),0)+1 FROM treasury_config WHERE treasury_id=?",(treasury_id,)).fetchone()[0]
-            c.execute("INSERT INTO treasury_config VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (treasury_id,version,address,CHAIN_ID,asset,status,priority,routing_rule,valid_from,valid_to,created_by,approved_by,_now()))
+            exists = c.execute("SELECT 1 FROM treasury_config WHERE treasury_id=? LIMIT 1", (treasury_id,)).fetchone()
+            if not exists and count >= 100:
+                raise EvidencePaymentError("TREASURY_LIMIT", "Maximum 100 treasury entries")
+            version = c.execute("SELECT COALESCE(MAX(version),0)+1 FROM treasury_config WHERE treasury_id=?", (treasury_id,)).fetchone()[0]
+            c.execute(
+                "INSERT INTO treasury_config VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (treasury_id, version, address, CHAIN_ID, asset, status, priority, routing_rule, valid_from, valid_to, created_by, approved_by, _now()),
+            )
             c.execute("COMMIT")
-        return {"treasury_id":treasury_id,"version":version,"status":status}
+        return {"treasury_id": treasury_id, "version": version, "status": status}
 
     def _route_treasury(self, asset: str) -> sqlite3.Row:
         with self._connect() as c:
-            row=c.execute("SELECT * FROM treasury_config WHERE status='ACTIVE' AND chain_id=? AND asset=? AND valid_from<=? AND (valid_to IS NULL OR valid_to>?) ORDER BY priority,version DESC LIMIT 1",(CHAIN_ID,asset,_now(),_now())).fetchone()
-        if not row: raise EvidencePaymentError("NO_TREASURY", "No active treasury route")
+            row = c.execute(
+                "SELECT * FROM treasury_config WHERE status='ACTIVE' AND chain_id=? AND asset=? AND valid_from<=? "
+                "AND (valid_to IS NULL OR valid_to>?) ORDER BY priority,version DESC LIMIT 1",
+                (CHAIN_ID, asset, _now(), _now()),
+            ).fetchone()
+        if not row:
+            raise EvidencePaymentError("NO_TREASURY", "No active treasury route")
         return row
 
     def create_payment_intent(self, *, case_id: str, entitlement_ref: str, payer: str, asset: str,
                               expected_value: str, request_id: str, idempotency_key: str) -> dict[str, Any]:
         with self._connect() as c:
-            existing=c.execute("SELECT * FROM payment_intents WHERE idempotency_key=?",(idempotency_key,)).fetchone()
-            if existing: return dict(existing)
-        t=self._route_treasury(asset); intent_id=_id("pi"); now=_now()
+            existing = c.execute("SELECT * FROM payment_intents WHERE idempotency_key=?", (idempotency_key,)).fetchone()
+            if existing:
+                return dict(existing)
+        t = self._route_treasury(asset)
+        intent_id = _id("pi")
+        now = _now()
         with self._connect() as c:
-            c.execute("INSERT INTO payment_intents VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (intent_id,case_id,entitlement_ref,payer,CHAIN_ID,asset,expected_value,t["treasury_id"],t["address"],"INTENT_CREATED",None,request_id,idempotency_key,now,now))
-            c.execute("INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",(_id("pe"),intent_id,None,"INTENT_CREATED","intent created",None,now))
+            c.execute(
+                "INSERT INTO payment_intents VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (intent_id, case_id, entitlement_ref, payer, CHAIN_ID, asset, expected_value, t["treasury_id"],
+                 t["address"], "INTENT_CREATED", None, request_id, idempotency_key, now, now),
+            )
+            c.execute("INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)", (_id("pe"), intent_id, None, "INTENT_CREATED", "intent created", None, now))
         return self.get_intent(intent_id)
 
     def get_intent(self, intent_id: str) -> dict[str, Any]:
-        with self._connect() as c: row=c.execute("SELECT * FROM payment_intents WHERE intent_id=?",(intent_id,)).fetchone()
-        if not row: raise EvidencePaymentError("NOT_FOUND", "Payment intent not found")
+        with self._connect() as c:
+            row = c.execute("SELECT * FROM payment_intents WHERE intent_id=?", (intent_id,)).fetchone()
+        if not row:
+            raise EvidencePaymentError("NOT_FOUND", "Payment intent not found")
         return dict(row)
+
+    def get_settlement_certificate(self, intent_id: str) -> dict[str, Any]:
+        with self._connect() as c:
+            row = c.execute("SELECT * FROM settlement_certificates WHERE intent_id=?", (intent_id,)).fetchone()
+        if not row:
+            raise EvidencePaymentError("CERTIFICATE_NOT_FOUND", "Settlement certificate not found")
+        result = dict(row)
+        result["provider_ids"] = json.loads(result["provider_ids"])
+        return result
 
     def transition_payment(self, intent_id: str, new_state: str, reason: str, provider_data: dict | None = None) -> dict[str, Any]:
         with self._connect() as c:
-            c.execute("BEGIN IMMEDIATE"); row=c.execute("SELECT * FROM payment_intents WHERE intent_id=?",(intent_id,)).fetchone()
-            if not row: raise EvidencePaymentError("NOT_FOUND", "Payment intent not found")
-            old=row["state"]
-            if new_state not in PAYMENT_TRANSITIONS.get(old,set()): raise EvidencePaymentError("INVALID_TRANSITION", f"{old}->{new_state}")
-            c.execute("UPDATE payment_intents SET state=?,updated_at=? WHERE intent_id=?",(new_state,_now(),intent_id))
-            c.execute("INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",(_id("pe"),intent_id,old,new_state,reason,json.dumps(provider_data or {},sort_keys=True),_now())); c.execute("COMMIT")
+            c.execute("BEGIN IMMEDIATE")
+            row = c.execute("SELECT * FROM payment_intents WHERE intent_id=?", (intent_id,)).fetchone()
+            if not row:
+                raise EvidencePaymentError("NOT_FOUND", "Payment intent not found")
+            old = row["state"]
+            if new_state not in PAYMENT_TRANSITIONS.get(old, set()):
+                raise EvidencePaymentError("INVALID_TRANSITION", f"{old}->{new_state}")
+            c.execute("UPDATE payment_intents SET state=?,updated_at=? WHERE intent_id=?", (new_state, _now(), intent_id))
+            c.execute(
+                "INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",
+                (_id("pe"), intent_id, old, new_state, reason, json.dumps(provider_data or {}, sort_keys=True), _now()),
+            )
+            c.execute("COMMIT")
         return self.get_intent(intent_id)
 
+    @staticmethod
+    def _provider_finality(observation: dict[str, Any], provider_observations: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+        try:
+            tx_block_number = _block_number(observation.get("block_number"))
+        except (TypeError, ValueError):
+            return "MANUAL_REVIEW", []
+
+        records: list[dict[str, Any]] = []
+        decisions: list[bool] = []
+        for provider in provider_observations:
+            try:
+                provider_tx_block = _block_number(provider.get("tx_block_number"))
+                finalized_block = _block_number(provider.get("finalized_block_number"))
+            except (TypeError, ValueError):
+                return "MANUAL_REVIEW", []
+            if provider_tx_block != tx_block_number:
+                return "MANUAL_REVIEW", []
+            final = finalized_block > tx_block_number
+            decisions.append(final)
+            records.append({
+                "provider_id": str(provider["provider_id"]).strip(),
+                "tx_block_number": provider_tx_block,
+                "finalized_block_number": finalized_block,
+                "finalized": final,
+            })
+
+        if all(decisions):
+            return "SETTLED", records
+        if not any(decisions):
+            return "FINALITY_PENDING", records
+        return "MANUAL_REVIEW", records
+
     def verify_observation(self, intent_id: str, observation: dict[str, Any], provider_observations: list[dict[str, Any]]) -> str:
-        intent=self.get_intent(intent_id)
+        intent = self.get_intent(intent_id)
         checks = [
             observation.get("chain_id") == intent["chain_id"],
-            str(observation.get("from","")).lower() == intent["payer"].lower(),
-            str(observation.get("to","")).lower() == intent["treasury_address"].lower(),
+            str(observation.get("from", "")).lower() == intent["payer"].lower(),
+            str(observation.get("to", "")).lower() == intent["treasury_address"].lower(),
             str(observation.get("value")) == str(intent["expected_value"]),
-            observation.get("asset") == intent["asset"], observation.get("receipt_status") == 1,
-            observation.get("case_id") == intent["case_id"], observation.get("entitlement_ref") == intent["entitlement_ref"],
+            observation.get("asset") == intent["asset"],
+            observation.get("receipt_status") == 1,
+            observation.get("case_id") == intent["case_id"],
+            observation.get("entitlement_ref") == intent["entitlement_ref"],
         ]
-        tx=observation.get("tx_hash")
-        if not tx or not all(checks): return "MANUAL_REVIEW"
-        normalized={(p.get("tx_hash"),p.get("block_hash"),p.get("receipt_status")) for p in provider_observations}
-        if len(normalized) != 1 or len(provider_observations) < 2: return "MANUAL_REVIEW"
+        tx = observation.get("tx_hash")
+        block_hash = observation.get("block_hash")
+        if not tx or not block_hash or not all(checks):
+            return "MANUAL_REVIEW"
+
+        try:
+            tx_block_number = _block_number(observation.get("block_number"))
+        except (TypeError, ValueError):
+            return "MANUAL_REVIEW"
+
+        if len(provider_observations) < 2:
+            return "MANUAL_REVIEW"
+        provider_ids = [str(p.get("provider_id", "")).strip() for p in provider_observations]
+        if any(not provider_id for provider_id in provider_ids) or len(set(provider_ids)) < 2:
+            return "MANUAL_REVIEW"
+
+        expected_tuple = (tx, block_hash, 1, tx_block_number)
+        try:
+            provider_tuples = {
+                (
+                    p.get("tx_hash"),
+                    p.get("block_hash"),
+                    p.get("receipt_status"),
+                    _block_number(p.get("tx_block_number")),
+                )
+                for p in provider_observations
+            }
+        except (TypeError, ValueError):
+            return "MANUAL_REVIEW"
+        if provider_tuples != {expected_tuple}:
+            return "MANUAL_REVIEW"
+
+        finality_verdict, _ = self._provider_finality(observation, provider_observations)
+        if finality_verdict == "MANUAL_REVIEW":
+            return "MANUAL_REVIEW"
+
         with self._connect() as c:
-            other=c.execute("SELECT intent_id FROM payment_intents WHERE tx_hash=? AND intent_id<>?",(tx,intent_id)).fetchone()
-            if other: return "MANUAL_REVIEW"
-            c.execute("UPDATE payment_intents SET tx_hash=?,updated_at=? WHERE intent_id=?",(tx,_now(),intent_id))
-        return "FINALITY_PENDING" if int(observation.get("confirmations",0)) < int(observation.get("required_confirmations",1)) else "SETTLED"
+            other = c.execute("SELECT intent_id FROM payment_intents WHERE tx_hash=? AND intent_id<>?", (tx, intent_id)).fetchone()
+            if other:
+                return "MANUAL_REVIEW"
+            try:
+                c.execute("UPDATE payment_intents SET tx_hash=?,updated_at=? WHERE intent_id=?", (tx, _now(), intent_id))
+            except sqlite3.IntegrityError:
+                return "MANUAL_REVIEW"
+        return finality_verdict
 
     def settle(self, intent_id: str, observation: dict[str, Any], providers: list[dict[str, Any]]) -> dict[str, Any]:
-        verdict=self.verify_observation(intent_id,observation,providers)
+        verdict = self.verify_observation(intent_id, observation, providers)
         if verdict != "SETTLED":
-            target="MANUAL_REVIEW" if verdict=="MANUAL_REVIEW" else "FINALITY_PENDING"
-            current=self.get_intent(intent_id)["state"]
-            if target in PAYMENT_TRANSITIONS.get(current,set()): self.transition_payment(intent_id,target,"verification verdict",{"verdict":verdict})
-            return {"intent_id":intent_id,"verdict":verdict,"entitlement_granted":False}
+            target = "MANUAL_REVIEW" if verdict == "MANUAL_REVIEW" else "FINALITY_PENDING"
+            current = self.get_intent(intent_id)["state"]
+            if target in PAYMENT_TRANSITIONS.get(current, set()):
+                self.transition_payment(intent_id, target, "verification verdict", {"verdict": verdict})
+            return {"intent_id": intent_id, "verdict": verdict, "entitlement_granted": False}
+
+        provider_ids = sorted({str(p["provider_id"]).strip() for p in providers})
+        finality_verdict, finality_records = self._provider_finality(observation, providers)
+        if finality_verdict != "SETTLED":
+            return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+        finality_records = sorted(finality_records, key=lambda item: item["provider_id"])
+        provider_fingerprint = hashlib.sha256(_stable_json(finality_records).encode("utf-8")).hexdigest()
+        observation_sha256 = hashlib.sha256(_stable_json(observation).encode("utf-8")).hexdigest()
+        finality_audit = {
+            "observation": observation,
+            "provider_finality": finality_records,
+            "method": "eth_getBlockByNumber(finalized)",
+            "rule": "finalized_block_number > tx_block_number",
+        }
+
         with self._connect() as c:
-            c.execute("BEGIN IMMEDIATE"); row=c.execute("SELECT * FROM payment_intents WHERE intent_id=?",(intent_id,)).fetchone()
+            c.execute("BEGIN IMMEDIATE")
+            row = c.execute("SELECT * FROM payment_intents WHERE intent_id=?", (intent_id,)).fetchone()
             if row["state"] == "SETTLED":
-                granted=bool(c.execute("SELECT 1 FROM entitlement_ledger WHERE intent_id=?",(intent_id,)).fetchone()); c.execute("COMMIT")
-                return {"intent_id":intent_id,"verdict":"SETTLED","entitlement_granted":granted,"idempotent":True}
-            if row["state"] != "FINALITY_PENDING": raise EvidencePaymentError("BAD_SETTLEMENT_STATE", row["state"])
-            c.execute("UPDATE payment_intents SET state='SETTLED',updated_at=? WHERE intent_id=?",(_now(),intent_id))
-            c.execute("INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",(_id("pe"),intent_id,"FINALITY_PENDING","SETTLED","finality verified",json.dumps(observation,sort_keys=True),_now()))
-            c.execute("INSERT INTO entitlement_ledger VALUES(?,?,?,?,?,?,?,?)",(_id("el"),row["entitlement_ref"],row["case_id"],intent_id,1,"payment settled",json.dumps({"tx_hash":row["tx_hash"],"intent_id":intent_id},sort_keys=True),_now())); c.execute("COMMIT")
-        return {"intent_id":intent_id,"verdict":"SETTLED","entitlement_granted":True}
+                granted = bool(c.execute("SELECT 1 FROM entitlement_ledger WHERE intent_id=?", (intent_id,)).fetchone())
+                certificate = c.execute("SELECT certificate_id FROM settlement_certificates WHERE intent_id=?", (intent_id,)).fetchone()
+                c.execute("COMMIT")
+                return {
+                    "intent_id": intent_id,
+                    "verdict": "SETTLED",
+                    "entitlement_granted": granted,
+                    "settlement_certificate_id": certificate["certificate_id"] if certificate else None,
+                    "idempotent": True,
+                }
+            if row["state"] != "FINALITY_PENDING":
+                raise EvidencePaymentError("BAD_SETTLEMENT_STATE", row["state"])
+
+            certificate_id = _id("sc")
+            now = _now()
+            c.execute("UPDATE payment_intents SET state='SETTLED',updated_at=? WHERE intent_id=?", (now, intent_id))
+            c.execute(
+                "INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",
+                (_id("pe"), intent_id, "FINALITY_PENDING", "SETTLED", "deterministic finality verified",
+                 _stable_json(finality_audit), now),
+            )
+            c.execute(
+                "INSERT INTO settlement_certificates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (certificate_id, intent_id, row["case_id"], row["entitlement_ref"], row["tx_hash"], row["chain_id"],
+                 row["asset"], row["expected_value"], row["treasury_address"], _stable_json(provider_ids),
+                 provider_fingerprint, observation_sha256, now),
+            )
+            c.execute(
+                "INSERT INTO entitlement_ledger VALUES(?,?,?,?,?,?,?,?)",
+                (_id("el"), row["entitlement_ref"], row["case_id"], intent_id, 1, "payment settled",
+                 json.dumps({"tx_hash": row["tx_hash"], "intent_id": intent_id, "settlement_certificate_id": certificate_id}, sort_keys=True), now),
+            )
+            c.execute("COMMIT")
+        return {
+            "intent_id": intent_id,
+            "verdict": "SETTLED",
+            "entitlement_granted": True,
+            "settlement_certificate_id": certificate_id,
+        }
