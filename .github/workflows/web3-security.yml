@@ -18,9 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: web3/package-lock.json
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - run: npm run compile
       - run: npm test -- --no-compile
       - run: npm run deploy:bundle
@@ -39,7 +37,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: web3/package-lock.json
-      - run: cd web3 && npm ci && npx hardhat compile
+      - run: cd web3 && npm install --no-audit --no-fund && npx hardhat compile
       - run: cd web3 && slither . --exclude-dependencies
