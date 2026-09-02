@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -67,3 +68,34 @@ def test_expired_claim_can_be_reclaimed_but_old_claim_cannot_ack(tmp_path: Path)
 def test_transport_db_rejects_public_html_and_integrity_is_ok(tmp_path: Path):
     with pytest.raises(SupportTransportRejected): SupportTransportStore(tmp_path/"public_html"/"support.sqlite")
     store=SupportTransportStore(tmp_path/"private"/"support.sqlite"); assert store.integrity()=="ok"
+
+
+def _symlink_or_skip(target: Path, link: Path):
+    link.parent.mkdir(parents=True, exist_ok=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.symlink(target, link)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink unavailable on this runner: {exc}")
+
+
+def test_transport_db_rejects_precreated_final_symlink_before_target_mutation(tmp_path: Path):
+    target=tmp_path/"public_html"/"redirected-support.sqlite"
+    link=tmp_path/"private"/"support-transport.sqlite"
+    _symlink_or_skip(target,link)
+    with pytest.raises(SupportTransportRejected):
+        SupportTransportStore(link)
+    assert link.is_symlink()
+    assert not target.exists()
+
+
+def test_transport_db_rechecks_final_component_before_each_open(tmp_path: Path):
+    db=tmp_path/"private"/"support-transport.sqlite"
+    store=SupportTransportStore(db)
+    assert store.integrity()=="ok"
+    db.unlink()
+    target=tmp_path/"outside"/"redirected.sqlite"
+    _symlink_or_skip(target,db)
+    with pytest.raises(SupportTransportRejected):
+        store.integrity()
+    assert not target.exists()
