@@ -10,12 +10,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-from bot.telegram_support_transport import (
-    TelegramDurableSupportRejected,
-    TelegramDurableSupportRuntime,
-)
+try:
+    from .telegram_support_transport import (
+        TelegramDurableSupportRejected,
+        TelegramDurableSupportRuntime,
+    )
+except ImportError:  # pragma: no cover - direct bot entrypoint mode
+    from telegram_support_transport import (
+        TelegramDurableSupportRejected,
+        TelegramDurableSupportRuntime,
+    )
 
-TELEGRAM_TICKET_COMMAND_VERSION = "1.0.0"
+TELEGRAM_TICKET_COMMAND_VERSION = "1.0.1"
 
 
 class TelegramTicketCommandRejected(ValueError):
