@@ -8,7 +8,10 @@ from pathlib import Path
 
 from telegram import Bot
 
-from drive_media import MediaTransportError, fetch_drive_media
+try:
+    from .drive_media import MediaTransportError, fetch_drive_media
+except ImportError:  # direct script execution
+    from drive_media import MediaTransportError, fetch_drive_media
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "evergreen.json"
@@ -100,7 +103,7 @@ async def publish(bot, chat, item, state):
                     supports_streaming=True,
                 )
                 return "video", asset["id"]
-        except (MediaTransportError, Exception) as exc:
+        except Exception as exc:
             print(f"WARN: media publish failed; safe text fallback: {type(exc).__name__}")
 
     image_url = item.get("image_url")
