@@ -109,7 +109,7 @@ class EvidencePaymentEngine:
             rel = Path(case_id) / evidence_id / f"v{version}.bin"; dest = self.private_root / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             tmp = dest.with_suffix(".quarantine"); tmp.write_bytes(content); os.replace(tmp, dest)
-            c.execute("INSERT INTO evidence_records VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            c.execute("INSERT INTO evidence_records VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (evidence_id,case_id,version,parent_evidence_id,"AVAILABLE",original_name,mime_declared,mime_detected,len(content),digest,str(rel),uploader,consent_id,authorization,reason,_now(),None))
             if parent_evidence_id:
                 c.execute("UPDATE evidence_records SET status='SUPERSEDED', superseded_at=? WHERE evidence_id=?", (_now(),parent_evidence_id))
@@ -198,5 +198,5 @@ class EvidencePaymentEngine:
             if row["state"] != "FINALITY_PENDING": raise EvidencePaymentError("BAD_SETTLEMENT_STATE", row["state"])
             c.execute("UPDATE payment_intents SET state='SETTLED',updated_at=? WHERE intent_id=?",(_now(),intent_id))
             c.execute("INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",(_id("pe"),intent_id,"FINALITY_PENDING","SETTLED","finality verified",json.dumps(observation,sort_keys=True),_now()))
-            c.execute("INSERT INTO entitlement_ledger VALUES(?,?,?,?,?,?,?)",(_id("el"),row["entitlement_ref"],row["case_id"],intent_id,1,"payment settled",json.dumps({"tx_hash":row["tx_hash"],"intent_id":intent_id},sort_keys=True),_now())); c.execute("COMMIT")
+            c.execute("INSERT INTO entitlement_ledger VALUES(?,?,?,?,?,?,?,?)",(_id("el"),row["entitlement_ref"],row["case_id"],intent_id,1,"payment settled",json.dumps({"tx_hash":row["tx_hash"],"intent_id":intent_id},sort_keys=True),_now())); c.execute("COMMIT")
         return {"intent_id":intent_id,"verdict":"SETTLED","entitlement_granted":True}
