@@ -1,0 +1,8 @@
+{
+  "package":"CRYPTOAID_KNOWLEDGE_MASTER_V1",
+  "purpose":"Canonical source package for GitHub ingestion and CryptoAID Telegram bot knowledge.",
+  "status":"INGESTED",
+  "source_generated_at":"2026-09-02",
+  "knowledge_statuses":["VERIFIED","DRAFT","OBSOLETE","CONFLICT","UNKNOWN"],
+  "note":"V1 contains the verified baseline available in the current CryptoAID Support build context. Project-specific facts not yet verified must be added as VERIFIED only after source validation."
+}
