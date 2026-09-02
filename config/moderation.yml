@@ -1,0 +1,17 @@
+mode: cautious
+levels:
+  0: allow
+  1: reminder
+  2: warning
+  3: temporary_restriction
+  4: admin_escalation
+  5: ban
+policy:
+  automatic_ban: false
+  human_review_ambiguous: true
+  protect_admins: true
+  warn_shortened_urls: true
+  warn_secret_requests: true
+trusted_domains:
+  - cryptoaid.support
+  - t.me
