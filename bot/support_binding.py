@@ -106,6 +106,15 @@ class SupportBindingStore:
             raise SupportBindingRejected("support_binding_failed")
         return value
 
+    def _resume_core(self, core_session_id: str, sic_id: str) -> dict:
+        try:
+            return CoreAPI(self.core_db_path).resume_session(
+                session_id=core_session_id,
+                sic_id=sic_id,
+            )
+        except CoreError as exc:
+            raise SupportBindingRejected("support_binding_failed") from exc
+
     def issue_link_code(
         self,
         *,
@@ -116,13 +125,7 @@ class SupportBindingStore:
         """Issue a single-use code only after canonical Core session validation."""
         core_session_id = self._clean(core_session_id, field="core_session_id")
         sic_id = self._clean(sic_id, field="sic_id")
-        try:
-            principal = CoreAPI(self.core_db_path).resume_session(
-                session_id=core_session_id,
-                sic_id=sic_id,
-            )
-        except CoreError as exc:
-            raise SupportBindingRejected("support_binding_failed") from exc
+        principal = self._resume_core(core_session_id, sic_id)
 
         code = secrets.token_urlsafe(18)
         created = self._now(now)
@@ -152,6 +155,8 @@ class SupportBindingStore:
 
         Concurrent consumers of the same link code serialize under BEGIN IMMEDIATE;
         exactly one can mark the code consumed and receive the opaque support token.
+        The referenced Core session is revalidated immediately before the binding is
+        committed, so a code issued before revocation cannot create a live binding.
         """
         telegram_principal = self._clean(
             telegram_principal, field="telegram_principal", max_len=128
@@ -170,6 +175,10 @@ class SupportBindingStore:
             if row is None or row["consumed_at"] is not None or row["expires_at"] < current:
                 conn.rollback()
                 raise SupportBindingRejected("support_binding_failed")
+
+            # Re-check the canonical authority at consumption time, not only when
+            # the DApp created the link code.
+            self._resume_core(row["core_session_id"], row["sic_id"])
 
             updated = conn.execute(
                 "UPDATE support_link_codes SET consumed_at=? "
