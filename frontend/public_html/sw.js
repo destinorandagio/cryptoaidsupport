@@ -1,7 +1,7 @@
-const SHELL_VERSION='2.1.5';
+const SHELL_VERSION='2.1.6';
 const CACHE_PREFIX='caid-shell-v';
 const CACHE=`${CACHE_PREFIX}${SHELL_VERSION}`;
-const SHELL=['./','./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/app.js','./assets/shield.svg'];
+const SHELL=['./','./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/runtime-bridge.js','./assets/app.js','./assets/shield.svg'];
 const SCOPE_ORIGIN=new URL(self.registration.scope).origin;
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
