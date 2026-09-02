@@ -30,8 +30,13 @@
           <span class="eyebrow">CRYPTO RECOVERY SUPPORT</span>
           <h1 id="homeTitle">What happened to your crypto?</h1>
           <p class="lede">Search a project, describe what happened, and Crypto AID will surface the safest next action. No recovery guarantee. No ROI claims.</p>
+          <div class="notice" aria-label="SIC-ID sign in">
+            <strong>1. Sign in with SIC-ID</strong>
+            <p>Your SIC-ID keeps your Case attached to the Core identity flow. A wallet is optional and never replaces identity.</p>
+            <div><span class="state state-to-verify" id="homeIdentityState">TO_VERIFY</span> <button class="secondary" type="button" data-sicid-login>SIGN IN / SIC-ID</button></div>
+          </div>
           <form class="search-box" id="heroSearchForm">
-            <label for="heroSearch">Project, token, contract or platform</label>
+            <label for="heroSearch">2. Search a project, token, contract or platform</label>
             <div class="search-row">
               <input id="heroSearch" name="q" autocomplete="off" placeholder="Search by name, ticker or address">
               <button class="primary" type="submit">SEARCH</button>
@@ -89,7 +94,7 @@
 
     <section class="view" id="view-profile" data-route="profile" aria-labelledby="profileTitle">
       <div class="section-head"><div><span class="eyebrow">PROFILE</span><h1 id="profileTitle">Identity & preferences</h1></div><span class="state state-to-verify">TO_VERIFY</span></div>
-      <div class="cards two"><article class="card"><h2>SIC-ID</h2><p id="sicIdValue">Not loaded</p><small>Durable identity is supplied by Core. Wallet addresses never replace it.</small></article><article class="card"><h2>Motion</h2><p>System reduced-motion preferences are respected automatically.</p><button id="motionToggle" class="secondary" type="button">REDUCE MOTION HERE</button></article></div>
+      <div class="cards two"><article class="card"><h2>SIC-ID</h2><p id="sicIdValue">Not loaded</p><small>Durable identity is supplied only by Core. Wallet addresses never replace it.</small><p><button class="secondary" type="button" data-sicid-login>SIGN IN / SIC-ID</button></p></article><article class="card"><h2>Motion</h2><p>System reduced-motion preferences are respected automatically.</p><button id="motionToggle" class="secondary" type="button">REDUCE MOTION HERE</button></article></div>
     </section>
   </main>
 
