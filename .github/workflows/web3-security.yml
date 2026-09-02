@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 jobs:
-  compile-test-bundle:
+  compile-test-package:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,10 +22,27 @@ jobs:
       - run: npm run compile
       - run: npm test -- --no-compile
       - run: npm run deploy:bundle
+      - name: Build offline deploy package
+        run: |
+          test -f node_modules/ethers/dist/ethers.umd.min.js
+          cp node_modules/ethers/dist/ethers.umd.min.js deploy/ethers.umd.min.js
+          test -f deploy/index.html
+          test -f deploy/deploy-bundle.json
+          test -f deploy/deployment-plan.json
+          test -f deploy/README-OFFLINE-DEPLOY.md
+          grep -q './ethers.umd.min.js' deploy/index.html
+          grep -q '"chainId":137' deploy/deployment-plan.json
+          (cd deploy && sha256sum index.html ethers.umd.min.js deploy-bundle.json deployment-plan.json > checksums.sha256)
       - uses: actions/upload-artifact@v4
         with:
-          name: cryptoaid-mainnet-deploy-bundle
-          path: web3/deploy/deploy-bundle.json
+          name: cryptoaid-polygon-mainnet-offline-deployer
+          path: |
+            web3/deploy/index.html
+            web3/deploy/ethers.umd.min.js
+            web3/deploy/deploy-bundle.json
+            web3/deploy/deployment-plan.json
+            web3/deploy/README-OFFLINE-DEPLOY.md
+            web3/deploy/checksums.sha256
           if-no-files-found: error
   slither:
     runs-on: ubuntu-latest
@@ -38,4 +55,17 @@ jobs:
         with:
           node-version: '22'
       - run: cd web3 && npm install --no-audit --no-fund && npx hardhat compile
-      - run: cd web3 && slither . --exclude-dependencies
+      - name: Slither report
+        run: |
+          cd web3
+          set +e
+          slither . --exclude-dependencies --json slither-report.json
+          code=$?
+          echo "Slither exit code: $code"
+          test -f slither-report.json
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cryptoaid-slither-report
+          path: web3/slither-report.json
+          if-no-files-found: error
