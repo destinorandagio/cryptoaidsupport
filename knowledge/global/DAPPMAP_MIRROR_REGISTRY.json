@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "domain": "DAPPMAP_MIRROR",
+  "tool": "DAPPMAP",
+  "acquisition_verification_protocol": "MIRROR-B+",
+  "legacy_compatibility": "M81-DAPP identifiers are legacy compatibility keys and must not be rewritten.",
+  "canonical_assets": {
+    "master_database": "MIRROR-B+_DAPPMAP.sqlite",
+    "historical_registry": "MIRROR-B+_Registro_Mondiale_dApp_2012-2026.xlsx",
+    "canonical_dapps": 17604,
+    "indexed_chains": 494
+  },
+  "sic_id_types": {
+    "dapp":"SIC-ID-DAPP-XXXXXXXXXXXX",
+    "chain":"SIC-ID-CHAIN-XXXXXXXXXXXX",
+    "contract":"SIC-ID-CONTRACT-XXXXXXXXXXXX",
+    "token":"SIC-ID-TOKEN-XXXXXXXXXXXX",
+    "nft":"SIC-ID-NFT-XXXXXXXXXXXX",
+    "person":"SIC-ID-PERSON-XXXXXXXXXXXX",
+    "organization":"SIC-ID-ORG-XXXXXXXXXXXX",
+    "community":"SIC-ID-COMMUNITY-XXXXXXXXXXXX",
+    "document":"SIC-ID-DOC-XXXXXXXXXXXX",
+    "event":"SIC-ID-EVENT-XXXXXXXXXXXX",
+    "source":"SIC-ID-SOURCE-XXXXXXXXXXXX"
+  },
+  "multichain_rule": "A dApp keeps one SIC-ID-DAPP. Chains, deployments and contracts are represented as relationships rather than duplicated dApps.",
+  "relationship_model": "DAPP -> DEPLOYED_ON -> CHAIN -> HAS_DEPLOYMENT -> DEPLOYMENT -> USES_CONTRACT -> CONTRACT",
+  "scope": [
+    "active dApps", "dead dApps", "abandoned dApps", "inactive dApps", "failed protocols",
+    "dead/delisted tokens", "GameFi", "node projects", "ceased exchanges", "ceased wallets",
+    "migrations", "forks", "rebrands", "communities", "contracts", "chains", "historical sources"
+  ],
+  "evidence_policy": [
+    "Use public and legitimately accessible sources.",
+    "Record provenance, conflicts, limitations and confidence.",
+    "Do not infer people, territories or wallet ownership without public verifiable evidence.",
+    "Do not create a new SIC-ID when the entity already has one."
+  ]
+}
