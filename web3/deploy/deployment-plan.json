@@ -1,0 +1,27 @@
+{
+  "schema":"cryptoaid.deployment-plan.v1",
+  "network":"Polygon PoS Mainnet",
+  "chainId":137,
+  "humanGate":true,
+  "externalTokens":{"DUX":"REQUIRED_CANONICAL_ADDRESS","DRX":"REQUIRED_CANONICAL_ADDRESS","VOTES_TOKEN":"REQUIRED_CANONICAL_IVOTES_ADDRESS"},
+  "steps":[
+    {"order":1,"contract":"CryptoAIDTimelock","dependencies":[],"external_tokens":[],"notes":"Configure minimum delay and initial proposer/executor/admin deliberately."},
+    {"order":2,"contract":"CryptoAIDSecurityController","dependencies":[],"external_tokens":[]},
+    {"order":3,"contract":"CryptoAIDEmergencyGuardian","dependencies":[],"external_tokens":[]},
+    {"order":4,"contract":"CryptoAIDRewardTreasury","dependencies":[],"external_tokens":[],"notes":"Web3 reward treasury only; never substitute Case treasury."},
+    {"order":5,"contract":"CryptoAIDRank","dependencies":[],"external_tokens":[]},
+    {"order":6,"contract":"CryptoAIDAchievements","dependencies":[],"external_tokens":[]},
+    {"order":7,"contract":"CryptoAIDReferralProof","dependencies":[],"external_tokens":[]},
+    {"order":8,"contract":"CryptoAIDQuestRegistry","dependencies":[],"external_tokens":[]},
+    {"order":9,"contract":"CryptoAIDDappContributionRegistry","dependencies":[],"external_tokens":[]},
+    {"order":10,"contract":"CryptoAIDBoostLock","dependencies":[],"external_tokens":["DUX","DRX"]},
+    {"order":11,"contract":"CryptoAIDStaking","dependencies":[],"external_tokens":["DUX","DRX"],"notes":"Choose stake/reward token mapping explicitly."},
+    {"order":12,"contract":"CryptoAIDStreamVault","dependencies":[],"external_tokens":[]},
+    {"order":13,"contract":"CryptoAIDVestingFactory","dependencies":[],"external_tokens":[]},
+    {"order":14,"contract":"CryptoAIDEpochClaim","dependencies":[],"external_tokens":[]},
+    {"order":15,"contract":"CryptoAIDPOLRewardRouter","dependencies":[],"external_tokens":[]},
+    {"order":16,"contract":"CryptoAIDUsefulMiner","dependencies":["CryptoAIDRank"],"external_tokens":["DUX","DRX"]},
+    {"order":17,"contract":"CryptoAIDGovernance","dependencies":["CryptoAIDTimelock"],"external_tokens":["VOTES_TOKEN"],"notes":"Deploy only if artifact has non-empty bytecode and IVotes token is canonical."}
+  ],
+  "postDeployChecklist":["verify bytecode for every address","verify DUX/DRX chain 137 and code","wire least-privilege roles","wire Rank to Miner","wire Quest verifier/miner permissions","set reward caps before funding","transfer privileged control to intended timelock/multisig where applicable","verify guardian pause targets","record every tx hash and block","do not use Case treasury as Web3 reward treasury"]
+}
