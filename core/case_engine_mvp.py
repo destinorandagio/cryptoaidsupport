@@ -136,3 +136,10 @@ class CaseEngine(_BaseCaseEngine):
             )
             conn.execute("COMMIT")
             return result
+
+
+# ``core.case_engine.CaseEngine`` is imported directly by a few trusted legacy
+# modules. Patch only this method on the existing class so those imports cannot
+# bypass the same release-blocking guard. Database/schema/state authority remains
+# the original CaseEngine; this layer changes no storage or economic truth.
+_BaseCaseEngine.select_product = CaseEngine.select_product
