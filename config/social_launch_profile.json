@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "status": "READY_TO_RUN_WITH_TEXT_POLL_MEDIA_PENDING_TRANSPORT",
+  "version": "1.1.0",
+  "status": "MEDIA_AND_RUNTIME_CODED_PENDING_LIVE_VERIFICATION",
   "timezone": "Europe/Rome",
   "official": {
     "bot": "@CryptoAIDsupportBOT",
@@ -11,8 +11,8 @@
     "controlled_group_test": "PASS",
     "controlled_channel_test": "PASS",
     "healthcheck": "PASS",
-    "pytest": "85/85 PASS",
-    "ci": "GREEN",
+    "pytest_baseline": "85/85 PASS",
+    "ci_baseline": "GREEN",
     "live_verification_commit": "879432a9a1c0702a6fdeedcbcb26f8524bb5bde2"
   },
   "launch_policy": {
@@ -39,7 +39,7 @@
     "publisher_local_times_cest": ["09:15", "13:15", "20:15"],
     "poll_local_time_cest": "17:20",
     "current_touchpoints": 4,
-    "note": "Owned by CHAT10; CHAT07 must not edit shared workflow surface directly."
+    "note": "Workflow schedule remains CHAT10-owned; target is still 5 slots/day."
   },
   "nurturing": {
     "onboarding_days": 7,
@@ -51,8 +51,26 @@
   "asset_source": {
     "provider": "GOOGLE_DRIVE",
     "folder_id": "1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD",
-    "selection": "semantic_score_then_cooldown",
-    "media": ["image/jpeg", "image/png", "video/mp4"]
+    "selection": "semantic_bucket_then_cooldown",
+    "media": ["image/jpeg", "image/png", "video/mp4"],
+    "transport_adapter": "bot/drive_media.py",
+    "publisher_wiring": "bot/content_engine.py"
+  },
+  "ai": {
+    "gateway": "bot/ai_gateway.py",
+    "service": "bot/ai_service.py",
+    "http_api": "bot/api_server.py",
+    "endpoint": "/api/ai/assistant",
+    "provider_strategy": "priority_then_health_failover",
+    "deterministic_fallback": true,
+    "duplicate_key_loader": "runtime/run_with_env.py"
+  },
+  "persistent_runtime": {
+    "supervisor": "bot/runtime_supervisor.py",
+    "windows": "runtime/install_windows_task.ps1",
+    "linux": "runtime/cryptoaid-telegram.service",
+    "container": "runtime/Dockerfile.telegram",
+    "status": "CODED_NOT_DEPLOYED"
   },
   "webinar": {
     "enabled": false,
@@ -62,8 +80,9 @@
   "go_no_go": {
     "text_and_poll_scheduler": "GO",
     "controlled_publish": "GO",
-    "media_publish": "BLOCKED_BY_DRIVE_TRANSPORT_ADAPTER",
-    "persistent_conversational_bot": "BLOCKED_BY_HOSTING_RUNTIME",
+    "media_publish": "CODED_PENDING_LIVE_IMAGE_VIDEO_TEST",
+    "persistent_conversational_bot": "CODED_PENDING_RUNTIME_DEPLOY_TEST",
+    "ai_gateway": "CODED_PENDING_REAL_PROVIDER_SMOKE_TEST",
     "overall": "CONDITIONAL_GO"
   }
 }
