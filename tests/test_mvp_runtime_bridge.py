@@ -15,9 +15,11 @@ SERVER = (ROOT / "runtime" / "mvp_bridge_server.py").read_text()
 
 def config(tmp_path: Path, sic_id: str | None = "SIC-MVP-RUNTIME-1") -> BridgeConfig:
     static = tmp_path / "public_html"
+    private = tmp_path / "private"
     static.mkdir(parents=True)
+    private.mkdir(parents=True)
     (static / "index.html").write_text("<!doctype html><title>test</title>")
-    return BridgeConfig(master_db=tmp_path / "private" / "BLOCKCHAINPLUS-MASTER.sqlite", static_root=static, sandbox_sic_id=sic_id)
+    return BridgeConfig(master_db=private / "BLOCKCHAINPLUS-MASTER.sqlite", static_root=static, sandbox_sic_id=sic_id)
 
 
 def test_normal_package_loads_bridge_before_app_and_pwa_caches_it():
