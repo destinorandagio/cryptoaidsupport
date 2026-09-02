@@ -1,0 +1,36 @@
+{
+  "CHAT_ID":"CHAT07",
+  "VERSION":"0.1.0",
+  "TIMESTAMP":"2026-09-02T13:25:00+02:00",
+  "POLICY":"DISCOVER_LICENSE_CHECK_SECURITY_CHECK_ADAPT_INTEGRATE_TEST",
+  "SOURCES":[
+    {
+      "repo":"OriginProtocol/telegram-moderator",
+      "license":"MIT",
+      "decision":"ADAPT_PATTERNS_ONLY",
+      "use":["regex moderation","separate detection from enforcement","structured moderation reasons"],
+      "reject":["conversation logging","automatic broad bans","PostgreSQL dependency"]
+    },
+    {
+      "repo":"JustDreameritis/telegram-bot-starter",
+      "license":"MIT",
+      "decision":"ADAPT_PATTERNS_ONLY",
+      "use":["typed startup validation","graceful failure","scheduled health/admin patterns","SQLite persistence pattern if owner-approved"],
+      "reject":["parallel user authority","parallel scheduler ownership"]
+    },
+    {
+      "repo":"oratis/influencex",
+      "license":"MIT",
+      "decision":"ADAPT_MARKETING_MEASUREMENT_PATTERNS_ONLY",
+      "use":["campaign lifecycle","measurable funnel events","ROI/metric separation","rate limiting patterns"],
+      "reject":["creator scraping","outreach automation","external SaaS dependencies"]
+    },
+    {
+      "repo":"Visualistic-Studios/Media-Manager",
+      "license":"GPL-3.0",
+      "decision":"DO_NOT_COPY_CODE",
+      "use":["conceptual benchmark only"],
+      "reject":["code reuse due to incompatible copyleft risk"]
+    }
+  ]
+}
