@@ -8,8 +8,16 @@ CANONICAL_CHAIN_ID=137
 CANONICAL_CASE_TREASURY="0x3C320B3a0917fF44BF6551CDdee44402AFcF250C"
 REQUIRED_MVP_SETTLEMENT_MODE="SANDBOX_ONLY_NO_CONTRACT_DEPLOY"
 REQUIRED_CASE_AUTHORITY="CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT"
+REQUIRED_MANIFEST_PURPOSE="FACTUAL_DEPLOYMENT_INVENTORY_ONLY"
 FORBIDDEN_CASE_CONTRACT="CryptoAIDCasePayment"
 FORBIDDEN_STALE_ECONOMIC_MARKERS=("onboarding 100","first-case payment 400","first case payment 400")
+
+def _stale_markers(payload:dict)->list[str]:
+    errors=[]
+    serialized=json.dumps(payload,sort_keys=True).lower()
+    for marker in FORBIDDEN_STALE_ECONOMIC_MARKERS:
+        if marker in serialized: errors.append(f"stale conflicting Case-economics marker present: {marker}")
+    return errors
 
 def validate_plan(plan:dict)->list[str]:
     errors=[]
@@ -24,9 +32,21 @@ def validate_plan(plan:dict)->list[str]:
     steps=[s for s in (plan.get("steps") or []) if s.get("contract")==FORBIDDEN_CASE_CONTRACT]
     if len(steps)!=1: errors.append(f"deployment plan must contain exactly one quarantined {FORBIDDEN_CASE_CONTRACT} step")
     elif steps[0].get("enabled") is not False or steps[0].get("phase")!="POST_MVP": errors.append(f"{FORBIDDEN_CASE_CONTRACT} must be enabled=false and phase=POST_MVP")
-    serialized=json.dumps(plan,sort_keys=True).lower()
-    for marker in FORBIDDEN_STALE_ECONOMIC_MARKERS:
-        if marker in serialized: errors.append(f"stale conflicting Case-economics marker present: {marker}")
+    errors+=_stale_markers(plan)
+    return sorted(set(errors))
+
+def validate_manifest(manifest:dict)->list[str]:
+    errors=[]
+    if manifest.get("chainId")!=CANONICAL_CHAIN_ID: errors.append("Polygon inventory manifest chainId must be 137")
+    if manifest.get("manifestPurpose")!=REQUIRED_MANIFEST_PURPOSE: errors.append("Polygon manifest must be factual deployment inventory only")
+    if manifest.get("mvpCaseSettlement")!=REQUIRED_MVP_SETTLEMENT_MODE: errors.append("Polygon manifest must declare sandbox-only MVP Case settlement")
+    if manifest.get("casePaymentAuthority")!=REQUIRED_CASE_AUTHORITY: errors.append("Polygon manifest must declare CHAT02 Case-payment authority")
+    if "paymentAsset" in manifest: errors.append("Polygon inventory manifest must not define top-level Case paymentAsset")
+    exclusions=set(manifest.get("mvpReleaseExclusions") or [])
+    if FORBIDDEN_CASE_CONTRACT not in exclusions: errors.append(f"Polygon manifest must explicitly exclude {FORBIDDEN_CASE_CONTRACT} from MVP release")
+    addr=(manifest.get("contracts") or {}).get(FORBIDDEN_CASE_CONTRACT)
+    if not isinstance(addr,str) or len(addr)!=42 or not addr.startswith("0x") or set(addr[2:])=={"0"}: errors.append("Polygon manifest may retain CasePayment only as a valid factual deployed-address inventory entry")
+    errors+=_stale_markers(manifest)
     return sorted(set(errors))
 
 def validate_deployer_source(source:str)->list[str]:
@@ -65,10 +85,10 @@ def validate_bundle(bundle:dict)->list[str]:
     return sorted(set(errors))
 
 def main()->int:
-    p=argparse.ArgumentParser(); p.add_argument("plan",nargs="?",type=Path,default=Path("web3/deploy/deployment-plan.json")); p.add_argument("--deployer",type=Path,default=Path("web3/deploy/index.html")); p.add_argument("--exporter",type=Path,default=Path("web3/scripts/export-deploy-bundle.js")); p.add_argument("--bundle",type=Path); a=p.parse_args(); errors=[]
+    p=argparse.ArgumentParser(); p.add_argument("plan",nargs="?",type=Path,default=Path("web3/deploy/deployment-plan.json")); p.add_argument("--deployer",type=Path,default=Path("web3/deploy/index.html")); p.add_argument("--exporter",type=Path,default=Path("web3/scripts/export-deploy-bundle.js")); p.add_argument("--manifest",type=Path,default=Path("web3/deploy/polygon-mainnet-manifest.json")); p.add_argument("--bundle",type=Path); a=p.parse_args(); errors=[]
     try:
-        plan=json.loads(a.plan.read_text(encoding="utf-8")); errors+=validate_plan(plan); errors+=validate_deployer_source(a.deployer.read_text(encoding="utf-8")); errors+=validate_exporter_source(a.exporter.read_text(encoding="utf-8"));
+        plan=json.loads(a.plan.read_text(encoding="utf-8")); manifest=json.loads(a.manifest.read_text(encoding="utf-8")); errors+=validate_plan(plan); errors+=validate_manifest(manifest); errors+=validate_deployer_source(a.deployer.read_text(encoding="utf-8")); errors+=validate_exporter_source(a.exporter.read_text(encoding="utf-8"));
         if a.bundle: errors+=validate_bundle(json.loads(a.bundle.read_text(encoding="utf-8")))
     except (OSError,json.JSONDecodeError) as e: errors.append(f"cannot read release authority surface: {e}")
-    print(json.dumps({"status":"PASS" if not errors else "FAIL","plan":str(a.plan),"deployer":str(a.deployer),"exporter":str(a.exporter),"bundle":str(a.bundle) if a.bundle else None,"errors":sorted(set(errors))},indent=2,sort_keys=True)); return 0 if not errors else 2
+    print(json.dumps({"status":"PASS" if not errors else "FAIL","plan":str(a.plan),"manifest":str(a.manifest),"deployer":str(a.deployer),"exporter":str(a.exporter),"bundle":str(a.bundle) if a.bundle else None,"errors":sorted(set(errors))},indent=2,sort_keys=True)); return 0 if not errors else 2
 if __name__=="__main__": raise SystemExit(main())
