@@ -1,0 +1,220 @@
+{
+  "CHAT_ID": "CHAT07",
+  "DOMAIN": "TELEGRAM_COMMUNITY_SUPPORT_SOCIAL",
+  "TIMESTAMP": "2026-09-02T15:50:00+02:00",
+  "VERSION": "0.4.0",
+  "PARENT_VERSION": "0.3.0",
+  "GIT_SHA": "627f86994408be47a097ca814a7aa99b5ccc11ba",
+  "INPUT_VERSIONS": {
+    "GLOBAL_KNOWLEDGE_MANIFEST": "1.0",
+    "CRYPTOAID_MASTER_KNOWLEDGE_SHA": "f6e45315782f42982e5a20aa31318ef6a3663542",
+    "SOCIAL_ASSET_DRIVE_ROOT": "1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD",
+    "EDITORIAL_SCHEDULE": "1.0",
+    "NURTURING_FLOWS": "1.0"
+  },
+  "BOT_VERSION": "main@627f869",
+  "COMMAND_VERSION": "v1.0 — 16 commands registered",
+  "CONTENT_VERSION": "social_content_factory v1.0 — PostPackage contract verified",
+  "NURTURING_VERSION": "nurturing_flows.json v1.0 — 3 flows configured",
+  "GROWTH_VERSION": "acquisition_engine v1.0 — signal scoring active",
+  "ASSET_VERSION": "drive_asset_source.json v1.0 — semantic taxonomy configured",
+
+  "TESTED": [
+    "CONTROLLED_GROUP_TEST",
+    "CONTROLLED_CHANNEL_TEST",
+    "HEALTHCHECK_BOT_AUTH",
+    "HEALTHCHECK_GROUP_REACHABLE",
+    "HEALTHCHECK_CHANNEL_REACHABLE",
+    "SECRET_STORE_VERIFIED",
+    "NO_TOKEN_IN_CODEBASE",
+    "PYTHON_COMPILE_ALL_BOT",
+    "PYTEST_85_TESTS",
+    "CI_GREEN_ON_MAIN",
+    "BOT_STARTUP_CODE_REVIEW",
+    "LANGUAGE_DETECTION_CODE",
+    "OFFICIAL_LINKS_REGISTRY",
+    "SECURITY_GUARD_contains_secret",
+    "SECURITY_GUARD_moderation_classify",
+    "SCAM_RECOVERY_NO_GUARANTEE",
+    "CASE_PREASSESSMENT_STRUCTURE",
+    "KNOWLEDGE_FALLBACK_ESCALATION",
+    "CONVERSATION_HANDLER_LOGIC",
+    "GROUP_WELCOME_NEW_MEMBERS",
+    "MODERATION_HIGH_RISK_PATTERNS",
+    "MODERATION_MEDIUM_RISK_PATTERNS",
+    "MODERATION_SHORTENED_URL_DETECTION",
+    "RATE_LIMITER_ANTI_ABUSE",
+    "POLL_ENGINE_DETERMINISTIC",
+    "CONTENT_FACTORY_CTA_REQUIRED",
+    "CONTENT_FACTORY_VERIFICATION_GATE",
+    "CONTENT_FACTORY_PROHIBITED_CLAIMS",
+    "CONTENT_FACTORY_FINGERPRINT_DEDUP",
+    "ASSET_MATCHER_SEMANTIC_TAGS",
+    "ASSET_MATCHER_IGNORE_NOT_READY",
+    "NURTURING_ANTI_SPAM_GUARD",
+    "NURTURING_MAX_2_TOUCHES_DAY",
+    "NURTURING_MIN_6H_SEPARATION",
+    "EDITORIAL_SCHEDULE_5_SLOTS",
+    "EDITORIAL_SCHEDULE_EUROPE_ROME",
+    "PUBLISHING_POLICY_MAX_1_PER_RUN",
+    "INVITE_COPY_NO_GUARANTEED_RECOVERY",
+    "CTA_REGISTRY_OFFICIAL_URLS_ONLY"
+  ],
+
+  "TEST_PASS": [
+    "CONTROLLED_GROUP_TEST — workflow 33637117639 SUCCESS, message delivered",
+    "CONTROLLED_CHANNEL_TEST — workflow 33637181714 SUCCESS, message delivered",
+    "HEALTHCHECK — workflow 33637220770 SUCCESS, bot @CryptoAIDsupportBOT authenticated, group+channel reachable",
+    "SECRET_STORE — TELEGRAM_BOT_TOKEN exists, never printed in logs (masked as ***)",
+    "NO_TOKEN_COMMITTED — git grep found zero token-like patterns in codebase",
+    "PYTHON_COMPILE — bot/ compiles cleanly",
+    "PYTEST — 85/85 tests passed (Windows local, PYTHONUTF8=1)",
+    "CI_MAIN — latest main CI run 33636151327 concluded SUCCESS",
+    "BOT_STARTUP — build_app() requires TELEGRAM_BOT_TOKEN from env only, never logged",
+    "LANGUAGE — detect_language() classifies Italian/English correctly via keyword matching",
+    "OFFICIAL_LINKS — load_official_links() fail-closed, requires status=VERIFIED, validates HTTPS+t.me",
+    "LINKS_REGISTRY — @CryptoAIDsupportBOT, t.me/cryptoAIDsupporter, t.me/cryptoaidsup all in official_links.json",
+    "SECURITY — contains_secret() catches seed phrase, private key, password, 2FA, raw hex keys",
+    "MODERATION — classify_message() levels: 0=clean, 2=medium(shortened URL/suspicious promo), 4=high(seed/key/guaranteed recovery)",
+    "SCAM_RECOVERY — guaranteed recovery/return blocked by moderation AND content factory",
+    "CASE — /case provides structured intake, warns NO seed/key/password/2FA",
+    "KNOWLEDGE_FALLBACK — score<0.28 returns escalation to human support (no hallucination)",
+    "CONVERSATION — group:responds to @mention/reply/question/case_intent only, not every message",
+    "GROUP_WELCOME — new_members handler sends welcome+keyboard for non-bot joins",
+    "RATE_LIMITER — RateLimiter(6/60s) tested in test_support_mvp.py",
+    "POLL — deterministic poll selection by day-of-year, EN+IT variants available",
+    "CONTENT_FACTORY — PostPackage requires CTA, source_ref, verification_level; rejects DRAFT/UNRESOLVED",
+    "ANTI_DUPLICATION — fingerprint = sha256 of caption, deterministic for same content",
+    "NURTURING — max 2 touches/day, min 6h separation, no unsolicited DM, no fake scarcity",
+    "EDITORIAL_SCHEDULE — 5 slots/day at 08:30/11:30/14:30/17:30/20:30 Europe/Rome",
+    "DRIVE_ASSET_MATCHING — semantic taxonomy with 10 categories, deterministic score-based selection",
+    "GROWTH_LOOP — invite CTA present in nurturing flows, no mass DM/spam/fake reward",
+    "PUBLISHING_POLICY — max 1 publication per run, guaranteed_recovery forbidden"
+  ],
+
+  "TEST_FAIL": [],
+
+  "NOT_TESTED": [
+    "LIVE_BOT_POLLING_RUNTIME — requires persistent server/process (HUMAN_GATE: hosting decision needed)",
+    "LIVE_/start_RESPONSE — requires real Telegram user interaction with running bot (HUMAN_GATE)",
+    "LIVE_/language_COMMAND — requires real bot runtime interaction (HUMAN_GATE)",
+    "LIVE_CONVERSATION_10_TURNS — requires real bot runtime with knowledge engine loaded (HUMAN_GATE)",
+    "LIVE_IMAGE_POST — Drive asset transport adapter not built (CHAT10 dependency, P0 BLOCKER)",
+    "LIVE_VIDEO_POST — Drive asset transport adapter not built (CHAT10 dependency, P0 BLOCKER)",
+    "LIVE_POLL_PUBLISH — requires bot.send_poll() call via live runtime or workflow (CHAT10 dependency)",
+    "LIVE_GROUP_MODERATION — requires live bot runtime in group (HUMAN_GATE)",
+    "WEBINAR_NODE — EVERGREEN_WEBINAR not yet configured (URL/video not provided)",
+    "DRIVE_ASSET_SYNC_TRANSPORT — CHAT10 must build adapter from Drive folder ID to Telegram-readable media bytes"
+  ],
+
+  "FIXED": [],
+
+  "GROUP_TEST": {
+    "status": "PASS",
+    "workflow_run": 33637117639,
+    "destination": "@cryptoAIDsupporter",
+    "message_key": "test",
+    "result": "SUCCESS",
+    "timestamp": "2026-09-02T15:40:02+02:00"
+  },
+  "CHANNEL_TEST": {
+    "status": "PASS",
+    "workflow_run": 33637181714,
+    "destination": "@cryptoaidsup",
+    "message_key": "test",
+    "result": "SUCCESS",
+    "timestamp": "2026-09-02T15:41:00+02:00"
+  },
+  "BOT_TEST": {
+    "status": "PASS_CODE_REVIEW",
+    "details": "build_app() correctly registers 16 commands, callback handler, new_members handler, conversation handler. Token from env only. Rate limiter active. Secret guard on all input paths.",
+    "limitation": "Live polling runtime not started — requires hosting decision (HUMAN_GATE)"
+  },
+  "IMAGE_TEST": {
+    "status": "NOT_TESTED",
+    "reason": "Drive-to-Telegram asset transport adapter not built. CHAT10 dependency."
+  },
+  "VIDEO_TEST": {
+    "status": "NOT_TESTED",
+    "reason": "Drive-to-Telegram asset transport adapter not built. CHAT10 dependency."
+  },
+  "POLL_TEST": {
+    "status": "PASS_CODE_REVIEW",
+    "details": "poll_engine.py has 4 polls (2 EN, 2 IT), deterministic selection. send_poll integration requires live runtime."
+  },
+  "CONVERSATION_TEST": {
+    "status": "PASS_CODE_REVIEW",
+    "details": "conversation() handler: private=always respond, group=only on @mention/reply/question/case_intent. Security guard on every path. Knowledge fallback to escalation. IT/EN detection."
+  },
+  "MODERATION_TEST": {
+    "status": "PASS_CODE_REVIEW",
+    "details": "classify_message() detects: seed phrase, private key, guaranteed recovery, wallet drainer, shortened URLs, fake recovery pitch, DM-for-support, suspicious giveaways. Level 4=admin alert, level 2=warning. No auto-ban."
+  },
+  "RATE_LIMIT_TEST": {
+    "status": "PASS",
+    "details": "RateLimiter(limit=6, window_seconds=60) tested in test_support_mvp.py. 6 requests allowed, 7th blocked. Window reset works."
+  },
+  "DUPLICATION_TEST": {
+    "status": "PASS_CODE_REVIEW",
+    "details": "PostPackage.fingerprint is deterministic sha256 of caption. Publish gate allows max 1 per run. Actual dedup persistence depends on CHAT10 workflow concurrency lock."
+  },
+
+  "HEALTHCHECK": {
+    "TELEGRAM_BOT_TOKEN_EXISTS": "PASS — never printed",
+    "BOT_AUTHENTICATION": "PASS — @CryptoAIDsupportBOT id=8948823782",
+    "BOT_IDENTITY": "PASS — matches EXPECTED_BOT_USERNAME",
+    "GROUP_REACHABLE": "PASS — Crypto AID — Digital Asset Recovery Intelligence",
+    "CHANNEL_REACHABLE": "PASS — CRYPTOAID",
+    "PERMISSIONS_PUBLISHER": "PASS — send_message worked to both group and channel",
+    "PERMISSIONS_POLL": "NOT_TESTED — send_poll not yet called",
+    "CONFIG_JSON_VALID": "PASS — telegram.yml, editorial_schedule.json, nurturing_flows.json, drive_asset_source.json all parse correctly",
+    "PYTHON_IMPORTS": "PASS — python -m compileall bot clean",
+    "DEPENDENCIES": "PASS — python-telegram-bot==22.3, PyYAML==6.0.2, httpx==0.28.1 installed",
+    "SCHEDULER_CONFIGURATION": "PASS — 5 slots defined, Europe/Rome timezone, mix covers all 5 pillars"
+  },
+
+  "BLOCKERS": [
+    {
+      "id": "BLOCKER-01",
+      "severity": "P0",
+      "owner": "CHAT10",
+      "description": "Drive asset transport adapter not built. Image/video publishing requires CHAT10 to provide a mechanism to materialize Drive folder assets into Telegram-sendable bytes or URLs.",
+      "status": "REQUESTED_IN_REQUEST_07_TO_10_TELEGRAM_RUNTIME.json"
+    },
+    {
+      "id": "BLOCKER-02",
+      "severity": "P1",
+      "owner": "HUMAN",
+      "description": "Bot hosting decision. The bot needs a persistent runtime environment (VPS, Cloud Run, GitHub Actions self-hosted runner) to run polling mode continuously.",
+      "status": "HUMAN_GATE"
+    },
+    {
+      "id": "BLOCKER-03",
+      "severity": "P2",
+      "owner": "CHAT10",
+      "description": "CHAT10 must adapt existing Telegram publisher/community Actions to five Europe/Rome editorial touchpoints as requested in REQUEST_07_TO_10_TELEGRAM_RUNTIME.json.",
+      "status": "REQUESTED"
+    }
+  ],
+
+  "HUMAN_GATES": [
+    "First real public Telegram publication after verification (current test messages are clearly marked as system tests)",
+    "Bot hosting environment decision (VPS / Cloud Run / long-running Actions)",
+    "Irreversible group/channel admin configuration changes",
+    "Production credential rotation if needed",
+    "Webinar video/URL provision for EVERGREEN_WEBINAR node"
+  ],
+
+  "NEXT": [
+    "CHAT10: Build Drive asset transport adapter for image/video publishing",
+    "CHAT10: Adapt publisher workflows to 5 Europe/Rome editorial slots",
+    "HUMAN: Decide bot hosting environment and deploy persistent polling",
+    "HUMAN: Provide webinar video/URL when ready",
+    "CHAT05: Independent QA/regression after CHAT10 runtime changes",
+    "CHAT07: Wire /links to deterministic official_links.json at runtime (code exists, needs live test)",
+    "CHAT07: Expand verified EN/IT content packages from CHAT06 knowledge",
+    "Post deployment: Run live /start, /language, conversation-10-turn, moderation, poll tests"
+  ],
+
+  "GO_NO_GO": "CONDITIONAL_GO — All code-level tests PASS. Controlled publishing PASS. Healthcheck PASS. CI GREEN. No critical code blocker. Status is READY_FOR_HUMAN_GO_LIVE_GATE pending: (1) CHAT10 Drive asset adapter for image/video, (2) Human hosting decision for persistent bot runtime."
+}
