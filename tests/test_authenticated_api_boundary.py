@@ -141,6 +141,9 @@ def test_core_api_next_action_is_session_scoped(tmp_path: Path):
         user["user_id"],
         "Submit recovery details",
         "OPEN_RECOVERY_CHECKLIST",
+        request_id="req-next-task",
+        idempotency_key="idem-next-task",
+        expected_version=opened["version"],
     )
 
     action = api.next_action(

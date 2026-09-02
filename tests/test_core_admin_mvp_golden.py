@@ -125,7 +125,15 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
     )
     assert active["state"] == "ACTIVE"
 
-    task = core.add_task(opened["case_id"], user["user_id"], "Submit recovery details", "OPEN_RECOVERY_CHECKLIST")
+    task = core.add_task(
+        opened["case_id"],
+        user["user_id"],
+        "Submit recovery details",
+        "OPEN_RECOVERY_CHECKLIST",
+        request_id="task-r1",
+        idempotency_key="task-i1",
+        expected_version=active["version"],
+    )
     assert task["next_action"] == "OPEN_RECOVERY_CHECKLIST"
 
     lookup = admin.user_lookup(roles=[ADMIN_ROLE], sic_id=user["sic_id"])
@@ -133,8 +141,10 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
     summary = admin.case_summary(roles=[ADMIN_ROLE], case_id=opened["case_id"])
     assert summary["state"] == "ACTIVE" and summary["open_tasks"] == 1
     timeline = admin.crm_timeline(roles=[ADMIN_ROLE], sic_id=user["sic_id"])
-    assert timeline[0]["new_state"] == "ACTIVE"
-    assert timeline[0]["authorization"] == "ENTITLEMENT_GRANTED"
+    active_event = next(item for item in timeline if item["authorization"] == "ENTITLEMENT_GRANTED")
+    assert active_event["new_state"] == "ACTIVE"
+    assert timeline[0]["audit_event"] == "CASE_TASK_CREATED"
+    assert timeline[0]["case_version"] == task["version"]
 
     with pytest.raises(AdminError) as exc:
         admin.user_lookup(roles=[], sic_id=user["sic_id"])
