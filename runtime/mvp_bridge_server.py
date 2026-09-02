@@ -1,29 +1,45 @@
 """Fail-closed same-origin runtime bridge for the CryptoAID 48H MVP.
 
 This is staging/local plumbing, not a second domain authority. Core remains the
-SIC-ID/Case authority and Twin remains a read-only MIRROR projection. The
-browser never supplies user_id, sic_id, payment economics, Evidence truth or
-privileged authorization. Production exposure remains a HUMAN_GATE.
+SIC-ID/Case authority, CHAT02 remains the only Evidence/payment/settlement/
+entitlement authority, and Twin remains a read-only MIRROR projection. The
+browser never supplies user_id, sic_id, payment economics, RPC providers,
+Evidence authorization/consent, detected MIME truth or privileged state.
+Production exposure remains a HUMAN_GATE.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
-from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+from typing import Mapping
 from urllib.parse import parse_qs, urlparse
 import uuid
 
 from core import CaseEngine, CoreError
 from core.api import CORE_API_FACADE_VERSION, CoreAPI
+from evidence_payment import EvidencePaymentError
 from twin.mirror_registry import MirrorRegistryIndex
 from twin.runtime_search import SearchReadFacade
 
-BRIDGE_VERSION = "1.0.0"
+try:  # module mode: python -m runtime.mvp_bridge_server
+    from runtime.chat02_transport import (
+        MAX_EVIDENCE_BYTES,
+        Chat02HTTPTransport,
+        parse_rpc_provider_json,
+    )
+except ModuleNotFoundError:  # direct script mode: python runtime/mvp_bridge_server.py
+    from chat02_transport import (  # type: ignore
+        MAX_EVIDENCE_BYTES,
+        Chat02HTTPTransport,
+        parse_rpc_provider_json,
+    )
+
+BRIDGE_VERSION = "1.1.0"
 COOKIE_SESSION = "caid_session"
 COOKIE_CASE = "caid_case"
 MAX_BODY = 16_384
@@ -68,6 +84,9 @@ class BridgeConfig:
     mirror_xlsx: Path | None = None
     mirror_version: str = "MVP-LOCAL"
     mirror_sha256: str | None = None
+    evidence_private_root: Path | None = None
+    evidence_consent_id: str | None = None
+    rpc_provider_urls: Mapping[str, str] | None = None
 
 
 class MVPBridgeRuntime:
@@ -79,6 +98,7 @@ class MVPBridgeRuntime:
         self.core = CoreAPI(config.master_db)
         self.engine: CaseEngine = self.core.engine
         self.search_facade: SearchReadFacade | None = None
+        self.chat02: Chat02HTTPTransport | None = None
         if config.mirror_xlsx:
             path = Path(config.mirror_xlsx).expanduser().resolve()
             if not path.is_file():
@@ -89,6 +109,26 @@ class MVPBridgeRuntime:
                 expected_sha256=config.mirror_sha256,
             )
             self.search_facade = SearchReadFacade(index)
+
+        chat02_values = (
+            config.evidence_private_root,
+            config.evidence_consent_id,
+            config.rpc_provider_urls,
+        )
+        if any(value is not None for value in chat02_values):
+            if not all(value is not None for value in chat02_values):
+                raise BridgeRejected("chat02_runtime_config_incomplete", 503)
+            try:
+                self.chat02 = Chat02HTTPTransport(
+                    master_db=config.master_db,
+                    static_root=self.static_root,
+                    private_root=config.evidence_private_root,
+                    evidence_consent_id=str(config.evidence_consent_id),
+                    rpc_provider_urls=dict(config.rpc_provider_urls or {}),
+                    core_runtime=self,
+                )
+            except EvidencePaymentError as exc:
+                raise BridgeRejected(f"chat02_{exc.code.lower()}", 503) from exc
 
     def _principal(self, session_id: str | None) -> dict:
         if not session_id:
@@ -104,6 +144,11 @@ class MVPBridgeRuntime:
             return self.core.resume_session(session_id=session_id, sic_id=row["sic_id"])
         except CoreError as exc:
             raise BridgeRejected("session_required", getattr(exc, "status", 401) or 401) from exc
+
+    def _chat02(self) -> Chat02HTTPTransport:
+        if self.chat02 is None:
+            raise BridgeRejected("chat02_runtime_not_configured", 503)
+        return self.chat02
 
     def login_sandbox(self, payload: dict) -> dict:
         if any(key in payload for key in ("sic_id", "sicId", "user_id", "userId", "session_id", "wallet")):
@@ -202,7 +247,7 @@ class MVPBridgeRuntime:
 
 
 class Handler(SimpleHTTPRequestHandler):
-    server_version = "CryptoAID-MVP-Bridge/1.0"
+    server_version = "CryptoAID-MVP-Bridge/1.1"
     runtime: MVPBridgeRuntime
 
     def __init__(self, *args, runtime: MVPBridgeRuntime, **kwargs):
@@ -235,6 +280,15 @@ class Handler(SimpleHTTPRequestHandler):
         secure = "; Secure" if self.runtime.config.cookie_secure else ""
         return f"{name}={value}; Path=/; Max-Age={max_age}; HttpOnly; SameSite=Strict{secure}"
 
+    def _require_same_origin(self) -> None:
+        origin = self.headers.get("Origin")
+        if not origin:
+            return
+        parsed = urlparse(origin)
+        host = (self.headers.get("Host") or "").strip().lower()
+        if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != host:
+            raise BridgeRejected("cross_origin_forbidden", 403)
+
     def _payload(self) -> dict:
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -247,9 +301,35 @@ class Handler(SimpleHTTPRequestHandler):
             raise BridgeRejected("invalid_json", 400)
         return value
 
+    def _evidence_bytes(self) -> bytes:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError as exc:
+            raise BridgeRejected("invalid_body_size", 400) from exc
+        if length <= 0 or length > MAX_EVIDENCE_BYTES:
+            raise BridgeRejected("invalid_evidence_body_size", 413 if length > MAX_EVIDENCE_BYTES else 400)
+        body = self.rfile.read(length)
+        if len(body) != length:
+            raise BridgeRejected("invalid_evidence_body_size", 400)
+        return body
+
+    @staticmethod
+    def _evidence_error_status(exc: EvidencePaymentError) -> int:
+        if exc.code in {"SESSION_REQUIRED"}:
+            return 401
+        if exc.code in {"CASE_FORBIDDEN", "INTENT_FORBIDDEN", "UNAUTHORIZED"}:
+            return 403
+        if exc.code in {"OVERSIZED"}:
+            return 413
+        if exc.code in {"RPC_UNAVAILABLE", "EVIDENCE_STORAGE_ERROR"}:
+            return 503
+        return 400
+
     def _failure(self, exc: Exception):
         if isinstance(exc, BridgeRejected):
             self._json(exc.status, {"error": exc.code})
+        elif isinstance(exc, EvidencePaymentError):
+            self._json(self._evidence_error_status(exc), {"error": exc.code})
         elif isinstance(exc, CoreError):
             self._json(getattr(exc, "status", 400) or 400, {"error": getattr(exc, "code", "core_rejected")})
         else:
@@ -261,7 +341,13 @@ class Handler(SimpleHTTPRequestHandler):
             return super().do_GET()
         try:
             if parsed.path == "/api/mvp/health":
-                self._json(200, {"status": "ok", "bridgeVersion": BRIDGE_VERSION, "coreApiVersion": CORE_API_FACADE_VERSION, "productionDeployPerformed": False})
+                self._json(200, {
+                    "status": "ok",
+                    "bridgeVersion": BRIDGE_VERSION,
+                    "coreApiVersion": CORE_API_FACADE_VERSION,
+                    "chat02TransportReady": self.runtime.chat02 is not None,
+                    "productionDeployPerformed": False,
+                })
                 return
             if parsed.path == "/api/mvp/session":
                 self._json(200, self.runtime.session_projection(self._session(), self._case()))
@@ -270,6 +356,13 @@ class Handler(SimpleHTTPRequestHandler):
                 query = parse_qs(parsed.query).get("q", [""])[0]
                 self._json(200, self.runtime.search(self._session(), query))
                 return
+            if parsed.path == "/api/mvp/payment/quote":
+                self._json(200, self.runtime._chat02().quote(session_id=self._session() or ""))
+                return
+            if parsed.path == "/api/mvp/payment/status":
+                intent_id = parse_qs(parsed.query).get("intentId", [""])[0]
+                self._json(200, self.runtime._chat02().payment_status(session_id=self._session() or "", intent_id=intent_id))
+                return
             raise BridgeRejected("not_found", 404)
         except Exception as exc:
             self._failure(exc)
@@ -277,6 +370,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         try:
+            self._require_same_origin()
             if parsed.path == "/api/mvp/session":
                 session = self.runtime.login_sandbox(self._payload())
                 projection = self.runtime.session_projection(session["session_id"])
@@ -285,6 +379,32 @@ class Handler(SimpleHTTPRequestHandler):
             if parsed.path == "/api/mvp/cases":
                 result = self.runtime.create_case(self._session(), self._payload())
                 self._json(201, result, [self._cookie(COOKIE_CASE, result["caseId"], 86400)])
+                return
+            if parsed.path == "/api/mvp/evidence":
+                result = self.runtime._chat02().store_evidence(
+                    session_id=self._session() or "",
+                    headers=dict(self.headers.items()),
+                    content=self._evidence_bytes(),
+                )
+                self._json(201, result)
+                return
+            if parsed.path == "/api/mvp/payment/activation-intents":
+                result = self.runtime._chat02().create_activation_intent(
+                    session_id=self._session() or "", payload=self._payload()
+                )
+                self._json(201, result)
+                return
+            if parsed.path == "/api/mvp/payment/case-intents":
+                result = self.runtime._chat02().create_case_intent(
+                    session_id=self._session() or "", payload=self._payload()
+                )
+                self._json(201, result)
+                return
+            if parsed.path == "/api/mvp/payment/settle":
+                result = self.runtime._chat02().settle(
+                    session_id=self._session() or "", payload=self._payload()
+                )
+                self._json(200, result)
                 return
             raise BridgeRejected("not_found", 404)
         except Exception as exc:
@@ -300,6 +420,20 @@ def config_from_env() -> BridgeConfig:
     if os.getenv("CAID_MVP_MODE", "").strip().lower() != "sandbox":
         raise BridgeRejected("sandbox_mode_required", 503)
     mirror = os.getenv("CAID_MIRROR_XLSX", "").strip()
+
+    evidence_root_raw = os.getenv("CAID_EVIDENCE_PRIVATE_ROOT", "").strip()
+    consent_id = os.getenv("CAID_MVP_EVIDENCE_CONSENT_ID", "").strip()
+    rpc_json = os.getenv("CAID_MVP_RPC_PROVIDERS_JSON", "").strip()
+    chat02_parts = (evidence_root_raw, consent_id, rpc_json)
+    if any(chat02_parts) and not all(chat02_parts):
+        raise BridgeRejected("chat02_runtime_config_incomplete", 503)
+    rpc_provider_urls = None
+    if all(chat02_parts):
+        try:
+            rpc_provider_urls = parse_rpc_provider_json(rpc_json)
+        except EvidencePaymentError as exc:
+            raise BridgeRejected("chat02_rpc_provider_config_invalid", 503) from exc
+
     return BridgeConfig(
         master_db=Path(db_value),
         static_root=static_root,
@@ -308,6 +442,9 @@ def config_from_env() -> BridgeConfig:
         mirror_xlsx=Path(mirror) if mirror else None,
         mirror_version=os.getenv("CAID_MIRROR_VERSION", "MVP-LOCAL"),
         mirror_sha256=os.getenv("CAID_MIRROR_SHA256") or None,
+        evidence_private_root=Path(evidence_root_raw) if evidence_root_raw else None,
+        evidence_consent_id=consent_id or None,
+        rpc_provider_urls=rpc_provider_urls,
     )
 
 
@@ -318,8 +455,15 @@ def main():
         raise SystemExit("non-loopback bind requires explicit human-gated CAID_MVP_ALLOW_NONLOOPBACK=1")
     port = int(os.getenv("CAID_MVP_PORT", "8788"))
     server = ThreadingHTTPServer((host, port), partial(Handler, runtime=runtime))
-    print(f"mvp-bridge: listening on {host}:{port}; sandbox only; no deploy/sign/tx performed")
-    server.serve_forever()
+    print(
+        f"mvp-bridge: listening on {host}:{port}; sandbox only; "
+        f"chat02={'ready' if runtime.chat02 else 'not-configured'}; no deploy/sign/tx performed"
+    )
+    try:
+        server.serve_forever()
+    finally:
+        if runtime.chat02 is not None:
+            runtime.chat02.close()
 
 
 if __name__ == "__main__":
