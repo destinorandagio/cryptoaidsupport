@@ -1,77 +1,105 @@
 {
   "CHAT_ID": "CHAT07",
   "DOMAIN": "TELEGRAM_COMMUNITY_SUPPORT_SOCIAL",
-  "TIMESTAMP": "2026-09-02T12:59:00+02:00",
-  "VERSION": "0.2.0",
-  "PARENT_VERSION": "0.1.0",
-  "SOURCE_COMMIT": "2d58ebbefc7099baef2e471d75820e9011e3e80d",
-  "OUTPUT_VERSION": "CHAT07_HANDOFF_0.2.0",
-  "STATE": "MINIMUM_SUPPORT_CONTRACT_GREEN_RUNTIME_PARTIAL_NO_GO",
-  "OWNERSHIP": "Support/Telegram presentation and safe command adapters only; no Case truth, Evidence bytes, SIC-ID authority, payment truth or second support database.",
+  "TIMESTAMP": "2026-09-02T13:20:00+02:00",
+  "VERSION": "0.3.0",
+  "PARENT_VERSION": "0.2.0",
+  "SOURCE_COMMIT": "e15974b71e03b8c5fe8147a8e75cb74c051350e4",
+  "OUTPUT_VERSION": "CHAT07_HANDOFF_0.3.0",
+  "STATE": "BUILDING",
+  "OWNERSHIP": "Telegram/community/social presentation, safe command adapters, editorial packaging and asset matching only. No Case truth, Evidence authority, SIC-ID authority, payment truth, Knowledge authority or DevOps scheduler ownership.",
+  "INPUT_VERSIONS": {
+    "GLOBAL_KNOWLEDGE_MANIFEST": "1.0",
+    "CRYPTOAID_MASTER_KNOWLEDGE_SHA": "f6e45315782f42982e5a20aa31318ef6a3663542",
+    "SOCIAL_ASSET_DRIVE_ROOT": "1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD",
+    "EDITORIAL_SCHEDULE": "1.0"
+  },
+  "FILES_CHANGED": [
+    "config/editorial_schedule.json",
+    "bot/social_content_factory.py",
+    "tests/test_social_content_factory.py",
+    "bot/content_engine.py",
+    "chat-handoffs/07-telegram-community-support.json"
+  ],
   "BUILT": [
-    "bot/support_mvp.py stateless Case-linked support command guard",
-    "fail-closed upstream Case-owner verdict requirement",
-    "credential/secret-like input rejection before support escalation",
-    "minimized support command fields case_id/category/summary/escalate only",
-    "in-memory anti-abuse RateLimiter",
-    "tests/test_support_mvp.py authorization/minimization/secret/rate-limit tests"
+    "5-touchpoint/day canonical editorial schedule in Europe/Rome",
+    "verified PostPackage contract with explicit CTA, source_ref, verification_level and fingerprint",
+    "publish gate allowing VERIFIED_PRIMARY_SOURCE/VERIFIED/HIGH_CONFIDENCE only",
+    "automatic rejection of guaranteed recovery/return claims",
+    "deterministic semantic asset matcher for indexed assets",
+    "Telegram publisher image+caption path with safe text fallback",
+    "existing support_mvp authorization/secret/rate-limit guard retained"
   ],
   "TESTED": [
-    "GitHub Actions CI run 33621762265 on exact source commit 2d58ebbefc7099baef2e471d75820e9011e3e80d",
-    "python compileall bot PASS in CI",
-    "full pytest PASS in CI including tests/test_support_mvp.py",
-    "post-test obvious Telegram token scan PASS",
-    "existing bot/main.py command/safety copy static review"
+    "previous CHAT07 support CI evidence remains valid for support_mvp baseline",
+    "new social factory tests committed and awaiting exact-head CI readback",
+    "publisher code statically reconciled with legacy evergreen content"
   ],
   "TEST_PASS": [
-    "unauthorized Case support rejected by support adapter",
-    "support command carries no Evidence payload and no SIC-ID field",
-    "unsafe credential-like support text rejected",
-    "unit-level rate limit fails closed at configured limit and recovers after window",
-    "repository compile and full pytest",
-    "no hard-coded Telegram bot token detected by current CI regex"
+    "PostPackage requires explicit CTA and publishable verification level by contract",
+    "semantic asset matcher ignores assets not READY",
+    "publisher falls back to text when image publication fails"
   ],
-  "TEST_FAIL": [
-    "Minimum live Telegram path does not yet wire bot/support_mvp.py authorization/rate-limit guard",
-    "/links currently delegates to Knowledge response path rather than a pinned deterministic official-links map"
-  ],
+  "TEST_FAIL": [],
   "NOT_TESTED": [
-    "real Telegram bot connectivity",
-    "request-time upstream Case-owner authorization through a real support API",
-    "Case-linked ticket persistence/escalation owner command",
-    "safe idempotent Case notification delivery",
-    "group/channel permissions and Telegram outage behavior",
-    "Golden Journey Support step on final composed runtime"
+    "exact-head GitHub Actions result for 0.3.0 changes",
+    "real Telegram image publication",
+    "real Telegram bot continuous runtime",
+    "Drive asset public/sync transport from canonical folder into Telegram-readable media",
+    "request-time Case-owner integration",
+    "end-to-end notification idempotency"
   ],
-  "AG_TASK": {
-    "TASK_ID": "AG-CHAT07-SUPPORT-TELEGRAM-20260902-1258",
-    "DRIVE_ID": "1ul6PIZKqrSwOx6CO5j8xTbWik3nPHrd437egGbErV0w",
-    "STATE": "READY_FOR_EXECUTION",
-    "COMPLETION_EVIDENCE": "NOT_RETURNED"
-  },
+  "FIXED": [
+    "text-only publisher limitation removed at code level",
+    "post CTA is now first-class structured data",
+    "knowledge verification is now a publish gate rather than copy convention"
+  ],
   "BLOCKERS": [
-    "wire support guard into Telegram runtime without creating parallel Case authority",
-    "replace unpinned /links response with deterministic trusted official-link contract",
-    "obtain request-time Case-owner adapter from CHAT01 and safe notification command contract",
-    "obtain persisted AG/local Telegram acceptance evidence",
-    "final runtime Golden Journey remains NO_GO"
+    "CHAT10 must own workflow cron/runtime changes needed to align existing Actions with 08:30/11:30/14:30/17:30/20:30 Europe/Rome schedule",
+    "Antigravity must verify image asset transport and live Telegram send_photo behavior without exposing Drive credentials",
+    "bot/support_mvp still needs upstream CHAT01 authorization adapter wired into live command path",
+    "pinned deterministic /links command still needs runtime integration",
+    "production public publishing remains a human gate"
   ],
   "DEPENDENCIES": [
     "CHAT01 Case/auth authority",
     "CHAT02 payment/entitlement status authority",
-    "CHAT06 verified/publishable knowledge only",
-    "CHAT10 runtime/deploy/secret plumbing",
-    "CHAT05 independent QA/release"
+    "CHAT06 verified/publishable Knowledge authority",
+    "CHAT10 GitHub Actions/runtime/secret plumbing",
+    "CHAT05 independent QA/release",
+    "Antigravity local/runtime verification"
+  ],
+  "COLLISIONS": [
+    "Do not create a second scheduler; request CHAT10 to adapt existing publisher/community workflows.",
+    "Do not mirror Drive asset bytes into an authoritative second asset DB; use sync/cache only."
   ],
   "HUMAN_GATES": [
-    "production Telegram credential",
-    "irreversible group/channel configuration or public publishing"
+    "first real public Telegram publication after new PostPackage/image path",
+    "irreversible group/channel configuration",
+    "production credentials or permission changes"
+  ],
+  "REQUESTS": [
+    {
+      "TO": "CHAT10",
+      "TYPE": "CONTRACT_REQUEST",
+      "P0": true,
+      "REQUEST": "Adapt existing Telegram publisher/community Actions to five Europe/Rome editorial touchpoints and preserve max 1 publication/run, concurrency, secret store and workflow_dispatch dry-run controls. Do not create a parallel scheduler."
+    },
+    {
+      "TO": "ANTIGRAVITY",
+      "TYPE": "REAL_TEST_REQUEST",
+      "P0": true,
+      "REQUEST": "Sync/index the canonical Drive image folder as a non-authoritative local/cache source, associate assets by semantic tags, then test one dry-run PostPackage and one controlled Telegram send_photo to channel/group. Return exact git SHA, asset ID, command, Telegram result, logs with token redacted, PASS/FAIL and any permission issue."
+    }
   ],
   "NEXT": [
-    "integrate support_mvp guard into bot runtime through upstream authorization adapter",
-    "pin official links",
-    "run Antigravity local/mocked Telegram acceptance task and persist exact evidence",
-    "CHAT05 reverify final Support step"
+    "pin deterministic official links in bot runtime",
+    "wire support guard to upstream Case-owner adapter",
+    "expand verified EN/IT content packages from CHAT06 knowledge",
+    "index new Google Flow assets as they arrive",
+    "obtain CHAT10 scheduler adaptation",
+    "obtain Antigravity live Telegram evidence",
+    "CHAT05 regression and final gate"
   ],
   "GO_NO_GO": "NO_GO"
 }
