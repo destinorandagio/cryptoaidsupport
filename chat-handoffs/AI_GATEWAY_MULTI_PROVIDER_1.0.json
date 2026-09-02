@@ -1,0 +1,49 @@
+{
+  "CHAT_ID": "CHAT07",
+  "DOMAIN": "SHARED_AI_GATEWAY_DAPP_TELEGRAM",
+  "TIMESTAMP": "2026-09-02T18:06:00+02:00",
+  "VERSION": "1.0.0",
+  "PARENT_VERSION": "REQUEST_AI_RUNTIME_INTEGRATION",
+  "INPUT_VERSIONS": {
+    "AI_SECRET_SOURCE": "user-provided Drive apikeys.env",
+    "KNOWLEDGE_AUTHORITY": "CHAT06 verified knowledge",
+    "TELEGRAM_RUNTIME": "CHAT07 live verified 0.4.0"
+  },
+  "BUILT": [
+    "bot/ai_gateway.py",
+    "bot/ai_service.py multi-provider wiring",
+    "tests/test_ai_gateway.py",
+    "config/ai_secret_slots.json"
+  ],
+  "PROVIDERS_SUPPORTED": ["groq", "openai", "cerebras", "anthropic", "gemini"],
+  "ROUTING": "priority_then_health_failover",
+  "AUTHORITY_RULE": "AI is synthesis-only; verified Knowledge remains authority",
+  "SECURITY": [
+    "server-side secrets only",
+    "no API key in frontend",
+    "no API key in repository",
+    "credential redaction before provider calls",
+    "timeouts and failover",
+    "deterministic fallback when every provider fails"
+  ],
+  "TESTED": ["unit tests committed for inventory, enablement and failover"],
+  "NOT_TESTED": [
+    "real provider calls with production secrets",
+    "DAPP HTTP endpoint runtime",
+    "provider quota/429 behavior under real load"
+  ],
+  "DEPENDENCIES": [
+    "CHAT10/Antigravity import authorized keys into runtime secret store using normalized slot names",
+    "DAPP backend expose POST /api/ai/assistant server-side",
+    "CHAT05 security regression after runtime wiring"
+  ],
+  "HUMAN_GATES": ["production secret import/rotation if platform requires explicit authorization"],
+  "NEXT": [
+    "run pytest",
+    "configure at least one provider key in runtime",
+    "smoke-test grounded answer",
+    "simulate first-provider failure and verify failover",
+    "verify browser never receives provider secrets"
+  ],
+  "GO_NO_GO": "CODED_NOT_RUNTIME_VERIFIED"
+}
