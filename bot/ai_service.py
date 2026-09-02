@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-from bot.ai_provider import AIUnavailable, synthesize
+from bot.ai_gateway import AIUnavailable, synthesize
 from bot.knowledge_engine import answer as knowledge_answer, detect_language
 
 
