@@ -1,4 +1,4 @@
-const SHELL_VERSION='2.1.0';
+const SHELL_VERSION='2.1.1';
 const CACHE=`caid-shell-v${SHELL_VERSION}`;
 const SHELL=['./','./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/app.js','./assets/shield.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
