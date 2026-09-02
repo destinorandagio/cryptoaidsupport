@@ -1,18 +1,22 @@
 {
-  "schema":"cryptoaid.deployment-plan.v3-treasury-control",
+  "schema":"cryptoaid.deployment-plan.v4-mvp-quarantine-treasury-control",
   "network":"Polygon PoS Mainnet",
   "chainId":137,
-  "paymentAsset":"USDT0",
+  "rewardAsset":"USDT",
   "gasAsset":"POL",
   "humanGate":true,
   "caseTreasury":"0x3C320B3a0917fF44BF6551CDdee44402AFcF250C",
+  "mvpCaseSettlement":"SANDBOX_ONLY_NO_CONTRACT_DEPLOY",
+  "casePaymentAuthority":"CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT",
+  "caseEconomicsAuthority":"CANONICAL_CONTROL_PLANE",
+  "mvpReleaseExclusions":["CryptoAIDCasePayment"],
   "externalTokens":{"USDT":"0xc2132D05D31c914a87C6611C10748AEb04B58e8F","DUX":"0x983dD7fAfAbD3C6e179607AE46e8ce586099228b","DRX":"0x933767F8493f0AEB11A5f47f3BC28ab9072b1D27"},
   "steps":[
     {"order":1,"contract":"CryptoAIDSecurityController","dependencies":[],"external_tokens":[]},
     {"order":2,"contract":"CryptoAIDEmergencyGuardian","dependencies":[],"external_tokens":[],"constructor_defaults":["0x3C320B3a0917fF44BF6551CDdee44402AFcF250C"],"notes":"Single emergency guardian authority = treasury wallet per project decision."},
-    {"order":3,"contract":"CryptoAIDRewardTreasury","dependencies":[],"external_tokens":["USDT"]},
-    {"order":4,"contract":"CryptoAIDUSDTRewardRouter","dependencies":[],"external_tokens":["USDT"]},
-    {"order":5,"contract":"CryptoAIDCasePayment","dependencies":[],"external_tokens":["USDT"]},
+    {"order":3,"contract":"CryptoAIDRewardTreasury","dependencies":[],"external_tokens":["USDT"],"notes":"Web3 reward treasury only; separate from Case treasury and Case-payment authority."},
+    {"order":4,"contract":"CryptoAIDUSDTRewardRouter","dependencies":[],"external_tokens":["USDT"],"notes":"Reward routing only; never an MVP Case-payment authority."},
+    {"order":5,"contract":"CryptoAIDCasePayment","dependencies":[],"external_tokens":["USDT"],"enabled":false,"phase":"POST_MVP","notes":"Excluded from the 48H MVP release path. It must not create independent Case payment-intent, settlement, idempotency or entitlement truth. Future activation requires domain-owner reconciliation and HUMAN_GATE."},
     {"order":6,"contract":"CryptoAIDRank","dependencies":[],"external_tokens":[]},
     {"order":7,"contract":"CryptoAIDAchievements","dependencies":[],"external_tokens":[]},
     {"order":8,"contract":"CryptoAIDReferralProof","dependencies":[],"external_tokens":[]},
@@ -26,5 +30,6 @@
     {"order":16,"contract":"CryptoAIDUsefulMiner","dependencies":["CryptoAIDRank"],"external_tokens":["USDT","DUX","DRX"]},
     {"order":17,"contract":"CryptoAIDTimelock","dependencies":[],"external_tokens":[]},
     {"order":18,"contract":"CryptoAIDGovernance","dependencies":["CryptoAIDTimelock"],"external_tokens":[],"constructor_defaults":["0x3C320B3a0917fF44BF6551CDdee44402AFcF250C","$CryptoAIDTimelock"],"notes":"Treasury-controlled governance authority; token voting removed per project decision."}
-  ]
+  ],
+  "postDeployChecklist":["verify Polygon chain 137 and bytecode for any future allowed deployment","verify reward-token addresses before reward-only components","verify Case treasury exact address without sending funds","keep Case treasury separate from Web3 reward treasury","do not deploy CryptoAIDCasePayment as part of the 48H MVP","record every future tx hash, block and bytecode hash","production deployment requires HUMAN_GATE"]
 }
