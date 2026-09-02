@@ -5,11 +5,11 @@ Case workflow state but never payment/evidence/entitlement truth.
 """
 from __future__ import annotations
 import json, sqlite3, uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-VERSION="1.0"; SCHEMA_VERSION="chat01-core-1"; API_CONTRACT_VERSION="v1"; CASE_STATE_VERSION="1.0"
+VERSION="1.1"; SCHEMA_VERSION="chat01-core-1"; API_CONTRACT_VERSION="v1"; CASE_STATE_VERSION="1.0"
 PRODUCT_KINDS={"FREE","ACTIVATION","ONE_SHOT","CASE","MEMBERSHIP","RECURRING","UPGRADE","DOWNGRADE","RENEWAL","CANCELLATION"}
 STATES=("DRAFT","TRIAGE","PRODUCT_SELECTED","EVIDENCE_REQUIRED","CONSENT_REQUIRED","PAYMENT_REQUIRED","PAYMENT_VERIFYING","ACTIVE","ANALYSIS","ACTION_REQUIRED","RESULT_READY","FOLLOW_UP","CLOSED")
 TRANSITIONS={
@@ -54,6 +54,35 @@ class CaseEngine:
             else:
                 uid=ident("usr"); t=now(); c.execute("INSERT INTO core_users VALUES(?,?,?,?,?)",(uid,sic_id,json.dumps(profile,sort_keys=True),t,t)); result={"user_id":uid,"sic_id":sic_id,"returning":False}
             c.execute("INSERT INTO core_requests VALUES(?,?,?,?,?)",(idempotency_key,request_id,"register_user",json.dumps(result,sort_keys=True),now())); c.execute("COMMIT"); return result
+    def create_session(self,user_id:str,sic_id:str,request_id:str,idempotency_key:str,ttl_seconds:int=3600)->dict:
+        if ttl_seconds < 60 or ttl_seconds > 86400: raise CoreError("INVALID_SESSION_TTL","session ttl out of range")
+        with self.conn() as c:
+            old=c.execute("SELECT response_json,operation FROM core_requests WHERE idempotency_key=?",(idempotency_key,)).fetchone()
+            if old:
+                if old["operation"]!="create_session": raise CoreError("IDEMPOTENCY_CONFLICT","idempotency key already used",409)
+                return json.loads(old["response_json"])
+            c.execute("BEGIN IMMEDIATE"); u=c.execute("SELECT * FROM core_users WHERE user_id=?",(user_id,)).fetchone()
+            if not u: raise CoreError("USER_NOT_FOUND","user not found",404)
+            if u["sic_id"]!=sic_id: raise CoreError("SIC_ID_MISMATCH","SIC-ID mismatch",403)
+            created=datetime.now(timezone.utc); expires=created+timedelta(seconds=int(ttl_seconds)); sid=ident("ses")
+            c.execute("INSERT INTO core_sessions VALUES(?,?,?,?,?)",(sid,user_id,"ACTIVE",created.isoformat(),expires.isoformat()))
+            result={"session_id":sid,"user_id":user_id,"sic_id":sic_id,"status":"ACTIVE","expires_at":expires.isoformat()}
+            c.execute("INSERT INTO core_requests VALUES(?,?,?,?,?)",(idempotency_key,request_id,"create_session",json.dumps(result,sort_keys=True),created.isoformat())); c.execute("COMMIT"); return result
+    def resume_session(self,session_id:str,sic_id:str)->dict:
+        with self.conn() as c:
+            row=c.execute("SELECT s.*,u.sic_id FROM core_sessions s JOIN core_users u ON u.user_id=s.user_id WHERE s.session_id=?",(session_id,)).fetchone()
+            if not row: raise CoreError("SESSION_NOT_FOUND","session not found",404)
+            if row["sic_id"]!=sic_id: raise CoreError("SIC_ID_MISMATCH","SIC-ID mismatch",403)
+            if row["status"]!="ACTIVE": raise CoreError("SESSION_INACTIVE","session is not active",401)
+            if row["expires_at"] and datetime.fromisoformat(row["expires_at"])<=datetime.now(timezone.utc):
+                c.execute("UPDATE core_sessions SET status='EXPIRED' WHERE session_id=?",(session_id,)); raise CoreError("SESSION_EXPIRED","session expired",401)
+            return {"session_id":session_id,"user_id":row["user_id"],"sic_id":row["sic_id"],"status":"ACTIVE","expires_at":row["expires_at"]}
+    def revoke_session(self,session_id:str,user_id:str)->dict:
+        with self.conn() as c:
+            c.execute("BEGIN IMMEDIATE"); row=c.execute("SELECT * FROM core_sessions WHERE session_id=? AND user_id=?",(session_id,user_id)).fetchone()
+            if not row: raise CoreError("SESSION_NOT_FOUND","session not found",404)
+            if row["status"]!="REVOKED": c.execute("UPDATE core_sessions SET status='REVOKED' WHERE session_id=?",(session_id,))
+            c.execute("COMMIT"); return {"session_id":session_id,"user_id":user_id,"status":"REVOKED"}
     def bind_wallet(self,user_id:str,sic_id:str,wallet:str,request_id:str,idempotency_key:str)->dict:
         with self.conn() as c:
             c.execute("BEGIN IMMEDIATE"); u=c.execute("SELECT * FROM core_users WHERE user_id=?",(user_id,)).fetchone()
@@ -81,6 +110,19 @@ class CaseEngine:
         with self.conn() as c: r=c.execute("SELECT * FROM core_cases WHERE case_id=? AND user_id=?",(case_id,user_id)).fetchone()
         if not r: raise CoreError("CASE_NOT_FOUND","case not found or unauthorized",404)
         return dict(r)
+    @staticmethod
+    def _paid_entitlement_authorized(c:sqlite3.Connection,case_id:str)->bool:
+        required=("entitlement_ledger","payment_intents")
+        if any(not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(name,)).fetchone() for name in required): return False
+        row=c.execute("""
+            SELECT 1
+            FROM entitlement_ledger e
+            JOIN payment_intents p ON p.intent_id=e.intent_id
+            WHERE e.case_id=? AND p.case_id=? AND e.delta>0
+              AND p.state='SETTLED' AND p.entitlement_ref=e.entitlement_ref
+            LIMIT 1
+        """,(case_id,case_id)).fetchone()
+        return bool(row)
     def transition(self,case_id:str,user_id:str,new_state:str,actor:str,reason:str,request_id:str,idempotency_key:str,authorization:str,expected_version:int)->dict:
         if new_state not in STATES: raise CoreError("INVALID_STATE","unknown state")
         with self.conn() as c:
@@ -90,8 +132,11 @@ class CaseEngine:
             if not r: raise CoreError("CASE_NOT_FOUND","case not found or unauthorized",404)
             if r["version"]!=expected_version: raise CoreError("STALE_STATE","case version is stale",409)
             if new_state not in TRANSITIONS[r["state"]]: raise CoreError("INVALID_TRANSITION",f"{r['state']} -> {new_state}",409)
-            # ACTIVE may only be asserted after an external entitlement/payment authority grants the contract.
-            if new_state=="ACTIVE" and authorization not in {"ENTITLEMENT_GRANTED","FREE_PRODUCT_AUTHORIZED"}: raise CoreError("MISSING_ENTITLEMENT","activation requires external entitlement authorization",403)
+            if new_state=="ACTIVE":
+                if authorization=="ENTITLEMENT_GRANTED":
+                    if not self._paid_entitlement_authorized(c,case_id): raise CoreError("MISSING_ENTITLEMENT","paid activation requires a settled CHAT02 entitlement effect",403)
+                elif authorization!="FREE_PRODUCT_AUTHORIZED":
+                    raise CoreError("MISSING_ENTITLEMENT","activation requires external entitlement authorization",403)
             ver=r["version"]+1; t=now(); c.execute("UPDATE core_cases SET state=?,version=?,updated_at=?,closed_at=? WHERE case_id=?",(new_state,ver,t,t if new_state=="CLOSED" else None,case_id))
             ev=(ident("ce"),case_id,actor,r["state"],new_state,reason,t,request_id,idempotency_key,authorization,"CASE_STATE_TRANSITION",ver); c.execute("INSERT INTO core_case_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",ev)
             result={"case_id":case_id,"previous_state":r["state"],"state":new_state,"version":ver}; c.execute("INSERT INTO core_requests VALUES(?,?,?,?,?)",(idempotency_key,request_id,"transition",json.dumps(result,sort_keys=True),t)); c.execute("COMMIT"); return result
