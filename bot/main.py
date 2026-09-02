@@ -11,6 +11,8 @@ from acquisition_engine import assess, next_step
 from support_mvp import SupportRejected, contains_secret, render_official_links
 from telegram_private_support import TelegramPrivateSupportRejected, TelegramPrivateSupportRuntime
 from telegram_rate_policy import TelegramRateGate
+from telegram_support_transport import TelegramDurableSupportRejected, TelegramDurableSupportRuntime
+from telegram_ticket_commands import TelegramTicketCommandRejected, create_case_ticket_command
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("cryptoaid")
@@ -19,11 +21,13 @@ CHANNEL = os.getenv("TELEGRAM_CHANNEL", "@cryptoaidsup")
 SUPPORT_RATE_GATE = TelegramRateGate(user_limit=6, chat_limit=18, minute_window_seconds=60, burst_limit=1, burst_window_seconds=1.0)
 _PRIVATE_SUPPORT_RUNTIME = None
 _PRIVATE_SUPPORT_INIT_ATTEMPTED = False
+_DURABLE_SUPPORT_RUNTIME = None
+_DURABLE_SUPPORT_INIT_ATTEMPTED = False
 
 TEXT = {
  "en": {
   "welcome": "👋 Welcome to CryptoAID Support.\n\n🛡 Never share seed phrases, private keys, passwords or 2FA codes.\n\nAsk about CryptoAID, Web3 safety, scams, wallets, blockchain, dead dApps/tokens or recovery. If you describe a real incident, I can help structure the public evidence needed for a CryptoAID Case.",
-  "help": "🆘 CryptoAID Support\n/about — What is CryptoAID?\n/services — Services\n/ask <question> — Ask CryptoAID\n/security — Security guide\n/scam — Scam safety\n/recovery — Recovery safety\n/case — Case pre-assessment\n/link <code> — Link private Case support (DM only)\n/mycase <Case ID> — Private Case status (DM only)\n/checklist — Scam emergency checklist\n/support — Get help\n/report — Report suspicious activity\n/links — Official links\n/language — Language",
+  "help": "🆘 CryptoAID Support\n/about — What is CryptoAID?\n/services — Services\n/ask <question> — Ask CryptoAID\n/security — Security guide\n/scam — Scam safety\n/recovery — Recovery safety\n/case — Case pre-assessment\n/link <code> — Link private Case support (DM only)\n/mycase <Case ID> — Private Case status (DM only)\n/ticket <Case ID> — Open authorized support ticket (DM only)\n/escalate <Case ID> — Escalate authorized Case support (DM only)\n/checklist — Scam emergency checklist\n/support — Get help\n/report — Report suspicious activity\n/links — Official links\n/language — Language",
   "security": "🛡 SECURITY FIRST\n• Never share seed/private keys.\n• Verify domains and usernames.\n• Treat unsolicited DMs as suspicious.\n• Read wallet signature requests before approving.\n• No legitimate CryptoAID admin needs your wallet secret.",
   "support": "🧭 Tell us what you need without posting passwords, seed phrases, private keys or sensitive credentials. Case-linked private status is available only after authenticated Case-owner authorization; this bot does not expose private Evidence. If the knowledge base cannot answer safely, human review is recommended.",
   "report": "🚨 Report only public, non-secret evidence: username, public address/transaction hash, public URL and what happened. Never post credentials or seed phrases.",
@@ -32,7 +36,7 @@ TEXT = {
  },
  "it": {
   "welcome": "👋 Benvenuto in CryptoAID Support.\n\n🛡 Non condividere mai seed phrase, chiavi private, password o codici 2FA.\n\nChiedimi di CryptoAID, sicurezza Web3, scam, wallet, blockchain, dApp/token morti o recovery. Se descrivi un incidente reale, posso aiutarti a strutturare le evidenze pubbliche necessarie per un Case CryptoAID.",
-  "help": "🆘 Supporto CryptoAID\n/about — Cos'è CryptoAID?\n/services — Servizi\n/ask <domanda> — Chiedi a CryptoAID\n/security — Guida sicurezza\n/scam — Sicurezza scam\n/recovery — Recovery sicuro\n/case — Pre-assessment Case\n/link <codice> — Collega supporto Case privato (solo DM)\n/mycase <Case ID> — Stato Case privato (solo DM)\n/checklist — Checklist emergenza scam\n/support — Assistenza\n/report — Segnala attività sospetta\n/links — Link ufficiali\n/language — Lingua",
+  "help": "🆘 Supporto CryptoAID\n/about — Cos'è CryptoAID?\n/services — Servizi\n/ask <domanda> — Chiedi a CryptoAID\n/security — Guida sicurezza\n/scam — Sicurezza scam\n/recovery — Recovery sicuro\n/case — Pre-assessment Case\n/link <codice> — Collega supporto Case privato (solo DM)\n/mycase <Case ID> — Stato Case privato (solo DM)\n/ticket <Case ID> — Apri ticket Case autorizzato (solo DM)\n/escalate <Case ID> — Escalation supporto Case autorizzato (solo DM)\n/checklist — Checklist emergenza scam\n/support — Assistenza\n/report — Segnala attività sospetta\n/links — Link ufficiali\n/language — Lingua",
   "security": "🛡 SECURITY FIRST\n• Non condividere seed/chiavi private.\n• Verifica domini e username.\n• Considera sospetti i DM non richiesti.\n• Leggi le richieste di firma del wallet prima di approvarle.\n• Nessun admin CryptoAID legittimo necessita dei segreti del tuo wallet.",
   "support": "🧭 Scrivi cosa ti serve senza pubblicare password, seed phrase, chiavi private o credenziali sensibili. Lo stato privato collegato a un Case è disponibile solo dopo autorizzazione autenticata del proprietario del Case; il bot non espone Evidence privata. Se la knowledge non può rispondere in sicurezza, è raccomandata la revisione umana.",
   "report": "🚨 Segnala solo prove pubbliche e non segrete: username, address/transaction hash pubblico, URL pubblico e descrizione. Mai credenziali o seed phrase.",
@@ -66,6 +70,27 @@ def private_support_runtime():
         _PRIVATE_SUPPORT_RUNTIME = None
         log.warning("private_case_support_unavailable")
     return _PRIVATE_SUPPORT_RUNTIME
+
+
+def durable_support_runtime():
+    global _DURABLE_SUPPORT_RUNTIME, _DURABLE_SUPPORT_INIT_ATTEMPTED
+    if _DURABLE_SUPPORT_INIT_ATTEMPTED:
+        return _DURABLE_SUPPORT_RUNTIME
+    _DURABLE_SUPPORT_INIT_ATTEMPTED = True
+    private_runtime = private_support_runtime()
+    transport_db = os.getenv("CRYPTOAID_SUPPORT_TRANSPORT_DB", "").strip()
+    if private_runtime is None or not transport_db:
+        log.warning("durable_case_support_unavailable")
+        return None
+    try:
+        _DURABLE_SUPPORT_RUNTIME = TelegramDurableSupportRuntime(
+            private_runtime=private_runtime,
+            transport_db_path=transport_db,
+        )
+    except TelegramDurableSupportRejected:
+        _DURABLE_SUPPORT_RUNTIME = None
+        log.warning("durable_case_support_unavailable")
+    return _DURABLE_SUPPORT_RUNTIME
 
 
 def telegram_principal(update: Update) -> str:
@@ -152,6 +177,46 @@ async def mycase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
         f"🔐 Case owner verified. State: {verdict['case_state']} · Version: {verdict['case_version']}. No private Evidence is sent to Telegram."
     )
+
+
+async def _ticket_command(update: Update, context: ContextTypes.DEFAULT_TYPE, *, escalate: bool):
+    if not await rate_guard(update):
+        return
+    if not update.effective_chat or update.effective_chat.type != "private":
+        await update.effective_message.reply_text("Case tickets are available only in a direct chat with this bot. / I ticket Case sono disponibili solo in chat diretta con il bot.")
+        return
+    if len(context.args) != 1:
+        command = "/escalate" if escalate else "/ticket"
+        await update.effective_message.reply_text(f"Use {command} <Case ID>. No free text is accepted. / Usa {command} <Case ID>. Non è accettato testo libero.")
+        return
+    token = context.user_data.get("support_session_id")
+    runtime = durable_support_runtime()
+    if not isinstance(token, str) or not token or runtime is None:
+        await update.effective_message.reply_text("Durable private Case support is not active. Link a fresh Case session first. / Il supporto Case privato durevole non è attivo: collega prima una nuova sessione Case.")
+        return
+    try:
+        receipt = create_case_ticket_command(
+            durable_runtime=runtime,
+            telegram_principal=telegram_principal(update),
+            support_session_id=token,
+            args=context.args,
+            escalate=escalate,
+        )
+    except (TelegramTicketCommandRejected, TelegramPrivateSupportRejected):
+        await update.effective_message.reply_text("Case ticket authorization failed or support is unavailable. Re-link if needed and retry. / Autorizzazione ticket Case non riuscita o supporto non disponibile: ricollega se necessario e riprova.")
+        return
+    label = "Escalation" if receipt.escalate else "Support ticket"
+    await update.effective_message.reply_text(
+        f"✅ {label} {receipt.ticket_id} recorded for Case {receipt.case_id}. No private Evidence or free-form Telegram text was stored."
+    )
+
+
+async def ticket(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _ticket_command(update, context, escalate=False)
+
+
+async def escalate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _ticket_command(update, context, escalate=True)
 
 
 async def ask_text(update: Update, question: str, *, rate_checked: bool = False):
@@ -251,7 +316,7 @@ def build_app():
     if not token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN missing")
     app = Application.builder().token(token).build()
-    commands = {"start":start,"help":help_cmd,"about":about,"services":services,"ask":ask_cmd,"security":security,"scam":scam,"recovery":recovery,"case":case_cmd,"link":link_support,"mycase":mycase,"checklist":checklist,"support":support,"report":report,"links":links,"language":language,"rules":security,"status":help_cmd}
+    commands = {"start":start,"help":help_cmd,"about":about,"services":services,"ask":ask_cmd,"security":security,"scam":scam,"recovery":recovery,"case":case_cmd,"link":link_support,"mycase":mycase,"ticket":ticket,"escalate":escalate,"checklist":checklist,"support":support,"report":report,"links":links,"language":language,"rules":security,"status":help_cmd}
     for name, handler in commands.items():
         app.add_handler(CommandHandler(name, handler))
     app.add_handler(CallbackQueryHandler(button))
