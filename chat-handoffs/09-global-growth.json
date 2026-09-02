@@ -1,0 +1,315 @@
+{
+  "CHAT_ID": "CHAT09",
+  "DOMAIN": "GLOBAL_GROWTH_MARKETING_SEO_PARTNERSHIP",
+  "TIMESTAMP": "2026-09-02T18:20:00+02:00",
+  "VERSION": "0.1.0",
+  "PARENT_VERSION": null,
+  "GIT_SHA_BASE": "1f6379b4e236901cf8e4b0812582f65f01a3a417",
+  "INPUT_VERSIONS": {
+    "OWNERSHIP": "schema-1.0@8773ed5678c9f04754aa6fefb6108f527d6cecc7",
+    "CHAT06": "0.2.0@6eb87a7f3d0c76037bac88adfc872b46de7f62fb",
+    "CHAT07": "0.3.0@3a8d99923e67a1c8c18a5b40bc9ae04b2b26c9f0",
+    "CHAT08": "0.3.2@9d7c31fbbd6f25f2bb174f45a3a791576c7ea09c",
+    "CHAT10": "0.4.0@7d77b1c59a1d9bc5245c62dbe819f198c6dc3d9e",
+    "CAMPAIGN_ENGINE": "71a3cd72148b3a54813d9e25b2c8f5c42a2b5ed3",
+    "ACQUISITION_ENGINE": "35e363fa94329f62d35f16ef9dcf2ace04abf86d",
+    "EVENT_TRACKING": "83bb710ea0c50395cef117cdc8f115f67e5af026"
+  },
+  "OUTPUT_VERSION": "CHAT09_HANDOFF_0.1.0",
+  "STATE": "PLANNED",
+  "OWNERSHIP": {
+    "OWNS": [
+      "growth strategy and machine contracts",
+      "campaign registry semantics",
+      "SEO strategy and indexable-surface requirements",
+      "content marketing strategy",
+      "referral program semantics",
+      "partnership candidate pipeline",
+      "PR/press/community kits",
+      "CRO experiment definitions",
+      "growth attribution requirements",
+      "retention marketing strategy"
+    ],
+    "DOES_NOT_OWN": [
+      "Case truth",
+      "Payment truth",
+      "Evidence truth",
+      "SIC-ID authority",
+      "Knowledge truth",
+      "Telegram runtime/publisher",
+      "Admin analytics authority",
+      "DevOps scheduler/deploy",
+      "frontend source ownership"
+    ],
+    "RULE": "ONE_SHARED_SURFACE_ONE_WRITER"
+  },
+  "DISCOVERY": {
+    "REUSE": [
+      "bot/campaign_engine.py",
+      "bot/acquisition_engine.py",
+      "bot/event_tracking.py",
+      "bot/social_content_factory.py",
+      "existing acquisition/social GitHub Actions",
+      "CHAT07 PostPackage publish gate",
+      "CHAT06 verified/publishable knowledge",
+      "CHAT08 observed analytics",
+      "CHAT10 workflow/runtime ownership"
+    ],
+    "FINDINGS": [
+      "Existing campaign_engine is marked CHAT07 and mixes growth semantics with Telegram presentation; preserve compatibility but separate authority via CHAT09 contracts rather than destructive rewrite.",
+      "Existing acquisition scoring is useful but is not an authoritative customer/payment/case state and must remain advisory only.",
+      "Existing event_tracking provides privacy-minimal pseudonymous events but lacks normalized UTM/referrer/landing/content dimensions and explicit consent/retention contract.",
+      "No canonical CHAT09 handoff existed before this version.",
+      "CHAT06 is still NO_GO and therefore public factual claims must remain gated to publishable verified releases.",
+      "CHAT07 production publication remains HUMAN_GATE.",
+      "CHAT10 owns schedules/workflows; CHAT09 must not create a parallel scheduler."
+    ]
+  },
+  "P0_GOLDEN_GROWTH_JOURNEY": [
+    "DISCOVERY",
+    "WEBSITE",
+    "SEARCH",
+    "DIGITAL_TWIN",
+    "TRUST",
+    "TELEGRAM",
+    "USER",
+    "ACTIVATION",
+    "CASE",
+    "RESULT",
+    "RETURN",
+    "MEMBERSHIP",
+    "REFERRAL",
+    "ADVOCACY"
+  ],
+  "CONTRACTS": {
+    "CAMPAIGN_REGISTRY": {
+      "required_fields": ["campaign_id","name","goal","audience","language","channel","funnel_stage","cta","landing_path","utm_source","utm_medium","utm_campaign","status","owner","knowledge_version","created_at"],
+      "states": ["DRAFT","VALIDATED","READY_FOR_HUMAN_GATE","ACTIVE","PAUSED","COMPLETED","ARCHIVED"],
+      "rules": [
+        "ACTIVE requires HUMAN_GATE for public publication/spend/outreach when applicable",
+        "knowledge_version must reference a CHAT06 publishable release for factual claims",
+        "campaign_id is immutable",
+        "no fabricated KPI fields",
+        "no campaign may imply guaranteed recovery or guaranteed financial outcome"
+      ]
+    },
+    "ATTRIBUTION_EVENT_V1": {
+      "required_fields": ["event_id","event_type","occurred_at","anonymous_subject","source","medium","campaign","content","landing_path","referrer_class","consent_class"],
+      "optional_fields": ["term","referral_code_hash","experiment_id","variant"],
+      "forbidden_fields": ["seed_phrase","private_key","password","mnemonic","raw_wallet_secret","raw_message_body"],
+      "rules": [
+        "event_id must be idempotent or deduplicable",
+        "subject must be pseudonymous/non-authoritative",
+        "Case/payment/result truth is referenced from owner events only, never inferred",
+        "retention/minimization policy must be configurable by owner surface"
+      ]
+    },
+    "SEO_SURFACE_V1": {
+      "types": ["project","digital_twin","chain","security","recovery_education","glossary","product_education"],
+      "required_fields": ["surface_id","type","slug","title","description","canonical_path","language","knowledge_version","verification_level","index_policy"],
+      "index_policy": ["INDEX","NOINDEX","BLOCKED_UNVERIFIED"],
+      "rules": [
+        "no doorway pages",
+        "no indexable factual page from UNVERIFIED/ANALYSIS",
+        "canonical path unique per language/surface",
+        "structured data only when supported by actual page content"
+      ]
+    },
+    "PARTNERSHIP_PIPELINE_V1": {
+      "states": ["DISCOVERED","VERIFIED_ENTITY","QUALIFIED","VALUE_MATCH","CANDIDATE","HUMAN_APPROVED_FOR_OUTREACH","OUTREACH_SENT","NEGOTIATION","VERIFIED_PARTNER","REJECTED","ARCHIVED"],
+      "required_fields": ["partner_id","entity_name","category","official_domain","verification_sources","fit","value_exchange","status","owner","last_checked_at"],
+      "rules": [
+        "CANDIDATE is never rendered or described as official partner",
+        "VERIFIED_PARTNER requires human approval plus factual evidence",
+        "outreach is HUMAN_GATE",
+        "logos/trademarks do not imply sponsorship"
+      ]
+    },
+    "REFERRAL_V1": {
+      "rules": [
+        "transparent terms",
+        "one-level user-to-user attribution by default",
+        "no pyramid/multi-level mechanics",
+        "no guaranteed earnings",
+        "auditable referral code and source",
+        "reward eligibility consumes entitlement/payment truth from CHAT02 when economic reward exists"
+      ]
+    },
+    "EXPERIMENT_V1": {
+      "required_fields": ["experiment_id","hypothesis","surface","single_change","primary_metric","guardrail_metrics","start_condition","stop_condition","status"],
+      "states": ["DRAFT","READY","RUNNING","STOPPED","KEEP","ROLLBACK","INCONCLUSIVE"],
+      "rules": [
+        "one intentional change per experiment unless explicitly factorial",
+        "ACTUAL metrics only from CHAT08 or verified runtime events",
+        "no fabricated baseline or uplift",
+        "rollback condition mandatory"
+      ]
+    }
+  },
+  "ANTIGRAVITY_IMPLEMENTATION": {
+    "PRIORITY": "P0",
+    "MODE": "LOCAL_IMPLEMENT_TEST_RETURN_EVIDENCE",
+    "REPOSITORY": "destinorandagio/cryptoaidsupport",
+    "BRANCH_BASE": "main",
+    "DO_NOT_DEPLOY_PRODUCTION": true,
+    "TASKS": [
+      {
+        "id": "AG09-P0-001",
+        "task": "Inventory exact current growth-related files and consumers before editing; return dependency map and git SHA."
+      },
+      {
+        "id": "AG09-P0-002",
+        "task": "Create CHAT09-owned growth contract package without creating a second MASTER/config authority. Preferred namespace: growth/ with pure contract/validation modules; legacy bot campaign/acquisition modules remain adapters until consumers migrate."
+      },
+      {
+        "id": "AG09-P0-003",
+        "task": "Implement CampaignRegistry validator/state machine from CAMPAIGN_REGISTRY contract with immutable IDs, claim safety, knowledge_version requirement and human-gate transitions. Persistence must be adapter-based; do not invent canonical DB."
+      },
+      {
+        "id": "AG09-P0-004",
+        "task": "Implement UTM/attribution normalization and AttributionEventV1 validation. Extend existing event_tracking through adapter or compatible functions, preserving pseudonymization and rejecting forbidden secret fields."
+      },
+      {
+        "id": "AG09-P0-005",
+        "task": "Implement SEO surface manifest validator and publishability/index gate. UNVERIFIED/ANALYSIS => BLOCKED_UNVERIFIED; verified release pin required. Do not generate doorway pages."
+      },
+      {
+        "id": "AG09-P0-006",
+        "task": "Implement PartnershipPipeline state machine with hard candidate-vs-verified separation and HUMAN_GATE before outreach/official status."
+      },
+      {
+        "id": "AG09-P0-007",
+        "task": "Implement ReferralV1 validation with single-level default and explicit rejection of multi-level/pyramid configurations. Economic reward resolution must remain an external CHAT02 adapter, not local truth."
+      },
+      {
+        "id": "AG09-P0-008",
+        "task": "Implement ExperimentV1 registry/validator and result ingestion adapter accepting ACTUAL metrics from CHAT08/event source only."
+      },
+      {
+        "id": "AG09-P0-009",
+        "task": "Add deterministic unit tests for all growth contracts, claim safety, UTM normalization, attribution privacy, SEO verification gate, partnership transitions, referral anti-pyramid guard, experiment no-fake-metrics rules, and legacy compatibility."
+      },
+      {
+        "id": "AG09-P0-010",
+        "task": "Run compile/import/tests locally and browser-test any existing growth-facing UI only if present. Do not add cosmetic UI. Return exact commands, PASS/FAIL, failing trace, files changed and commit SHA."
+      }
+    ],
+    "FORBIDDEN_EDITS_WITHOUT_OWNER_CONTRACT": [
+      "control/*",
+      "core/*",
+      "evidence_payment/*",
+      "knowledge authoritative data",
+      "frontend/*",
+      "admin/*",
+      ".github/workflows/*",
+      "Telegram public publisher behavior"
+    ],
+    "REQUESTS_TO_OTHER_FACTORIES": [
+      {
+        "TO": "CHAT06",
+        "TYPE": "CONTRACT_REQUEST",
+        "REQUEST": "Expose a stable publishability adapter or versioned release manifest that CHAT09 can validate by knowledge_version + verification_level without reading private/analysis-only knowledge as marketing fact."
+      },
+      {
+        "TO": "CHAT07",
+        "TYPE": "CONTRACT_REQUEST",
+        "REQUEST": "Treat CHAT09 CampaignRegistry/CTA/attribution metadata as input to presentation PostPackage; CHAT07 remains owner of Telegram/community publication and must not promote CANDIDATE partners or unverified claims."
+      },
+      {
+        "TO": "CHAT08",
+        "TYPE": "CONTRACT_REQUEST",
+        "REQUEST": "Expose read-only ACTUAL KPI/event aggregation for campaign/experiment attribution. CHAT09 must not write analytics truth or fabricate missing values."
+      },
+      {
+        "TO": "CHAT10",
+        "TYPE": "CONTRACT_REQUEST",
+        "REQUEST": "Wire tests/workflow invocation only after CHAT09 contract modules are implemented; do not create a parallel scheduler. Preserve dry-run, bounded concurrency and HUMAN_GATE for public actions."
+      }
+    ],
+    "ACCEPTANCE_TESTS": [
+      "Campaign DRAFT -> VALIDATED passes only with all required metadata and safe claims",
+      "Campaign cannot become ACTIVE through library code without explicit human_gate_approved input",
+      "guaranteed recovery/ROI/return claims are rejected in IT and EN baseline patterns",
+      "Attribution event never stores raw subject ID after normalization",
+      "Attribution validator rejects secret/private key/seed/password fields",
+      "UTM normalization produces deterministic lower-case key names and bounded sanitized values without inventing missing source",
+      "SEO UNVERIFIED/ANALYSIS input is BLOCKED_UNVERIFIED/NOINDEX",
+      "SEO VERIFIED input with pinned knowledge_version may be INDEX candidate but does not publish itself",
+      "Partnership CANDIDATE cannot jump to VERIFIED_PARTNER without human approval evidence",
+      "Referral config with depth > 1 is rejected by default",
+      "Experiment result cannot be recorded without actual_source_ref and observed metric payload",
+      "No unit test/network test sends Telegram messages or publishes externally",
+      "Existing CHAT07 social/content tests remain green"
+    ],
+    "RETURN_EVIDENCE_SCHEMA": {
+      "required": ["task_ids","base_sha","result_sha","files_changed","commands_run","tests_pass","tests_fail","not_tested","runtime_observations","collisions","blockers","rollback_notes"],
+      "rule": "NO_FAKE_PROGRESS"
+    }
+  },
+  "BUILT": [
+    "CHAT09 canonical machine handoff",
+    "P0 growth contract set",
+    "Antigravity implementation contract",
+    "cross-factory requests",
+    "acceptance test matrix"
+  ],
+  "TESTED": [
+    "repository/head discovery",
+    "ownership readback",
+    "CHAT06/07/08/10 handoff readback",
+    "existing campaign/acquisition/event tracking code readback"
+  ],
+  "TEST_PASS": [
+    "CHAT09 ownership is explicitly registered",
+    "existing growth components are reusable",
+    "CHAT07/08/10 upstream handoffs are now discoverable",
+    "no duplicate authority was created"
+  ],
+  "TEST_FAIL": [],
+  "NOT_TESTED": [
+    "Antigravity local implementation",
+    "new growth unit tests",
+    "browser/runtime growth UI",
+    "production analytics",
+    "public SEO indexing",
+    "public campaign publication",
+    "partnership outreach",
+    "paid advertising",
+    "Golden Growth Journey E2E"
+  ],
+  "FIXED": [
+    "Previous CHAT09 state incorrectly treated CHAT07/08/10 as not discovered; current repository state reconciled.",
+    "Established explicit boundary between CHAT09 growth authority and CHAT07 presentation/runtime code."
+  ],
+  "BLOCKERS": [
+    "CHAT06 publishable release contract remains NO_GO/not release-certified",
+    "CHAT08 actual analytics adapter for campaign/experiment attribution is not yet proven to CHAT09",
+    "Antigravity implementation and local test evidence pending",
+    "CHAT05 final release remains NO_GO"
+  ],
+  "DEPENDENCIES": ["CHAT04","CHAT06","CHAT07","CHAT08","CHAT10","CHAT05","Antigravity"],
+  "COLLISIONS": [
+    "bot/campaign_engine.py currently claims CHAT07 campaign/growth ownership; do not destructively seize it. Migrate authority through adapter/contracts and coordinate CHAT07.",
+    "existing event_tracking belongs to shared acquisition/runtime behavior; extend compatibly rather than creating a second analytics authority."
+  ],
+  "HUMAN_GATES": [
+    "mass/public publication",
+    "paid advertising/spend",
+    "external outreach where required",
+    "official partnership status",
+    "production deployment/cutover",
+    "economic referral activation"
+  ],
+  "BACKLOG": {
+    "P1": ["press kit","partner kit","community kit","launch narrative","DappMap teaser","Digital Twin demo sequence","retention lifecycle campaigns"],
+    "P2": ["international language expansion beyond IT/EN","advanced CRO segmentation","media database enrichment"],
+    "P3": ["cosmetic campaign dashboard polish","non-critical vanity reporting"]
+  },
+  "NEXT": [
+    "Antigravity executes AG09-P0-001..010 and returns factual evidence pack",
+    "CHAT09 reconciles implementation diff and updates handoff version",
+    "CHAT06/07/08/10 requests are consumed without cross-owner writes",
+    "CHAT05 independently tests growth claim/privacy/release gates"
+  ],
+  "GO_NO_GO": "NO_GO"
+}
