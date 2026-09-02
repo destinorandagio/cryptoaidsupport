@@ -29,9 +29,9 @@ def test_sicid_login_is_explicit_first_step_and_fail_closed():
     assert 'No session was created.' in JS
     assert 'data-sicid-login' in HTML
 
-def test_live_sicid_is_required_before_search_and_case():
-    assert "ui:'2.1.0'" in JS
-    assert "const PROTECTED_GOLDEN_ROUTES=new Set(['search','case'])" in JS
+def test_live_sicid_is_required_before_private_golden_routes():
+    assert "ui:'2.1.1'" in JS
+    assert "const PROTECTED_GOLDEN_ROUTES=new Set(['search','case','recovery','profile'])" in JS
     assert "r.identityDataState==='LIVE'" in JS
     assert "PROTECTED_GOLDEN_ROUTES.has(name)&&!requireLiveIdentity()" in JS
     assert "Sign in with a live SIC-ID session to continue." in JS
@@ -40,6 +40,16 @@ def test_live_sicid_is_required_before_search_and_case():
     assert "btn.disabled=live" in JS
     assert "RESUME SIC-ID" in JS
     assert "hasLiveIdentity" in JS
+
+def test_private_recovery_and_profile_projection_fail_closed_without_live_sicid():
+    gate=JS.index("function renderRecovery(){")
+    sensitive=JS.index("const action=r.nextAction",gate)
+    assert JS.index("if(!hasLiveIdentity())",gate) < sensitive
+    assert 'Private recovery details are locked' in JS
+    assert 'renderPayment(null);return' in JS
+    assert "el('sicIdValue').textContent=live?r.sicId.trim()" in JS
+    assert 'Not available until a live SIC-ID session' in JS
+    assert "PROTECTED_GOLDEN_ROUTES.has(active.dataset.route)&&!hasLiveIdentity()" in JS
 
 def test_truth_labels_present():
     for item in ['LIVE','CACHED','HISTORICAL','DERIVED','TO_VERIFY']: assert item in JS+HTML
@@ -70,7 +80,7 @@ def test_service_worker_excludes_dynamic_truth():
     assert "req.mode==='navigate'" in SW
 
 def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
-    assert "const SHELL_VERSION='2.1.0'" in SW
+    assert "const SHELL_VERSION='2.1.1'" in SW
     assert 'caid-shell-v${SHELL_VERSION}' in SW
     assert 'self.skipWaiting()' in SW
     assert "keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))" in SW
@@ -84,7 +94,7 @@ def test_manifest_valid():
     assert data['theme_color']=='#ffffff'
 
 def test_twin_wallet_contract_compatibility_is_explicit_and_fail_closed():
-    assert "ui:'2.1.0'" in JS
+    assert "ui:'2.1.1'" in JS
     assert "twin:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
     assert "walletMatrix:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
     assert "dappmap:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
