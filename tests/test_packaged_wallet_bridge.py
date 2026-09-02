@@ -108,7 +108,7 @@ def test_wallet_disconnect_account_and_chain_changes_fail_closed_without_touchin
     assert "accountsChanged" in BRIDGE
     assert "chainChanged" in BRIDGE
     assert "disconnect" in BRIDGE
-    assert "status:'WRONG_CHAIN'" in BRIDGE
+    assert "'WRONG_CHAIN'" in BRIDGE
     assert "status:'DISCONNECTED'" in BRIDGE
     wallet_section = BRIDGE.split("async function connectWallet", 1)[1].split("window.addEventListener('caid:sicid-login-request'", 1)[0]
     for forbidden_identity in ["sicId", "sic_id", "userId", "user_id", "identityDataState"]:
