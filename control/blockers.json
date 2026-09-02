@@ -1,23 +1,20 @@
 {
-  "schema_version":"1.3",
-  "reconciled_at":"2026-09-02T12:23:00+02:00",
-  "qa_cycle":"20260902-1150",
-  "qa_source_head_under_test":"3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
-  "current_main_head_observed":"e46b45c85c81887fb81cb4cad88b04ac44db6262",
-  "current_main_ci_run":33619035000,
+  "schema_version":"1.4",
+  "reconciled_at":"2026-09-02T13:09:00+02:00",
+  "qa_cycle":"20260902-1300",
+  "last_confirmed_green_main_head":"3f15750a2eaf92b902f6871c2fd627cf2955c74e",
+  "last_confirmed_green_ci_run":33622319021,
   "release_state":"NO_GO",
   "blockers":[
-    {"id":"QA05-P0-001","severity":"P0","owner":"CHAT01_CORE_CASE","state":"FIXED_BY_CHAT01","evidence":"CHAT01 source commit 138f5154aabf2f79b296bf40dcf59e9c36a576ab restores stable CaseError alias and aligns open_case with the existing 13-column core_cases schema. Current-head CI #198 reaches pytest normally; no CHAT01 Core Case failures remain."},
-    {"id":"ORCH-P0-010","severity":"P0","owner":"CHAT01_CORE_CASE","state":"FIXED_BY_CHAT01","evidence":"HANDOFF_02 v1.2.0 reports targeted Core harness 6/6 PASS. CI #198 at current head e46b45c, carrying source commit 138f5154, reports 3 failed / 42 passed; all remaining failures are CHAT02-owned Evidence/payment tests. D0A is closed."},
-    {"id":"ORCH-P0-011","severity":"P0","owner":"CHAT02_EVIDENCE_PAYMENT","state":"OPEN","evidence":"Current-head CI #198 / 33619035000: Evidence store INSERT supplies 18 values to evidence_records with 17 columns; settlement INSERT supplies 7 values to entitlement_ledger with 8 columns. Exactly 3 CHAT02 tests fail; 42 pass. Security/token scan is skipped after pytest failure. Requires CHAT02-owned schema/engine alignment and regression."},
-    {"id":"QA05-P0-002","severity":"P0","owner":"GLOBAL_SYNC","state":"OPEN_PARTIAL","evidence":"CHAT06 v0.2.0, CHAT07 v0.1.0 and CHAT08 v0.1 persisted. CHAT09 and CHAT10 current machine handoffs remain absent."},
-    {"id":"QA05-P0-003","severity":"P0","owner":"CHAT03_CHAT04","state":"OPEN","evidence":"PR #3 remains open/unmerged with proposed CHAT03 1.1.0 while main/CHAT04 consumer lineage pins 1.0.0; no exact serial compatibility certificate exists. Repository CI remains red independently on CHAT02."},
-    {"id":"QA05-P0-004","severity":"P0","owner":"CHAT00_CHAT10","state":"OPEN","evidence":"No final serial deploy package SHA, deterministic all-file upload manifest SHA, rollback SHA, production restore certificate or final clean public_html certificate. CHAT10 current machine handoff is absent."},
-    {"id":"QA05-P0-005","severity":"P0","owner":"CROSS_DOMAIN","state":"OPEN","evidence":"Final first/returning-user Golden Journey, real-origin PWA, private Evidence, payment-finality, Evidence Pack, Admin and release-impacting support paths are not proven end-to-end on one final composed runtime."},
-    {"id":"ORCH-P0-006","severity":"P0","owner":"CHAT00_CHAT02_CHAT03_CHAT04","state":"OPEN","evidence":"Drive factory Stage03 v0.6.7 and repo CHAT02 1.0.x are distinct version namespaces and require explicit mapping; CHAT03 main1.0 vs PR3 1.1 is a real consumer-version delta. No silent substitution."},
-    {"id":"QA05-P1-006","severity":"P1","owner":"CHAT10","state":"OPEN","evidence":"tests.yml token grep is sequenced after pytest and is skipped on current-head CI #198 because CHAT02 tests fail. Existing grep is not a complete release secret/PII/private-Evidence/DB/dev-artifact scan."},
-    {"id":"QA05-P1-007","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","evidence":"main branch protection/status-check policy remains unproven for release use."},
-    {"id":"QA05-P1-008","severity":"P1","owner":"CHAT00","state":"FIXED_BY_RECONCILIATION","evidence":"Control plane tracks current-head CI truth after concurrent CHAT01 commits. Continue CAS/readback reconciliation because factories commit concurrently."},
-    {"id":"ORCH-P1-009","severity":"P1","owner":"CHAT07_CHAT06","state":"OPEN_NONRELEASE","evidence":"Legacy chat-handoffs/HANDOFF_07.md contains CHAT06 content; 07-telegram-community-support.json is current CHAT07 machine input."}
+    {"id":"ORCH-P0-011","severity":"P0","owner":"CHAT02_EVIDENCE_PAYMENT","state":"CLOSED_ON_MAIN","evidence":"CHAT02 arity defects were repaired; main CI #268 at 3f15750a completed SUCCESS."},
+    {"id":"QA05-P0-002","severity":"P0","owner":"GLOBAL_SYNC","state":"OPEN_PARTIAL","evidence":"CHAT10 v0.1.0 is now persisted. CHAT06/07/08 are persisted. CHAT09 machine handoff remains absent."},
+    {"id":"QA05-P0-003","severity":"P0","owner":"CHAT03_CHAT04","state":"OPEN","evidence":"PR #6 replaces stale PR #3 but is review-only, mergeable=false/rebase-required. CHAT04 v1.7.0 remains pinned to current-main Twin/Wallet/DAPPMAP 1.0.0 until an exact consumer tuple is certified."},
+    {"id":"QA05-P0-004","severity":"P0","owner":"CHAT00_CHAT10","state":"OPEN_ADVANCED","evidence":"Deterministic staging candidate verifier/package/restore tooling is now on main with CI tests, but no final composed deploy package SHA, final upload manifest SHA, rollback SHA or restore certificate exists yet."},
+    {"id":"QA05-P0-005","severity":"P0","owner":"CROSS_DOMAIN","state":"OPEN","evidence":"No one-runtime Golden Journey yet proves SIC-ID -> Search/Twin/TO_VERIFY -> Case -> private Evidence -> sandbox settlement -> Case Active -> Recovery/Next Action -> Support/Admin -> PWA at 390px and desktop."},
+    {"id":"ORCH-P0-012","severity":"P0","owner":"CHAT02_CHAT05_ANTIGRAVITY","state":"OPEN_REVIEW_ONLY","evidence":"PR #4 durable settlement certificate/two-provider quorum is open at head 62efcb016a1577863745b27ab83977c98efb0314, mergeable=false, pending exact-head local runtime/adversarial evidence and CHAT05 acceptance."},
+    {"id":"ORCH-P0-013","severity":"P0","owner":"CHAT10_ANTIGRAVITY","state":"OPEN","evidence":"Target runtime evidence for pdo_sqlite/curl/fileinfo, request-time SIC-ID, private Evidence storage/scanner/DLP, local-origin PWA and >=2 independent Polygon authority/finality providers is absent."},
+    {"id":"QA05-P1-006","severity":"P1","owner":"CHAT10","state":"OPEN_ADVANCED","evidence":"Current CI secret grep is limited. Staging release verifier now rejects DB/key/dev artifacts, but final recursive package secret/PII/private-Evidence scan is still required."},
+    {"id":"QA05-P1-007","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","evidence":"GitHub main is currently unprotected with required status checks disabled."},
+    {"id":"WEB3-P1-001","severity":"P1","owner":"WEB3_SECURITY","state":"OPEN_OUTSIDE_MVP_DEPLOY_SCOPE","evidence":"Slither remains red for production smart-contract deployment. Do not suppress; production contract deploy is excluded from the 48h DApp Golden Path."}
   ]
 }
