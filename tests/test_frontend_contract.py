@@ -69,6 +69,15 @@ def test_service_worker_excludes_dynamic_truth():
     assert "url.pathname.includes('/payment')" in SW
     assert "req.mode==='navigate'" in SW
 
+def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
+    assert "const SHELL_VERSION='2.1.0'" in SW
+    assert 'caid-shell-v${SHELL_VERSION}' in SW
+    assert 'self.skipWaiting()' in SW
+    assert "keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))" in SW
+    assert 'self.clients.claim()' in SW
+    for path in ['./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/app.js','./assets/shield.svg']:
+        assert path in SW
+
 def test_manifest_valid():
     data=json.loads((ROOT/'manifest.webmanifest').read_text())
     assert data['display']=='standalone'
