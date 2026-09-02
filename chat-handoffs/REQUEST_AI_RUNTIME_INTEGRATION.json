@@ -1,0 +1,83 @@
+{
+  "CHAT_ID": "CHAT07",
+  "DOMAIN": "AI_RUNTIME_INTEGRATION",
+  "TIMESTAMP": "2026-09-02T18:06:00+02:00",
+  "VERSION": "1.0.0",
+  "PARENT_VERSION": "CHAT07_HANDOFF_0.4.0",
+  "INPUT_VERSIONS": {
+    "DRIVE_SECRET_SOURCE_FOLDER": "1OjkAscmOTEkTL42wfjcMvhzeVeZNs1tG",
+    "DRIVE_SECRET_FILE": "apikeys.env",
+    "AI_PROVIDER_MODULE": "bot/ai_provider.py",
+    "AI_SERVICE_MODULE": "bot/ai_service.py"
+  },
+  "BUILT": [
+    "server-side Groq-compatible provider adapter",
+    "verified-knowledge-first AI orchestration",
+    "input redaction for secret-like material",
+    "timeout and deterministic fallback",
+    "Telegram AI synthesis wiring",
+    "shared service contract for DAPP and Telegram"
+  ],
+  "SECRET_POLICY": {
+    "required_runtime_secret": "GROQ_API_KEY",
+    "optional_config": ["AI_ENABLED", "GROQ_MODEL"],
+    "forbidden": [
+      "frontend exposure",
+      "repository commit",
+      "logging key value",
+      "embedding Drive .env into image/build artifact"
+    ]
+  },
+  "DAPP_CONTRACT": {
+    "server_side_endpoint": "POST /api/ai/assistant",
+    "request": {
+      "message": "string required",
+      "language": "it|en optional"
+    },
+    "response": {
+      "text": "string",
+      "language": "it|en",
+      "source": "verified knowledge source or escalation",
+      "confidence": "number",
+      "ai_used": "boolean",
+      "ai_provider": "groq|null",
+      "ai_model": "string|null"
+    },
+    "rules": [
+      "must call bot.ai_service.answer_user or equivalent shared orchestration",
+      "must not send private Evidence bytes to AI provider",
+      "must not send seed phrase/private key/password/2FA to AI provider",
+      "must never use AI output as Case/Payment/Evidence authority",
+      "must fail closed to deterministic verified knowledge"
+    ]
+  },
+  "RUNTIME_TASKS": [
+    "CHAT10/Antigravity: import GROQ_API_KEY from authorized secret source into runtime secret store without printing value",
+    "DAPP backend owner: expose POST /api/ai/assistant server-side only",
+    "DAPP frontend: call backend endpoint, never Groq directly",
+    "Antigravity: run mocked unit tests then one real Groq smoke test with non-sensitive prompt",
+    "Antigravity: verify fallback with invalid/missing GROQ_API_KEY",
+    "Antigravity: verify no key appears in browser bundle, logs, repository, Actions artifacts"
+  ],
+  "TESTED": [
+    "adapter code committed",
+    "redaction/feature-gate unit tests committed"
+  ],
+  "NOT_TESTED": [
+    "real Groq network call",
+    "DAPP HTTP endpoint runtime",
+    "browser bundle secret scan after DAPP integration"
+  ],
+  "BLOCKERS": [
+    "runtime secret injection must be performed by authorized runtime/DevOps owner",
+    "DAPP backend route location must be wired into current backend surface"
+  ],
+  "HUMAN_GATES": [],
+  "NEXT": [
+    "wire DAPP backend endpoint",
+    "inject GROQ_API_KEY into runtime secret store",
+    "run real AI smoke test",
+    "run DAPP + Telegram fallback regression"
+  ],
+  "GO_NO_GO": "CODED_NOT_RUNTIME_VERIFIED"
+}
