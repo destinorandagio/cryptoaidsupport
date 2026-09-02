@@ -1,0 +1,10 @@
+{
+ "version":"1.0","chat":"CHAT01_CORE_USER_SICID_CASE","hash":"fb4f21e78be680ced77c05b5156c99700ffbea63","schema_version":"chat01-core-1","api_contract_version":"v1","case_state_version":"1.0",
+ "built":["core/case_engine.py","user/SIC-ID registry integration surface","wallet-user binding Polygon 137","explicit Case state machine and audit timeline","TO_VERIFY Case continuation","product-kind registry without invented offers/prices","task/next-action primitives","idempotency request registry","optimistic stale-state/concurrency guard","external entitlement activation contract","tests/test_core_case_engine.py"],
+ "tested":["tests committed; current HEAD CI confirmation pending"],
+ "fail":[],
+ "blockers":["HANDOFF_01 was not present in repository","CHAT06/08/10 handoffs not yet persisted","full auth/session API transport layer not yet exposed over HTTP","E2E with CHAT02 payment entitlement requires integration verification","no GO-LIVE"],
+ "dependencies":["CHAT02 entitlement/payment authority","CHAT03 Digital Twin/TO_VERIFY authority input","CHAT06 knowledge","CHAT08 admin/config","CHAT10 runtime/deploy","CHAT05 QA/security"],
+ "next":["run CI for current HEAD","publish/reconcile API transport contract","integrate CHAT02 settlement -> ENTITLEMENT_GRANTED transition","HANDOFF_02"],
+ "go_live":"NO_GO"
+}
