@@ -20,6 +20,7 @@ from .engine import EvidencePaymentError, _id, _now
 from .mvp_engine import EvidencePaymentEngine as _MvpEvidencePaymentEngine
 
 EVIDENCE_STORAGE_GUARD_VERSION = "1.2"
+EVIDENCE_LINEAGE_CONTRACT_VERSION = "1.1"
 _CASE_STORAGE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
@@ -332,6 +333,8 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
         evidence_id = _id("ev")
         write_handle = final_ref = None
         with self._connect() as c:
+            # BEGIN IMMEDIATE serializes supersession decisions. The parent must
+            # still be AVAILABLE and must not already have an accepted child.
             c.execute("BEGIN IMMEDIATE")
             try:
                 version = 1
@@ -342,6 +345,20 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
                     ).fetchone()
                     if not parent or parent["case_id"] != safe_case_id:
                         raise EvidencePaymentError("BAD_LINEAGE", "Invalid evidence parent")
+                    if parent["status"] != "AVAILABLE":
+                        raise EvidencePaymentError(
+                            "EVIDENCE_PARENT_NOT_AVAILABLE",
+                            "Evidence parent is no longer available for supersession",
+                        )
+                    existing_successor = c.execute(
+                        "SELECT evidence_id FROM evidence_records WHERE parent_evidence_id=? LIMIT 1",
+                        (parent_evidence_id,),
+                    ).fetchone()
+                    if existing_successor:
+                        raise EvidencePaymentError(
+                            "EVIDENCE_PARENT_NOT_AVAILABLE",
+                            "Evidence parent already has an accepted successor",
+                        )
                     version = int(parent["version"]) + 1
 
                 rel, write_handle, final_ref = self._safe_write(
@@ -373,10 +390,16 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
                     ),
                 )
                 if parent_evidence_id:
-                    c.execute(
-                        "UPDATE evidence_records SET status='SUPERSEDED', superseded_at=? WHERE evidence_id=?",
+                    updated = c.execute(
+                        "UPDATE evidence_records SET status='SUPERSEDED', superseded_at=? "
+                        "WHERE evidence_id=? AND status='AVAILABLE'",
                         (_now(), parent_evidence_id),
                     )
+                    if updated.rowcount != 1:
+                        raise EvidencePaymentError(
+                            "EVIDENCE_PARENT_NOT_AVAILABLE",
+                            "Evidence parent changed before supersession commit",
+                        )
                 c.execute("COMMIT")
             except Exception:
                 if c.in_transaction:
