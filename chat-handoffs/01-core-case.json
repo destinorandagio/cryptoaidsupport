@@ -1,57 +1,64 @@
 {
   "CHAT_ID": "CHAT01",
   "DOMAIN": "CORE_USER_SICID_CASE_PRODUCT",
-  "TIMESTAMP": "2026-09-02T13:20:30+02:00",
-  "VERSION": "1.3.0",
-  "PARENT_VERSION": "1.2.2",
-  "SOURCE_HEAD": "ea72c459a6fa12db2e76e5a77c8f73fa41d19cfd",
-  "CORE_SOURCE_COMMIT": "a4f420f62e52bee9292af45847d010d444d6e786",
-  "CASE_ENGINE_BLOB": "98565bee1fcdcfb33f78d917071bea77181dc138",
-  "CI_RUN": "33624033617 / #278 SUCCESS / 57 passed",
+  "TIMESTAMP": "2026-09-02T14:20:00+02:00",
+  "VERSION": "1.3.1",
+  "PARENT_VERSION": "1.3.0",
+  "SOURCE_HEAD": "e9293f2e8c847722a073c950c543c6af857495f3",
+  "CORE_SOURCE_COMMIT": "6ca11993aa6c7c26a520ebd27fe88c1c8211b434",
+  "CASE_ENGINE_BLOB": "bae5708e73fff547f4d3200cf259f4c6cd6ab62a",
+  "CORE_MODULE_VERSION": "1.2",
+  "SCHEMA_VERSION": "chat01-core-1",
+  "API_CONTRACT_VERSION": "v1",
+  "CI_RUN": "33629103587 / #340 SUCCESS / 80 passed",
   "INPUTS": {
-    "HANDOFF_01_DRIVE": "20260902-1200 + late delta",
-    "CHAT02": "current main owner contract; PR4 remains review-gated",
-    "CHAT08": "0.3.0",
-    "OWNERSHIP_LEDGER": "no AG_ACTIVE on Core/Admin; CHAT00/10 active only on control/devops surfaces",
-    "AG_TASK": "1A6KtvQiIyczXDGTcxTjUagfbByD2wmO_AXA_RJ9QOA8"
+    "HANDOFF_01_DRIVE": "20260902-1400",
+    "CHAT00_MACHINE": "0.6.0",
+    "CHAT02": "1.1.1 accepted economics/effect authority; PR4 remains review-only",
+    "CHAT08": "0.3.1",
+    "OWNERSHIP": "CAID-LK-0098 CHATGPT_ACTIVE during build; CAID-LK-0097 control/devops only",
+    "AG_TASK": "169bnn9w9dPPDvJ2UzEghgipwFc09yAvZa7cUkpDtWB8"
   },
   "CONTRACT_CHANGES": [
-    "additive SIC-ID session create/resume/revoke contract over existing core_sessions schema",
-    "paid ACTIVE now verifies same-Case settled positive CHAT02 entitlement effect instead of trusting caller-supplied ENTITLEMENT_GRANTED"
+    "idempotency keys are now operation-bound for register_user/create_session/bind_wallet/open_case/transition; cross-operation reuse fails IDEMPOTENCY_CONFLICT 409",
+    "idempotent mutators acquire BEGIN IMMEDIATE before replay check so concurrent same-key retries replay one committed response rather than racing duplicate side effects",
+    "bind_wallet now consumes and persists its previously-unused request_id/idempotency_key contract"
   ],
   "SCHEMA_CHANGED": false,
+  "ECONOMICS_CHANGED": false,
   "BUILT": [
-    "create_session with bounded TTL and idempotency",
-    "resume_session with SIC-ID/status/expiry fail-closed checks",
-    "revoke_session",
-    "read-only CHAT02 entitlement/payment effect guard for paid ACTIVE",
-    "cross-owner synthetic Golden regression without writing CHAT02 truth"
+    "central request replay/record helpers",
+    "operation conflict guard",
+    "wallet binding replay persistence",
+    "same-key Case create concurrency determinism",
+    "targeted hardening regressions"
   ],
   "TEST_PASS": [
-    "first/returning user",
-    "SIC-ID session idempotency/resume/mismatch/revoke",
-    "Case create/idempotency/resume and TO_VERIFY",
-    "invalid/stale transition guards",
-    "forged ENTITLEMENT_GRANTED rejected",
-    "settled same-Case entitlement permits ACTIVE",
-    "Next Action",
-    "GitHub Actions full pytest 57/57 and Telegram-token scan"
+    "cross-operation idempotency conflict",
+    "bind_wallet replay creates one binding/request",
+    "two-thread same-key open_case creates one Case/event/request and identical result",
+    "all previous first/returning user, session, TO_VERIFY, invalid/stale/concurrent transition, settlement-authorized ACTIVE and Next Action tests remain green",
+    "GitHub Actions full pytest 80/80",
+    "GitHub runner PHP baseline PDO/pdo_sqlite/curl/fileinfo/openssl/json PASS; PDO sqlite memory PASS",
+    "staging PWA shell package/restore smoke PASS and obvious Telegram token scan PASS"
   ],
   "TEST_FAIL": [],
   "NOT_TESTED": [
-    "target PHP pdo_sqlite/curl/fileinfo runtime",
+    "actual target-host PHP/runtime",
+    "real request-time SIC-ID authority",
     "real-origin protected Admin browser route",
-    "real wallet/signing/payment/transaction/deploy"
+    "real wallet/signature/payment/transaction/deploy"
   ],
   "COLLISIONS": [
-    {"classification":"ACCEPT","request":"CHAT02 settlement effect","decision":"consume read-only durable effect only; CHAT01 never writes payment/entitlement truth"},
-    {"classification":"REJECT","request":"caller/admin supplied ENTITLEMENT_GRANTED as sufficient authority","decision":"paid ACTIVE now fails closed without durable CHAT02 effect"}
+    {"classification": "ACCEPT", "request": "CHAT02 settlement effect", "decision": "consume durable same-Case effect read-only; no payment/entitlement writes"},
+    {"classification": "REJECT", "request": "cross-operation idempotency key reuse", "decision": "fail closed 409 to prevent wrong-shaped replay across Core commands"},
+    {"classification": "REJECT", "request": "parallel Core/Case authority", "decision": "one MASTER and CHAT01 Case authority preserved"}
   ],
-  "STATE": "CORE_GOLDEN_BACKEND_GREEN_GLOBAL_NO_GO",
+  "STATE": "CORE_GOLDEN_BACKEND_GREEN_HARDENED_GLOBAL_NO_GO",
   "GO_NO_GO": "NO_GO",
   "NEXT": [
-    "consume accepted CHAT02 PR4/finality contract when owner+QA+AG approve exact head",
-    "compose exact CHAT03/04/10 runtime tuple",
-    "run Antigravity local/runtime/browser acceptance then CHAT05 final QA"
+    "consume factual Antigravity exact-head result for task AG-CRYPTOAID-CORE-ADMIN-MVP-20260902-1410",
+    "serial-compose accepted CHAT02/03/04/10 tuple without duplicating authority",
+    "run protected Admin + real-origin Golden E2E then CHAT05 independent final QA"
   ]
 }
