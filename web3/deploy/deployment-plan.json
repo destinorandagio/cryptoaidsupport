@@ -1,18 +1,22 @@
 {
-  "schema":"cryptoaid.deployment-plan.v2-usdt",
+  "schema":"cryptoaid.deployment-plan.v3-mvp-authority-guard",
   "network":"Polygon PoS Mainnet",
   "chainId":137,
-  "paymentAsset":"USDT",
+  "rewardAsset":"USDT",
   "gasAsset":"POL",
   "humanGate":true,
   "caseTreasury":"0x3C320B3a0917fF44BF6551CDdee44402AFcF250C",
+  "mvpCaseSettlement":"SANDBOX_ONLY_NO_CONTRACT_DEPLOY",
+  "casePaymentAuthority":"CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT",
+  "caseEconomicsAuthority":"CANONICAL_CONTROL_PLANE",
+  "mvpReleaseExclusions":["CryptoAIDCasePayment"],
   "externalTokens":{"USDT":"REQUIRED_VERIFIED_POLYGON_ADDRESS","DUX":"REQUIRED_CANONICAL_ADDRESS","DRX":"REQUIRED_CANONICAL_ADDRESS","VOTES_TOKEN":"OPTIONAL_PHASE_2_CANONICAL_IVOTES_ADDRESS"},
   "steps":[
     {"order":1,"contract":"CryptoAIDSecurityController","dependencies":[],"external_tokens":[]},
     {"order":2,"contract":"CryptoAIDEmergencyGuardian","dependencies":[],"external_tokens":[]},
-    {"order":3,"contract":"CryptoAIDRewardTreasury","dependencies":[],"external_tokens":["USDT"],"notes":"Web3 reward treasury only; separate from Case treasury."},
-    {"order":4,"contract":"CryptoAIDUSDTRewardRouter","dependencies":[],"external_tokens":["USDT"]},
-    {"order":5,"contract":"CryptoAIDCasePayment","dependencies":[],"external_tokens":["USDT"],"notes":"Case treasury fixed by current economics; onboarding 100, first-case payment 400, subsequent 500 USDT in token base units."},
+    {"order":3,"contract":"CryptoAIDRewardTreasury","dependencies":[],"external_tokens":["USDT"],"notes":"Web3 reward treasury only; separate from Case treasury and Case-payment authority."},
+    {"order":4,"contract":"CryptoAIDUSDTRewardRouter","dependencies":[],"external_tokens":["USDT"],"notes":"Reward routing only; never an MVP Case-payment authority."},
+    {"order":5,"contract":"CryptoAIDCasePayment","dependencies":[],"external_tokens":["USDT"],"enabled":false,"phase":"POST_MVP","notes":"Excluded from the 48H MVP release path. It must not create independent Case payment-intent, settlement, idempotency or entitlement truth. Any future activation requires domain-owner reconciliation and HUMAN_GATE."},
     {"order":6,"contract":"CryptoAIDRank","dependencies":[],"external_tokens":[]},
     {"order":7,"contract":"CryptoAIDAchievements","dependencies":[],"external_tokens":[]},
     {"order":8,"contract":"CryptoAIDReferralProof","dependencies":[],"external_tokens":[]},
@@ -25,7 +29,7 @@
     {"order":15,"contract":"CryptoAIDEpochClaim","dependencies":[],"external_tokens":["USDT","DUX","DRX"]},
     {"order":16,"contract":"CryptoAIDUsefulMiner","dependencies":["CryptoAIDRank"],"external_tokens":["USDT","DUX","DRX"]},
     {"order":17,"contract":"CryptoAIDTimelock","dependencies":[],"external_tokens":[],"optional":true},
-    {"order":18,"contract":"CryptoAIDGovernance","dependencies":["CryptoAIDTimelock"],"external_tokens":["VOTES_TOKEN"],"optional":true,"phase":"OPTIONAL_PHASE_2","notes":"Must not block core USDT deployment."}
+    {"order":18,"contract":"CryptoAIDGovernance","dependencies":["CryptoAIDTimelock"],"external_tokens":["VOTES_TOKEN"],"optional":true,"phase":"OPTIONAL_PHASE_2","notes":"Must not block the 48H MVP."}
   ],
-  "postDeployChecklist":["verify USDT chain 137, bytecode, symbol and decimals","verify bytecode for every deployed address","verify DUX/DRX chain 137 and code","verify Case treasury exact address","wire least-privilege roles","wire Rank to Miner","wire Quest verifier/miner permissions","set reward caps before funding","keep Case treasury separate from Web3 reward treasury","verify guardian can pause but cannot transfer assets","record every tx hash, block and bytecode hash"]
+  "postDeployChecklist":["verify USDT chain 137, bytecode, symbol and decimals for reward-only components","verify bytecode for every deployed address","verify DUX/DRX chain 137 and code","verify Case treasury exact address without sending funds","wire least-privilege roles","wire Rank to Miner","wire Quest verifier/miner permissions","set reward caps before funding","keep Case treasury separate from Web3 reward treasury","verify guardian can pause but cannot transfer assets","record every tx hash, block and bytecode hash","do not deploy CryptoAIDCasePayment as part of the 48H MVP"]
 }
