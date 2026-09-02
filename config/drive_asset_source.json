@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "owner": "CHAT07",
+  "drive_folder_id": "1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD",
+  "purpose": "Canonical social visual/video asset pool for CryptoAID Telegram/social publishing",
+  "status": "ACTIVE_SOURCE",
+  "asset_types": ["image/png", "image/jpeg", "video/mp4"],
+  "semantic_taxonomy": {
+    "onboarding": ["onboarding", "welcome", "portal", "start"],
+    "security": ["security", "shield", "phishing", "seed", "private_key", "wallet", "malicious"],
+    "evidence": ["evidence", "forensic", "transaction", "explorer", "vault", "trail"],
+    "recovery": ["recovery", "lost_funds", "forensic", "path", "investigation"],
+    "community": ["community", "network", "people", "support", "participation"],
+    "growth": ["growth", "network_expanding", "invite", "reconnect", "leader", "team"],
+    "poll": ["poll", "question", "you_decide", "security_check"],
+    "waitlist": ["waitlist", "open", "join"],
+    "dead_web3": ["dead_project", "dead_dapp", "archive", "abandoned"],
+    "brand": ["cryptoaid", "logo", "brand", "hero"]
+  },
+  "selection": {
+    "mode": "DETERMINISTIC_SEMANTIC_MATCH",
+    "prefer_exact_campaign_tag": true,
+    "prefer_unused_recently": true,
+    "avoid_same_asset_within_posts": 12,
+    "fallback": "TEXT_ONLY"
+  },
+  "safety": {
+    "do_not_publish_unknown_project_claims_from_filename": true,
+    "do_not_infer_partnership_from_logo_presence": true,
+    "do_not_publish_private_drive_url_as_user_cta": true,
+    "require_runtime_materialization_or_public_delivery_adapter": true
+  }
+}
