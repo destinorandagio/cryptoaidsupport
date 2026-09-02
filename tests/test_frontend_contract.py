@@ -29,6 +29,18 @@ def test_sicid_login_is_explicit_first_step_and_fail_closed():
     assert 'No session was created.' in JS
     assert 'data-sicid-login' in HTML
 
+def test_live_sicid_is_required_before_search_and_case():
+    assert "ui:'2.1.0'" in JS
+    assert "const PROTECTED_GOLDEN_ROUTES=new Set(['search','case'])" in JS
+    assert "r.identityDataState==='LIVE'" in JS
+    assert "PROTECTED_GOLDEN_ROUTES.has(name)&&!requireLiveIdentity()" in JS
+    assert "Sign in with a live SIC-ID session to continue." in JS
+    assert "if(route('search'))search(input.value)" in JS
+    assert "if(!requireLiveIdentity()){route('home');return}" in JS
+    assert "btn.disabled=live" in JS
+    assert "RESUME SIC-ID" in JS
+    assert "hasLiveIdentity" in JS
+
 def test_truth_labels_present():
     for item in ['LIVE','CACHED','HISTORICAL','DERIVED','TO_VERIFY']: assert item in JS+HTML
 
@@ -63,7 +75,7 @@ def test_manifest_valid():
     assert data['theme_color']=='#ffffff'
 
 def test_twin_wallet_contract_compatibility_is_explicit_and_fail_closed():
-    assert "ui:'2.0.0'" in JS
+    assert "ui:'2.1.0'" in JS
     assert "twin:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
     assert "walletMatrix:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
     assert "dappmap:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
