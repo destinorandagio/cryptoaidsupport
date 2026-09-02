@@ -1,0 +1,17 @@
+version: "0.1.0"
+mode: NORMAL
+languages:
+  - en
+  - it
+features:
+  bot_enabled: true
+  publisher_enabled: true
+  community_enabled: true
+  moderation_enabled: true
+  marketing_enabled: true
+  news_enabled: false
+safety:
+  max_messages_per_run: 1
+  dry_run_default: true
+  human_review_sensitive_cases: true
+  never_request_secrets: true
