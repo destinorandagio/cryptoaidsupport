@@ -2,14 +2,14 @@
   "CHAT_ID": "CHAT03",
   "DOMAIN": "DIGITAL_TWIN_SEARCH_WALLET_DAPPMAP",
   "TIMESTAMP": "2026-09-02T12:03:31+02:00",
-  "VERSION": "1.1.1",
-  "PARENT_VERSION": "1.1.0",
-  "GIT_SHA": "2e2ca5d158b87f493cc8db83f13b69f42367ce27",
+  "VERSION": "1.1.2",
+  "PARENT_VERSION": "1.1.1",
+  "GIT_SHA": "2fc3b1af22ec59a3969ab0f8b46e4b85ab459127",
   "INPUT_VERSIONS": {
     "GLOBAL_CONTROL_STATE": "control/latest-state.json schema 1.0; observed stale vs newer owner handoffs",
     "CORE": "0.3.13",
     "EVIDENCE_PAYMENT": "0.6.7",
-    "CHAT03_PARENT": "1.1.0",
+    "CHAT03_PARENT": "1.1.1",
     "CHAT04_UI": "1.7.0",
     "CHAT04_TWIN_CONSUMER_PIN": "1.0.0",
     "CHAT06_HANDOFF": "schema 1.0 ACTIVE_BOOTSTRAP; versioned context pack not yet released",
@@ -20,15 +20,15 @@
     "TWIN_SCHEMA_VERSION": "1.1.0",
     "WALLET_MATRIX_VERSION": "1.1.0",
     "DAPPMAP_CONTRACT_VERSION": "1.1.0",
-    "HANDOFF_VERSION": "1.1.1"
+    "HANDOFF_VERSION": "1.1.2"
   },
-  "STATE": "TESTING",
+  "STATE": "TESTED",
   "FILES_CHANGED": [
     ".github/workflows/chat03-twin-wallet-contract.yml",
     "chat-handoffs/03-digital-twin-wallet.json"
   ],
   "CONTRACTS_CHANGED": [
-    "Scoped CHAT03 CI now explicitly installs pytest before deterministic contract tests"
+    "Scoped CHAT03 CI explicitly installs pytest before deterministic contract tests"
   ],
   "SCHEMA_CHANGED": false,
   "BUILT": [
@@ -37,14 +37,17 @@
   ],
   "TESTED": [
     "Previous isolated deterministic CHAT03 harness: 15/15 PASS",
-    "PR #3 scoped compile step PASS",
-    "PR #3 failure root cause verified from Actions logs: pytest missing from runner"
+    "Fresh PR #3 CHAT03 Twin Wallet Contract workflow run 33617504424: SUCCESS",
+    "Dependency install PASS",
+    "Compile CHAT03 read model PASS",
+    "Deterministic CHAT03 tests PASS",
+    "Wallet secret-material guard PASS",
+    "Repository-wide CI run 33617504550 executed and failed only at CHAT01-owned CaseError collection regression"
   ],
-  "TEST_PASS": 16,
+  "TEST_PASS": 20,
   "TEST_FAIL": 1,
   "NOT_TESTED": [
-    "Fresh scoped CI after pytest-install fix is pending workflow observation",
-    "Repository-wide CI after upstream Core fix",
+    "Repository-wide CI after CHAT01 Core fix",
     "MetaMask real device",
     "TokenPocket real device/mobile",
     "WalletConnect/Reown real device/QR/deeplink",
@@ -53,15 +56,17 @@
     "production deployment"
   ],
   "FIXED": [
-    "FAILURE: CHAT03 scoped CI deterministic tests could not start",
-    "ROOT_CAUSE: actions/setup-python does not install pytest and workflow omitted dependency installation",
-    "MINIMAL_FIX: install pytest in CHAT03 workflow before test step",
-    "PERMANENT_GUARD: scoped workflow owns its explicit test dependency instead of assuming runner state"
+    "FAILURE: scoped CHAT03 CI could not start deterministic tests",
+    "ROOT_CAUSE: pytest was absent from the scoped runner",
+    "MINIMAL_FIX: explicit pytest installation before test execution",
+    "TEST: workflow 33617504424 completed SUCCESS",
+    "REGRESSION: compile + deterministic test + secret guard all PASS",
+    "PERMANENT_GUARD: scoped workflow owns its test dependency and no longer assumes runner state"
   ],
   "BLOCKERS": [
     "CHAT04 consumer pins Twin/Wallet/DAPPMAP 1.0.0 while PR #3 proposes 1.1.0; coordinated compatibility/version sync required",
-    "Repository-wide CI has a CHAT01-owned CaseError import regression; CHAT03 will not patch Core",
-    "CHAT06 handoff now exists but no versioned context-pack release is yet published for CHAT03 consumption",
+    "Repository-wide CI remains red on CHAT01-owned CaseError import regression; CHAT03 will not patch Core",
+    "CHAT06 handoff exists but no versioned context-pack release is yet published for CHAT03 consumption",
     "CHAT10 Polygon137 RPC health/provider observability contract not discovered",
     "Final Stage04/05/06 serial composition and exact-byte QA remain open"
   ],
@@ -85,12 +90,11 @@
     "Production deploy/publication/cutover"
   ],
   "NEXT": [
-    "Observe fresh scoped CHAT03 CI",
-    "If failure: root-cause -> minimal fix -> test -> regression -> permanent guard",
+    "Publish FINDING to CHAT01: repository-wide CI collection fails because CaseError is imported publicly but absent from core.case_engine",
+    "Coordinate CHAT04 1.1.0 consumer compatibility before merge",
     "Consume CHAT06 only after a versioned context-pack release exists; never promote UNVERIFIED/CANDIDATE",
     "Obtain CHAT10 RPC health contract",
-    "Coordinate CHAT04 1.1.0 consumer compatibility before merge",
-    "Merge PR #3 only after required checks and version sync are green"
+    "Merge PR #3 only after required global checks and version sync are green"
   ],
   "GO_NO_GO": "NO_GO",
   "BACKLOG": {
