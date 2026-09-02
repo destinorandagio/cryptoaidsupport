@@ -1,0 +1,19 @@
+[Unit]
+Description=CryptoAID Telegram Support Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cryptoaidsupport
+ExecStart=/usr/bin/python3 /opt/cryptoaidsupport/bot/runtime_supervisor.py
+EnvironmentFile=/etc/cryptoaid/telegram.env
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
