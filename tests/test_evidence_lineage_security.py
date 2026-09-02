@@ -44,6 +44,10 @@ def _lineage_rows(e, parent_id: str):
     return parent, children, integrity, fk
 
 
+def _stored_files(e):
+    return list(e.private_root.rglob("*.bin")), list(e.private_root.rglob("*.quarantine"))
+
+
 def test_superseded_parent_cannot_spawn_second_successor():
     _, e = _engine()
     parent = _store(e, content=b"v1")
@@ -51,9 +55,17 @@ def test_superseded_parent_cannot_spawn_second_successor():
         e, content=b"v2-first", parent_evidence_id=parent["evidence_id"]
     )
 
+    before_bins, before_quarantine = _stored_files(e)
+    assert len(before_bins) == 2
+    assert before_quarantine == []
+
     with pytest.raises(EvidencePaymentError) as exc:
         _store(e, content=b"v2-second", parent_evidence_id=parent["evidence_id"])
     assert exc.value.code == "EVIDENCE_PARENT_NOT_AVAILABLE"
+
+    after_bins, after_quarantine = _stored_files(e)
+    assert sorted(map(str, after_bins)) == sorted(map(str, before_bins))
+    assert after_quarantine == []
 
     row, children, integrity, fk = _lineage_rows(e, parent["evidence_id"])
     assert row["status"] == "SUPERSEDED"
@@ -68,6 +80,9 @@ def test_superseded_parent_cannot_spawn_second_successor():
         e, content=b"v3", parent_evidence_id=first_child["evidence_id"]
     )
     assert third["version"] == 3
+    final_bins, final_quarantine = _stored_files(e)
+    assert len(final_bins) == 3
+    assert final_quarantine == []
 
 
 def test_concurrent_same_parent_has_exactly_one_successor():
@@ -92,6 +107,10 @@ def test_concurrent_same_parent_has_exactly_one_successor():
     conflicts = [value for kind, value in outcomes if kind == "error"]
     assert len(winners) == 1
     assert conflicts == ["EVIDENCE_PARENT_NOT_AVAILABLE"]
+
+    bins, quarantines = _stored_files(e)
+    assert len(bins) == 2
+    assert quarantines == []
 
     row, children, integrity, fk = _lineage_rows(e, parent["evidence_id"])
     assert row["status"] == "SUPERSEDED"
