@@ -15,6 +15,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import stat
 import sqlite3
 import time
 import uuid
@@ -22,7 +23,8 @@ from typing import Any
 
 from bot.support_mvp import SafeCaseNotification, SupportRequest
 
-SUPPORT_TRANSPORT_VERSION = "1.0.0"
+SUPPORT_TRANSPORT_VERSION = "1.0.1"
+_FILE_ATTRIBUTE_REPARSE_POINT = 0x400
 
 
 class SupportTransportRejected(ValueError):
@@ -39,6 +41,20 @@ def _now() -> float:
     return time.time()
 
 
+def _is_link_or_reparse(path: Path) -> bool:
+    """Detect POSIX symlinks and Windows reparse points without following them."""
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise SupportTransportRejected("support_transport_unavailable") from exc
+    if stat.S_ISLNK(metadata.st_mode):
+        return True
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    return bool(attributes & _FILE_ATTRIBUTE_REPARSE_POINT)
+
+
 def _private_db_path(value: str | Path) -> Path:
     raw = Path(value).expanduser()
     if not raw.name:
@@ -46,7 +62,7 @@ def _private_db_path(value: str | Path) -> Path:
     if "public_html" in {part.lower() for part in raw.parts}:
         raise SupportTransportRejected("support_transport_public_storage_forbidden")
     for candidate in (raw.parent, *raw.parent.parents):
-        if candidate.exists() and candidate.is_symlink():
+        if candidate.exists() and _is_link_or_reparse(candidate):
             raise SupportTransportRejected("support_transport_symlink_storage_forbidden")
     try:
         parent = raw.parent.resolve()
@@ -58,7 +74,21 @@ def _private_db_path(value: str | Path) -> Path:
         parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise SupportTransportRejected("support_transport_unavailable") from exc
-    return parent / raw.name
+    final_path = parent / raw.name
+    # SQLite follows a pre-existing final symlink/reparse point. Reject it before
+    # opening the database so an attacker cannot redirect private support state.
+    if _is_link_or_reparse(final_path):
+        raise SupportTransportRejected("support_transport_symlink_storage_forbidden")
+    if final_path.exists() and not final_path.is_file():
+        raise SupportTransportRejected("support_transport_unavailable")
+    try:
+        resolved = final_path.resolve(strict=False)
+        resolved.relative_to(parent)
+    except (OSError, ValueError) as exc:
+        raise SupportTransportRejected("support_transport_unavailable") from exc
+    if "public_html" in {part.lower() for part in resolved.parts}:
+        raise SupportTransportRejected("support_transport_public_storage_forbidden")
+    return final_path
 
 
 @dataclass(frozen=True)
@@ -93,6 +123,10 @@ class SupportTransportStore:
             pass
 
     def _connect(self) -> sqlite3.Connection:
+        # Re-check the final component on every open: a previously valid DB must
+        # not become a symlink/reparse redirect between store construction and use.
+        if _is_link_or_reparse(self.db_path):
+            raise SupportTransportRejected("support_transport_symlink_storage_forbidden")
         connection = sqlite3.connect(self.db_path, timeout=30, isolation_level=None)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
