@@ -1,0 +1,5 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+contract CryptoAIDPOLRewardRouter is AccessControl,ReentrancyGuard{bytes32 public constant DISTRIBUTOR_ROLE=keccak256("DISTRIBUTOR_ROLE");uint256 public maxSinglePayout;event Funded(address indexed from,uint256 amount);event Paid(address indexed to,uint256 amount,bytes32 indexed reason);constructor(address admin,uint256 cap){require(admin!=address(0)&&cap>0,"BAD");_grantRole(DEFAULT_ADMIN_ROLE,admin);_grantRole(DISTRIBUTOR_ROLE,admin);maxSinglePayout=cap;}receive()external payable{emit Funded(msg.sender,msg.value);}function setMaxSinglePayout(uint256 cap)external onlyRole(DEFAULT_ADMIN_ROLE){require(cap>0,"ZERO");maxSinglePayout=cap;}function payout(address payable to,uint256 amount,bytes32 reason)external onlyRole(DISTRIBUTOR_ROLE) nonReentrant{require(to!=address(0)&&amount>0&&amount<=maxSinglePayout&&address(this).balance>=amount,"BAD");(bool ok,)=to.call{value:amount}("");require(ok,"FAIL");emit Paid(to,amount,reason);}}
