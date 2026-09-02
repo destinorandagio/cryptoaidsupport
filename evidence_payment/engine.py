@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 EVIDENCE_VERSION = "1.0"
-PAYMENT_VERSION = "1.1"
+PAYMENT_VERSION = "1.2"
 ENTITLEMENT_VERSION = "1.1"
 TREASURY_CONFIG_VERSION = "1.0"
 CHAIN_ID = 137
@@ -48,6 +48,24 @@ def _id(prefix: str) -> str:
 
 def _stable_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _block_number(value: Any) -> int:
+    """Normalize JSON-RPC QUANTITY (hex) or integer/decimal string, rejecting ambiguity."""
+    if isinstance(value, bool):
+        raise ValueError("boolean is not a block number")
+    if isinstance(value, int):
+        number = value
+    elif isinstance(value, str):
+        text = value.strip().lower()
+        if not text:
+            raise ValueError("empty block number")
+        number = int(text, 16 if text.startswith("0x") else 10)
+    else:
+        raise ValueError("unsupported block number")
+    if number < 0:
+        raise ValueError("negative block number")
+    return number
 
 
 class EvidencePaymentEngine:
@@ -227,6 +245,38 @@ class EvidencePaymentEngine:
             c.execute("COMMIT")
         return self.get_intent(intent_id)
 
+    @staticmethod
+    def _provider_finality(observation: dict[str, Any], provider_observations: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+        try:
+            tx_block_number = _block_number(observation.get("block_number"))
+        except (TypeError, ValueError):
+            return "MANUAL_REVIEW", []
+
+        records: list[dict[str, Any]] = []
+        decisions: list[bool] = []
+        for provider in provider_observations:
+            try:
+                provider_tx_block = _block_number(provider.get("tx_block_number"))
+                finalized_block = _block_number(provider.get("finalized_block_number"))
+            except (TypeError, ValueError):
+                return "MANUAL_REVIEW", []
+            if provider_tx_block != tx_block_number:
+                return "MANUAL_REVIEW", []
+            final = finalized_block > tx_block_number
+            decisions.append(final)
+            records.append({
+                "provider_id": str(provider["provider_id"]).strip(),
+                "tx_block_number": provider_tx_block,
+                "finalized_block_number": finalized_block,
+                "finalized": final,
+            })
+
+        if all(decisions):
+            return "SETTLED", records
+        if not any(decisions):
+            return "FINALITY_PENDING", records
+        return "MANUAL_REVIEW", records
+
     def verify_observation(self, intent_id: str, observation: dict[str, Any], provider_observations: list[dict[str, Any]]) -> str:
         intent = self.get_intent(intent_id)
         checks = [
@@ -244,18 +294,35 @@ class EvidencePaymentEngine:
         if not tx or not block_hash or not all(checks):
             return "MANUAL_REVIEW"
 
+        try:
+            tx_block_number = _block_number(observation.get("block_number"))
+        except (TypeError, ValueError):
+            return "MANUAL_REVIEW"
+
         if len(provider_observations) < 2:
             return "MANUAL_REVIEW"
         provider_ids = [str(p.get("provider_id", "")).strip() for p in provider_observations]
         if any(not provider_id for provider_id in provider_ids) or len(set(provider_ids)) < 2:
             return "MANUAL_REVIEW"
 
-        expected_tuple = (tx, block_hash, 1)
-        provider_tuples = {
-            (p.get("tx_hash"), p.get("block_hash"), p.get("receipt_status"))
-            for p in provider_observations
-        }
+        expected_tuple = (tx, block_hash, 1, tx_block_number)
+        try:
+            provider_tuples = {
+                (
+                    p.get("tx_hash"),
+                    p.get("block_hash"),
+                    p.get("receipt_status"),
+                    _block_number(p.get("tx_block_number")),
+                )
+                for p in provider_observations
+            }
+        except (TypeError, ValueError):
+            return "MANUAL_REVIEW"
         if provider_tuples != {expected_tuple}:
+            return "MANUAL_REVIEW"
+
+        finality_verdict, _ = self._provider_finality(observation, provider_observations)
+        if finality_verdict == "MANUAL_REVIEW":
             return "MANUAL_REVIEW"
 
         with self._connect() as c:
@@ -266,7 +333,7 @@ class EvidencePaymentEngine:
                 c.execute("UPDATE payment_intents SET tx_hash=?,updated_at=? WHERE intent_id=?", (tx, _now(), intent_id))
             except sqlite3.IntegrityError:
                 return "MANUAL_REVIEW"
-        return "FINALITY_PENDING" if int(observation.get("confirmations", 0)) < int(observation.get("required_confirmations", 1)) else "SETTLED"
+        return finality_verdict
 
     def settle(self, intent_id: str, observation: dict[str, Any], providers: list[dict[str, Any]]) -> dict[str, Any]:
         verdict = self.verify_observation(intent_id, observation, providers)
@@ -278,8 +345,18 @@ class EvidencePaymentEngine:
             return {"intent_id": intent_id, "verdict": verdict, "entitlement_granted": False}
 
         provider_ids = sorted({str(p["provider_id"]).strip() for p in providers})
-        provider_fingerprint = hashlib.sha256(_stable_json(provider_ids).encode("utf-8")).hexdigest()
+        finality_verdict, finality_records = self._provider_finality(observation, providers)
+        if finality_verdict != "SETTLED":
+            return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+        finality_records = sorted(finality_records, key=lambda item: item["provider_id"])
+        provider_fingerprint = hashlib.sha256(_stable_json(finality_records).encode("utf-8")).hexdigest()
         observation_sha256 = hashlib.sha256(_stable_json(observation).encode("utf-8")).hexdigest()
+        finality_audit = {
+            "observation": observation,
+            "provider_finality": finality_records,
+            "method": "eth_getBlockByNumber(finalized)",
+            "rule": "finalized_block_number > tx_block_number",
+        }
 
         with self._connect() as c:
             c.execute("BEGIN IMMEDIATE")
@@ -299,21 +376,23 @@ class EvidencePaymentEngine:
                 raise EvidencePaymentError("BAD_SETTLEMENT_STATE", row["state"])
 
             certificate_id = _id("sc")
-            c.execute("UPDATE payment_intents SET state='SETTLED',updated_at=? WHERE intent_id=?", (_now(), intent_id))
+            now = _now()
+            c.execute("UPDATE payment_intents SET state='SETTLED',updated_at=? WHERE intent_id=?", (now, intent_id))
             c.execute(
                 "INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",
-                (_id("pe"), intent_id, "FINALITY_PENDING", "SETTLED", "finality verified", json.dumps(observation, sort_keys=True), _now()),
+                (_id("pe"), intent_id, "FINALITY_PENDING", "SETTLED", "deterministic finality verified",
+                 _stable_json(finality_audit), now),
             )
             c.execute(
                 "INSERT INTO settlement_certificates VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (certificate_id, intent_id, row["case_id"], row["entitlement_ref"], row["tx_hash"], row["chain_id"],
                  row["asset"], row["expected_value"], row["treasury_address"], _stable_json(provider_ids),
-                 provider_fingerprint, observation_sha256, _now()),
+                 provider_fingerprint, observation_sha256, now),
             )
             c.execute(
                 "INSERT INTO entitlement_ledger VALUES(?,?,?,?,?,?,?,?)",
                 (_id("el"), row["entitlement_ref"], row["case_id"], intent_id, 1, "payment settled",
-                 json.dumps({"tx_hash": row["tx_hash"], "intent_id": intent_id, "settlement_certificate_id": certificate_id}, sort_keys=True), _now()),
+                 json.dumps({"tx_hash": row["tx_hash"], "intent_id": intent_id, "settlement_certificate_id": certificate_id}, sort_keys=True), now),
             )
             c.execute("COMMIT")
         return {
