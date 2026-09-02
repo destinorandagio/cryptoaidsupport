@@ -1,55 +1,18 @@
 {
-  "schema_version": "1.0",
-  "chat": "CHAT10_DEVOPS_INFRA_OBSERVABILITY",
-  "cycle": "20260902-1238-kickoff",
-  "state": "HANDOFF_READY_NO_GO",
-  "version": "0.1.0",
-  "drive_handoff_id": "1w4KfX4-OrlSVoAq4aZg0IP-zd9Bn3LoMd4COCfyAR1E",
-  "canonical_drive_root": "1hYHHodtKYcnVdjYQ9bcDZw83XA_uZDl4",
-  "parent_handoff_01_drive_id": "1wPrfvLuJYhBBy_IaMtwRZ1xvS_Rbh0Kkn7J6yM9vN6Y",
-  "fresh_main_observed": {
-    "head_sha": "c632eeac6b13c439142822bafcf1e6aa8ed7a693",
-    "message": "handoff(core): sync tested admin consumer contract",
-    "ci_run_id": 33620866370,
-    "ci_run_number": 218,
-    "ci_conclusion": "success",
-    "compile": "PASS",
-    "pytest": "PASS",
-    "telegram_token_scan": "PASS"
-  },
-  "latest_web3_security_evidence": {
-    "source_head_sha": "67790bed61ef27ecfb25c91b02c77800f30a6407",
-    "run_id": 33620346036,
-    "compile_test_bundle": "PASS",
-    "slither": "FAIL_48_FINDINGS_83_CONTRACTS_102_DETECTORS",
-    "classification": "WEB3_DEPLOY_SECURITY_GATE_RED",
-    "mvp_scope_note": "production smart-contract deployment is excluded from the 48h DApp Golden Path; findings remain blocking for any Web3 production deploy and must not be suppressed"
-  },
-  "closed": [
-    "D0C plain repository CI is green on current main",
-    "CHAT10 machine handoff is now persisted"
-  ],
-  "blocked": [
-    "CHAT03/CHAT04 exact tuple/version certification",
-    "disposable exact serial candidate composition with immutable hashes",
-    "target pdo_sqlite/curl/fileinfo and request-time SIC-ID/private Evidence/provider runtime gates",
-    "clean public_html candidate plus deterministic manifest/package/rollback/restore",
-    "real-origin 390px+desktop+PWA Golden E2E",
-    "CHAT05 final independent QA",
-    "Web3 Slither findings before any production contract deployment"
-  ],
-  "antigravity_task": {
-    "drive_id": "10tPdGFhJ74J_nSDUw19R6uE4oY73MrfBTSEg88jnUD0",
-    "task_id": "AG-CRYPTOAID-MVP-RUNTIME-20260902-1238",
-    "status": "READY_FOR_EXECUTION",
-    "scope": "LOCAL_STAGING_ONLY_NO_PRODUCTION_CUTOVER"
-  },
-  "control_plane_note": "control/latest-state.json is stale relative to current CI; CHAT00 surface CAID-LK-0088 is ACTIVE_LATE_DELTA_RECONCILE, so CHAT10 does not overwrite CHAT00-owned state",
-  "human_gates": [
-    "real wallet/device signing",
-    "real payment/transaction",
-    "production secrets",
-    "public deploy/cutover"
-  ],
-  "go_no_go": "NO_GO"
+  "schema_version":"1.1",
+  "chat":"CHAT10_DEVOPS_INFRA_OBSERVABILITY",
+  "cycle":"20260902-1312",
+  "state":"HANDOFF_READY_NO_GO_RELEASE_TOOLING_ADVANCED",
+  "version":"0.2.0",
+  "canonical_drive_root":"1hYHHodtKYcnVdjYQ9bcDZw83XA_uZDl4",
+  "last_confirmed_green_main":{"head_sha":"3f15750a2eaf92b902f6871c2fd627cf2955c74e","run_id":33622319021,"run_number":268,"conclusion":"success"},
+  "changes_this_cycle":{"commits":["25d03e93c5faa2dfee11c1b3fc20e18db53af7e5","c8e10e00d8503cfea627b5de5ab2bb884fa55d1a"],"files":["scripts/mvp_release_candidate.py","tests/test_release_candidate_tooling.py"],"purpose":"staging-only deterministic release hygiene/package/restore verification"},
+  "release_tool_capabilities":["required PWA shell presence","reject DB snapshots/parallel DBs","reject key/certificate material by suffix","reject known dev/placeholder release artifacts","deterministic file manifest SHA256","reproducible ZIP with fixed metadata","ZIP path-traversal guard","disposable restore and manifest-hash equivalence"],
+  "current_ci":{"run_id":33622905337,"run_number":270,"status":"superseded_or_rerunning_due_serial_control_commits","final_conclusion":"PENDING_FINAL_HEAD_CI"},
+  "branch_protection":{"main_protected":false,"required_status_checks":"disabled","severity":"P1"},
+  "web3_security":{"slither":"RED_RETAINED","scope":"blocks production smart-contract deploy, not the no-contract-deploy 48h Golden Path"},
+  "antigravity_task":{"drive_id":"10tPdGFhJ74J_nSDUw19R6uE4oY73MrfBTSEg88jnUD0","task_id":"AG-CRYPTOAID-MVP-RUNTIME-20260902-1238","status":"READY_FOR_EXECUTION_NO_ACCEPTED_COMPLETION","scope":"LOCAL_STAGING_ONLY_NO_PRODUCTION_CUTOVER"},
+  "blocked":["final CI on latest serial head","exact CHAT03/CHAT04 tuple/PR6 reconciliation","PR4 exact-head runtime acceptance","target pdo_sqlite/curl/fileinfo + SIC-ID/private Evidence/Polygon-provider evidence","final composed candidate package SHA/rollback/restore certificate","real-origin 390px+desktop+PWA Golden E2E","CHAT05 final independent QA"],
+  "human_gates":["real wallet/device signing","real payment/transaction","production secrets","public deploy/cutover"],
+  "go_no_go":"NO_GO"
 }
