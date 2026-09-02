@@ -6,7 +6,7 @@ from enum import Enum
 import re
 from typing import Any, Iterable, Mapping
 
-from .contracts import CACHE_STATES, KNOWLEDGE_CONTEXT_CONTRACT, TRUTH_LABELS
+from .contracts import CACHE_STATES, CHAT06_STATUS_MAP, KNOWLEDGE_CONTEXT_CONTRACT, TRUTH_LABELS
 
 
 class TwinStatus(str, Enum):
@@ -178,8 +178,10 @@ class DigitalTwinEngine:
     def consume_context_pack(self, twin_id: str, pack: Mapping[str, Any]) -> dict[str, Any]:
         """Attach CHAT06 derived context after version/provenance/status checks.
 
-        Context packs may enrich presentation/research context, but cannot
-        promote Twin or Core truth. CANDIDATE/UNVERIFIED is always TO_VERIFY.
+        The source vocabulary is compatibility-mapped to the five-state Twin
+        read vocabulary. Context never mutates or promotes the authoritative
+        Twin record. CANDIDATE/UNVERIFIED/ANALYSIS/community/conflict states
+        fail closed to TO_VERIFY.
         """
         if twin_id not in self._records:
             raise KeyError("unknown twin_id")
@@ -187,7 +189,8 @@ class DigitalTwinEngine:
         missing = required - set(pack)
         if missing:
             raise ValueError(f"context pack missing fields: {sorted(missing)}")
-        if pack["status"] not in KNOWLEDGE_CONTEXT_CONTRACT["allowed_status"]:
+        incoming_status = str(pack["status"])
+        if incoming_status not in KNOWLEDGE_CONTEXT_CONTRACT["allowed_status"]:
             raise ValueError("unsupported context pack status")
         if not str(pack["version"]).strip() or not str(pack["pack_id"]).strip():
             raise ValueError("context pack id/version required")
@@ -195,16 +198,18 @@ class DigitalTwinEngine:
             raise ValueError("context pack provenance source required")
 
         record = self._records[twin_id]
-        incoming_status = str(pack["status"])
-        safe_status = incoming_status
-        if incoming_status in {"CANDIDATE", "UNVERIFIED"}:
-            safe_status = "TO_VERIFY"
-        # VERIFIED context may be shown as verified context only; it does not
-        # promote a non-VERIFIED Twin record.
+        safe_status = CHAT06_STATUS_MAP[incoming_status]
+        if safe_status == "TO_VERIFY":
+            truth_label = "TO_VERIFY"
+        elif safe_status == "UNKNOWN":
+            truth_label = "UNKNOWN"
+        else:
+            truth_label = "DERIVED"
         record.context[str(pack["pack_id"])] = {
             "version": str(pack["version"]),
+            "source_status": incoming_status,
             "status": safe_status,
-            "truth_label": "DERIVED" if safe_status not in {"TO_VERIFY"} else "TO_VERIFY",
+            "truth_label": truth_label,
             "generated_at": str(pack["generated_at"]),
             "provenance": dict(pack["provenance"]),
             "payload": pack.get("payload", {}),
