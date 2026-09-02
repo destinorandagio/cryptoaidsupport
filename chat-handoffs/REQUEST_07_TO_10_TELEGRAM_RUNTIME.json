@@ -1,0 +1,28 @@
+{
+  "REQUEST_ID": "CHAT07-TO-CHAT10-TELEGRAM-RUNTIME-20260902-1408",
+  "FROM": "CHAT07",
+  "TO": "CHAT10",
+  "PRIORITY": "P0",
+  "OWNERSHIP_BOUNDARY": "CHAT07 defines social/runtime contract; CHAT10 owns GitHub Actions/runtime/secret plumbing",
+  "REQUEST": [
+    "Align Telegram publisher schedules to five Europe/Rome editorial touchpoints without duplicate scheduler authority",
+    "Use canonical config/editorial_schedule.json as requested schedule input",
+    "Provide Drive asset delivery adapter for folder 1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD so send_photo/send_video can receive usable bytes or safe URLs",
+    "Preserve TELEGRAM_BOT_TOKEN exclusively in GitHub Secret and never log it",
+    "Keep max one publication per workflow run and concurrency locks",
+    "Provide workflow_dispatch dry-run and controlled-live modes",
+    "Persist exact Actions run IDs and PASS/FAIL evidence"
+  ],
+  "TARGET_LOCAL_SLOTS": ["08:30", "11:30", "14:30", "17:30", "20:30"],
+  "DESTINATIONS": ["channel", "channel", "channel", "group_poll", "group"],
+  "HUMAN_GATES": ["public live publishing remains an authorized production action"],
+  "ACCEPTANCE": [
+    "no duplicate post on retry",
+    "image/video failure safely falls back according to CHAT07 contract",
+    "five schedule mappings are timezone-correct",
+    "controlled Telegram test proves channel and group permissions",
+    "no secret appears in logs"
+  ],
+  "STATE": "REQUESTED",
+  "GO_NO_GO": "NO_GO_UNTIL_RUNTIME_VERIFIED"
+}
