@@ -80,10 +80,12 @@ def test_service_worker_excludes_dynamic_truth():
     assert "req.mode==='navigate'" in SW
 
 def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
-    assert "const SHELL_VERSION='2.1.1'" in SW
-    assert 'caid-shell-v${SHELL_VERSION}' in SW
+    assert "const SHELL_VERSION='2.1.2'" in SW
+    assert "const CACHE_PREFIX='caid-shell-v'" in SW
+    assert '${CACHE_PREFIX}${SHELL_VERSION}' in SW
     assert 'self.skipWaiting()' in SW
-    assert "keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))" in SW
+    assert "keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE).map(k=>caches.delete(k))" in SW
+    assert "keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))" not in SW
     assert 'self.clients.claim()' in SW
     for path in ['./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/app.js','./assets/shield.svg']:
         assert path in SW
