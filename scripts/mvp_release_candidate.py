@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import stat
 import tempfile
 import zipfile
@@ -217,7 +216,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    root = args.candidate.resolve()
+    # Keep the caller-supplied path identity intact so a symlink/reparse-point
+    # candidate root cannot disappear through resolve() before validation.
+    root = args.candidate.expanduser().absolute()
     required_sha256 = dict(args.require_sha256)
     errors = validate_tree(root, profile=args.profile, required_sha256=required_sha256)
     if errors:
