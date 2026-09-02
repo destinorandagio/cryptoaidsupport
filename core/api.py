@@ -11,7 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .case_engine import CaseEngine, CoreError
+from .case_engine import CoreError
+from .case_engine_mvp import CaseEngine
 
 CORE_API_FACADE_VERSION = "1.1.0"
 
@@ -141,9 +142,27 @@ class CoreAPI:
         sic_id: str,
         case_id: str,
         product_code: str,
+        request_id: str,
+        idempotency_key: str,
+        expected_version: int,
     ) -> dict:
+        """Select a Case product as an audited optimistic-concurrency mutation.
+
+        Product choice is part of the payment contract. It therefore cannot be a
+        silent last-write-wins field update: the request is bound to the live
+        principal, Case, product and expected Case version, and the engine locks
+        selection once Evidence/payment processing has begun.
+        """
         principal = self._principal(session_id, sic_id)
-        return self.engine.select_product(case_id, principal["user_id"], product_code)
+        request_id, idempotency_key = self._mutation_meta(request_id, idempotency_key)
+        return self.engine.select_product(
+            case_id,
+            principal["user_id"],
+            product_code,
+            request_id,
+            idempotency_key,
+            expected_version,
+        )
 
     def timeline(self, *, session_id: str, sic_id: str, case_id: str) -> list[dict]:
         principal = self._principal(session_id, sic_id)
