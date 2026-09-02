@@ -9,12 +9,13 @@ This module is deliberately thin:
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
 from core.case_engine import CaseEngine, CoreError
 
-ADMIN_VERSION = "0.3.0"
+ADMIN_VERSION = "0.3.1"
 ADMIN_ROLE = "ADMIN_CASE_REVIEWER"
 
 
@@ -45,7 +46,27 @@ class AdminOps:
         if ADMIN_ROLE not in set(roles):
             raise AdminError("ADMIN_FORBIDDEN", "Admin case-review role required")
 
-    def case_queue(self, *, roles: Iterable[str], state: str | None = None, limit: int = 100) -> list[dict]:
+    @staticmethod
+    def _require_audit_fields(
+        *, actor: str, reason: str, request_id: str, idempotency_key: str
+    ) -> None:
+        """Reject non-attributable Admin mutations before they reach Core truth."""
+        if not actor or not actor.strip():
+            raise AdminError("ADMIN_ACTOR_REQUIRED", "Audited admin actor is required", 400)
+        if not reason or not reason.strip():
+            raise AdminError("ADMIN_REASON_REQUIRED", "Audited admin reason is required", 400)
+        if not request_id or not request_id.strip():
+            raise AdminError("ADMIN_REQUEST_ID_REQUIRED", "Audited admin request_id is required", 400)
+        if not idempotency_key or not idempotency_key.strip():
+            raise AdminError(
+                "ADMIN_IDEMPOTENCY_KEY_REQUIRED",
+                "Audited admin idempotency_key is required",
+                400,
+            )
+
+    def case_queue(
+        self, *, roles: Iterable[str], state: str | None = None, limit: int = 100
+    ) -> list[dict]:
         """Return a privacy-minimized Case operations queue."""
         self._require_role(roles)
         limit = max(1, min(int(limit), 500))
@@ -77,17 +98,26 @@ class AdminOps:
                 "SELECT COUNT(*) FROM core_case_events WHERE case_id=?", (case_id,)
             ).fetchone()[0]
             open_tasks = conn.execute(
-                "SELECT COUNT(*) FROM core_case_tasks WHERE case_id=? AND status='OPEN'", (case_id,)
+                "SELECT COUNT(*) FROM core_case_tasks WHERE case_id=? AND status='OPEN'",
+                (case_id,),
             ).fetchone()[0]
         result = dict(case)
         result.update({"event_count": int(event_count), "open_tasks": int(open_tasks)})
         return result
 
-    def user_lookup(self, *, roles: Iterable[str], sic_id: str | None = None, case_id: str | None = None) -> dict:
+    def user_lookup(
+        self,
+        *,
+        roles: Iterable[str],
+        sic_id: str | None = None,
+        case_id: str | None = None,
+    ) -> dict:
         """Lookup a user for support operations without exposing profile JSON or wallet data."""
         self._require_role(roles)
         if bool(sic_id) == bool(case_id):
-            raise AdminError("LOOKUP_SELECTOR_REQUIRED", "Provide exactly one of sic_id or case_id", 400)
+            raise AdminError(
+                "LOOKUP_SELECTOR_REQUIRED", "Provide exactly one of sic_id or case_id", 400
+            )
         with self._connect() as conn:
             if case_id:
                 user = conn.execute(
@@ -95,16 +125,20 @@ class AdminOps:
                     (case_id,),
                 ).fetchone()
             else:
-                user = conn.execute("SELECT user_id,sic_id FROM core_users WHERE sic_id=?", (sic_id,)).fetchone()
+                user = conn.execute(
+                    "SELECT user_id,sic_id FROM core_users WHERE sic_id=?", (sic_id,)
+                ).fetchone()
             if not user:
                 raise AdminError("USER_NOT_FOUND", "User not found", 404)
             stats = conn.execute(
                 "SELECT COUNT(*) AS case_count,MAX(updated_at) AS last_case_at FROM core_cases WHERE user_id=?",
                 (user["user_id"],),
             ).fetchone()
+            current_time = datetime.now(timezone.utc).isoformat()
             active_sessions = conn.execute(
-                "SELECT COUNT(*) FROM core_sessions WHERE user_id=? AND status='ACTIVE'",
-                (user["user_id"],),
+                "SELECT COUNT(*) FROM core_sessions WHERE user_id=? AND status='ACTIVE' "
+                "AND (expires_at IS NULL OR expires_at>?)",
+                (user["user_id"], current_time),
             ).fetchone()[0]
         return {
             "user_id": user["user_id"],
@@ -114,12 +148,16 @@ class AdminOps:
             "active_sessions": int(active_sessions),
         }
 
-    def crm_timeline(self, *, roles: Iterable[str], sic_id: str, limit: int = 100) -> list[dict]:
+    def crm_timeline(
+        self, *, roles: Iterable[str], sic_id: str, limit: int = 100
+    ) -> list[dict]:
         """Return the audited Case-event timeline for one SIC-ID, newest first."""
         self._require_role(roles)
         limit = max(1, min(int(limit), 500))
         with self._connect() as conn:
-            user = conn.execute("SELECT user_id FROM core_users WHERE sic_id=?", (sic_id,)).fetchone()
+            user = conn.execute(
+                "SELECT user_id FROM core_users WHERE sic_id=?", (sic_id,)
+            ).fetchone()
             if not user:
                 raise AdminError("USER_NOT_FOUND", "User not found", 404)
             rows = conn.execute(
@@ -136,7 +174,9 @@ class AdminOps:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def manual_review_queue(self, *, roles: Iterable[str], limit: int = 100) -> list[dict]:
+    def manual_review_queue(
+        self, *, roles: Iterable[str], limit: int = 100
+    ) -> list[dict]:
         """Expose CHAT02 MANUAL_REVIEW intents read-only, if the table exists."""
         self._require_role(roles)
         limit = max(1, min(int(limit), 500))
@@ -169,10 +209,19 @@ class AdminOps:
 
         ``ADMIN_REVIEW`` intentionally does not satisfy the Core entitlement guard,
         so an admin cannot force a Case ACTIVE without CHAT02/FREE authorization.
+        Every mutation must also carry attributable audit metadata.
         """
         self._require_role(roles)
+        self._require_audit_fields(
+            actor=actor,
+            reason=reason,
+            request_id=request_id,
+            idempotency_key=idempotency_key,
+        )
         with self._connect() as conn:
-            row = conn.execute("SELECT user_id FROM core_cases WHERE case_id=?", (case_id,)).fetchone()
+            row = conn.execute(
+                "SELECT user_id FROM core_cases WHERE case_id=?", (case_id,)
+            ).fetchone()
         if not row:
             raise AdminError("CASE_NOT_FOUND", "Case not found", 404)
         try:
@@ -180,10 +229,10 @@ class AdminOps:
                 case_id=case_id,
                 user_id=row["user_id"],
                 new_state=new_state,
-                actor=actor,
-                reason=reason,
-                request_id=request_id,
-                idempotency_key=idempotency_key,
+                actor=actor.strip(),
+                reason=reason.strip(),
+                request_id=request_id.strip(),
+                idempotency_key=idempotency_key.strip(),
                 authorization="ADMIN_REVIEW",
                 expected_version=expected_version,
             )
