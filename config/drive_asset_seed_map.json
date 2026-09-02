@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "drive_folder_id": "1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD",
+  "selection_policy": "semantic_match_then_cooldown_then_format_fit",
+  "assets": {
+    "onboarding": [
+      {"id":"1Z6jgSamAwscA0ygo9BnTHKmX4AMXA8sP","mime":"image/jpeg","name":"Crypto_portal_onboarding_in_space_202609021415.jpeg"},
+      {"id":"1txwqRzeadScxEp6rxAGmIGlqusWbQWCy","mime":"video/mp4","name":"Digital_portal_opens_in_space_202609021418.mp4"}
+    ],
+    "security": [
+      {"id":"18CVMVR2K7F1sNF6DNN9eR2MS_fSeXncL","mime":"image/jpeg","name":"Red_shield_blocking_malicious_tr…_202609021415.jpeg"},
+      {"id":"1fiKtheNfyryHLMMAOuxjBOF36R_35ySp","mime":"video/mp4","name":"Web3_security_montage_video_202609021418.mp4"},
+      {"id":"1zsW2IiVea-IdVmqPiFPnAsG7u6FvoXpF","mime":"video/mp4","name":"Seed_phrase_encrypted_into_block_202609021417.mp4"}
+    ],
+    "evidence": [
+      {"id":"1BY3ltHl6NM11g3gnplapFr6eh-McyoeX","mime":"image/jpeg","name":"Preserve_digital_transaction_evi…_202609021415.jpeg"},
+      {"id":"1vfGJFlirvF9t9m1SZiXGtIt2mG3A2EXc","mime":"image/jpeg","name":"Blockchain_evidence_vault_for_Cr…_202609021414.jpeg"},
+      {"id":"1KlzPaepTORm97512pm9su1sJA2pfconB","mime":"video/mp4","name":"Digital_forensic_tools_scanning_…_202609021414.mp4"}
+    ],
+    "recovery": [
+      {"id":"1-WwcVBxRkAH7OWHyykqNg2LtMzx4D-uO","mime":"image/jpeg","name":"Forensic_investigation_of_lost_f…_202609021414.jpeg"},
+      {"id":"1VkBDBoHCTkgVS_ncLesrkiougz2auCGB","mime":"video/mp4","name":"CryptoAID_Web3_recovery_video_pr…_202609021418.mp4"}
+    ],
+    "community_growth": [
+      {"id":"17IcL46YbE50sLAZk9IoDmUl5M4BmWcgD","mime":"image/jpeg","name":"CryptoAID_network_expanding_growth_202609021414.jpeg"},
+      {"id":"1E1HVqFhXmMHa2J8NCgWzF64lO3bJFDgr","mime":"image/jpeg","name":"CryptoAID_team_gathering_reconnects_202609021414.jpeg"},
+      {"id":"1zMe9rIcj_43Tdfu2oCxyag6ABpL190vX","mime":"video/mp4","name":"Human_silhouettes_enter_digital_…_202609021418.mp4"}
+    ],
+    "poll": [
+      {"id":"1EjH41GJYC-By4lRY0ZOII2OYBaV4kRNT","mime":"image/jpeg","name":"CryptoAID_community_poll_design_202609021415.jpeg"},
+      {"id":"1YFCY1I1t3e1F1uXd27blQOqzH4pxphMp","mime":"video/mp4","name":"Security_check_poll_animation_202609021417.mp4"}
+    ],
+    "brand": [
+      {"id":"1SiaWLeGheLY2mOwfGyltVvWlzT1Q_avp","mime":"image/jpeg","name":"CryptoAID_brand_concept_design_202609021414.jpeg"},
+      {"id":"1RYegMvls4xKR5QSheDPRIszqnwB5bv_i","mime":"video/mp4","name":"CryptoAID_logo_in_futuristic_city_202609021418.mp4"}
+    ]
+  },
+  "guards": {
+    "never_reuse_same_asset_consecutively": true,
+    "video_fallback_to_image": true,
+    "image_fallback_to_text": true,
+    "never_publish_unverified_project_claim": true
+  }
+}
