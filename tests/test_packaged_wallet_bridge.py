@@ -22,6 +22,25 @@ def _run_chain_normalizer(value):
     return json.loads(completed.stdout)
 
 
+def _run_wallet_event_transition(kind, payload):
+    node = shutil.which("node")
+    assert node, "Node.js is required for executable wallet lifecycle coverage"
+    normalize = next(line for line in BRIDGE.splitlines() if line.startswith("const normalizeChainId="))
+    transition = next(line for line in BRIDGE.splitlines() if line.startswith("const walletEventTransition="))
+    script = (
+        "const TARGET_CHAIN_ID=137;\n"
+        f"{normalize}\n{transition}\n"
+        "process.stdout.write(JSON.stringify(walletEventTransition(process.argv[1],JSON.parse(process.argv[2]))));"
+    )
+    completed = subprocess.run(
+        [node, "-e", script, kind, json.dumps(payload)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(completed.stdout)
+
+
 def test_wallet_bridge_is_packaged_explicit_and_never_identity_or_signing_authority():
     assert "window.CryptoAIDWallet=Object.freeze" in BRIDGE
     assert "contractVersion:'1.2.0'" in BRIDGE
@@ -94,3 +113,44 @@ def test_wallet_disconnect_account_and_chain_changes_fail_closed_without_touchin
     wallet_section = BRIDGE.split("async function connectWallet", 1)[1].split("window.addEventListener('caid:sicid-login-request'", 1)[0]
     for forbidden_identity in ["sicId", "sic_id", "userId", "user_id", "identityDataState"]:
         assert forbidden_identity not in wallet_section
+
+
+def test_wallet_lifecycle_events_never_self_promote_live_and_require_explicit_revalidation():
+    cases = [
+        ("accountsChanged", ["0xB"]),
+        ("accountsChanged", []),
+        ("accountsChanged", [""]),
+        ("chainChanged", "0x1"),
+        ("chainChanged", "0x89"),
+        ("chainChanged", "137"),
+        ("chainChanged", "garbage"),
+        ("disconnect", None),
+        ("accountsChanged", ["0xC", "0xD"]),
+        ("chainChanged", 137),
+    ]
+    for kind, payload in cases:
+        state = _run_wallet_event_transition(kind, payload)
+        assert state["dataState"] == "TO_VERIFY"
+        assert state["needs_revalidation"] is True
+        assert state.get("account") is None
+        assert state["status"] != "CONNECTED"
+
+    assert _run_wallet_event_transition("accountsChanged", ["0xB"])["status"] == "REVALIDATION_REQUIRED"
+    assert _run_wallet_event_transition("accountsChanged", [])["status"] == "DISCONNECTED"
+    assert _run_wallet_event_transition("chainChanged", "0x1")["status"] == "WRONG_CHAIN"
+    assert _run_wallet_event_transition("chainChanged", "0x89")["status"] == "REVALIDATION_REQUIRED"
+
+
+def test_wallet_lifecycle_generation_invalidates_old_listener_and_prevents_stale_account_resurrection_contract():
+    lifecycle = BRIDGE.split("let walletValidationGeneration=0;", 1)[1].split("window.addEventListener('caid:sicid-login-request'", 1)[0]
+    assert "generation!==walletValidationGeneration" in lifecycle
+    assert "walletValidationGeneration+=1" in lifecycle
+    assert "needs_revalidation:true" in lifecycle
+    assert "wallet_revalidation_superseded" in lifecycle
+    assert "registerWalletLifecycle(entry,generation)" in lifecycle
+    # Event callbacks delegate to the fail-closed transition and never publish LIVE directly.
+    handlers = lifecycle.split("function registerWalletLifecycle", 1)[1].split("async function connectWallet", 1)[0]
+    assert "walletEventTransition" not in handlers  # transition is applied only through invalidateWalletState
+    assert "invalidateWalletState" in handlers
+    assert "dataState:'LIVE'" not in handlers
+    assert "status:'CONNECTED'" not in handlers
