@@ -1,34 +1,77 @@
 {
   "CHAT_ID": "CHAT07",
   "DOMAIN": "TELEGRAM_COMMUNITY_SUPPORT_SOCIAL",
-  "TIMESTAMP": "2026-09-02T09:55:00Z",
-  "VERSION": "0.1.0",
-  "PARENT_VERSION": null,
-  "GIT_SHA": "3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
-  "INPUT_VERSIONS": {
-    "GLOBAL_STATE": "control/latest-state.json@fcd04372099dcafa723fb3fa54e6083e44422573",
-    "OWNERSHIP": "control/ownership.json@8773ed5678c9f04754aa6fefb6108f527d6cecc7",
-    "CHAT01": "1.0@d718a9ee86f5c98a291e694b69ae2b6d44241f3e",
-    "CHAT02": "1.0@b7ff646c9e08c721407c743b2f443cdd527e6920",
-    "CHAT06": "schema-1.0@be15707e55d57813750dcde338081accf8089efa",
-    "CHAT10": "MISSING_NOT_PERSISTED"
+  "TIMESTAMP": "2026-09-02T12:59:00+02:00",
+  "VERSION": "0.2.0",
+  "PARENT_VERSION": "0.1.0",
+  "SOURCE_COMMIT": "2d58ebbefc7099baef2e471d75820e9011e3e80d",
+  "OUTPUT_VERSION": "CHAT07_HANDOFF_0.2.0",
+  "STATE": "MINIMUM_SUPPORT_CONTRACT_GREEN_RUNTIME_PARTIAL_NO_GO",
+  "OWNERSHIP": "Support/Telegram presentation and safe command adapters only; no Case truth, Evidence bytes, SIC-ID authority, payment truth or second support database.",
+  "BUILT": [
+    "bot/support_mvp.py stateless Case-linked support command guard",
+    "fail-closed upstream Case-owner verdict requirement",
+    "credential/secret-like input rejection before support escalation",
+    "minimized support command fields case_id/category/summary/escalate only",
+    "in-memory anti-abuse RateLimiter",
+    "tests/test_support_mvp.py authorization/minimization/secret/rate-limit tests"
+  ],
+  "TESTED": [
+    "GitHub Actions CI run 33621762265 on exact source commit 2d58ebbefc7099baef2e471d75820e9011e3e80d",
+    "python compileall bot PASS in CI",
+    "full pytest PASS in CI including tests/test_support_mvp.py",
+    "post-test obvious Telegram token scan PASS",
+    "existing bot/main.py command/safety copy static review"
+  ],
+  "TEST_PASS": [
+    "unauthorized Case support rejected by support adapter",
+    "support command carries no Evidence payload and no SIC-ID field",
+    "unsafe credential-like support text rejected",
+    "unit-level rate limit fails closed at configured limit and recovers after window",
+    "repository compile and full pytest",
+    "no hard-coded Telegram bot token detected by current CI regex"
+  ],
+  "TEST_FAIL": [
+    "Minimum live Telegram path does not yet wire bot/support_mvp.py authorization/rate-limit guard",
+    "/links currently delegates to Knowledge response path rather than a pinned deterministic official-links map"
+  ],
+  "NOT_TESTED": [
+    "real Telegram bot connectivity",
+    "request-time upstream Case-owner authorization through a real support API",
+    "Case-linked ticket persistence/escalation owner command",
+    "safe idempotent Case notification delivery",
+    "group/channel permissions and Telegram outage behavior",
+    "Golden Journey Support step on final composed runtime"
+  ],
+  "AG_TASK": {
+    "TASK_ID": "AG-CHAT07-SUPPORT-TELEGRAM-20260902-1258",
+    "DRIVE_ID": "1ul6PIZKqrSwOx6CO5j8xTbWik3nPHrd437egGbErV0w",
+    "STATE": "READY_FOR_EXECUTION",
+    "COMPLETION_EVIDENCE": "NOT_RETURNED"
   },
-  "OUTPUT_VERSION": "CHAT07_HANDOFF_0.1.0",
-  "FILES_CHANGED": ["chat-handoffs/07-telegram-community-support.json"],
-  "CONTRACTS_CHANGED": [],
-  "SCHEMA_CHANGED": false,
-  "STATE": "DISCOVERED",
-  "BUILT": ["Canonical CHAT07 machine-readable bootstrap handoff"],
-  "TESTED": ["Repository access", "global-state readback", "ownership readback", "CHAT01/02/06 upstream handoff readback", "existing bot surface discovery"],
-  "TEST_PASS": 5,
-  "TEST_FAIL": 0,
-  "NOT_TESTED": ["Real Telegram bot connectivity", "authorized Case read", "Payment status read", "Knowledge release consumption", "notification idempotency", "group/channel permissions", "Telegram outage handling", "E2E Golden Journey"],
-  "FIXED": [],
-  "BLOCKERS": ["CHAT10 handoff not persisted", "CHAT01 HTTP/auth transport contract not yet exposed", "CHAT02 runtime/provider integration not production verified", "CHAT06 compatibility/release contract still bootstrap", "Repository global release gate NO_GO"],
-  "DEPENDENCIES": ["CHAT01 Case/auth authority", "CHAT02 payment/entitlement authority", "CHAT06 verified knowledge", "CHAT10 runtime/deploy", "CHAT05 independent QA/release"],
-  "COLLISIONS": ["chat-handoffs/HANDOFF_07.md currently contains CHAT06 content and is not treated as CHAT07 authority"],
-  "HUMAN_GATES": ["No production deploy/publishing/spend/irreversible Telegram change without authorization"],
-  "REQUESTS": [{"TO":"CHAT00","TYPE":"FINDING","ID":"CHAT07-FINDING-001","DETAIL":"Reconcile misnumbered chat-handoffs/HANDOFF_07.md, which currently contains CHAT06 handoff content; preserve evidence and canonical ownership."}],
-  "NEXT": ["Diff existing bot against CHAT07 contract", "Reuse/adapt existing bot modules", "Define read-only adapter contracts for CHAT01/02/06", "Build authorization and notification guards only after upstream contract compatibility", "Add targeted tests", "Publish next CHAT07 handoff"],
+  "BLOCKERS": [
+    "wire support guard into Telegram runtime without creating parallel Case authority",
+    "replace unpinned /links response with deterministic trusted official-link contract",
+    "obtain request-time Case-owner adapter from CHAT01 and safe notification command contract",
+    "obtain persisted AG/local Telegram acceptance evidence",
+    "final runtime Golden Journey remains NO_GO"
+  ],
+  "DEPENDENCIES": [
+    "CHAT01 Case/auth authority",
+    "CHAT02 payment/entitlement status authority",
+    "CHAT06 verified/publishable knowledge only",
+    "CHAT10 runtime/deploy/secret plumbing",
+    "CHAT05 independent QA/release"
+  ],
+  "HUMAN_GATES": [
+    "production Telegram credential",
+    "irreversible group/channel configuration or public publishing"
+  ],
+  "NEXT": [
+    "integrate support_mvp guard into bot runtime through upstream authorization adapter",
+    "pin official links",
+    "run Antigravity local/mocked Telegram acceptance task and persist exact evidence",
+    "CHAT05 reverify final Support step"
+  ],
   "GO_NO_GO": "NO_GO"
 }
