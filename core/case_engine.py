@@ -23,6 +23,9 @@ def ident(p): return f"{p}_{uuid.uuid4().hex}"
 class CoreError(RuntimeError):
     def __init__(self,code,message,status=400): super().__init__(message); self.code=code; self.status=status
 
+# Stable public error name used by downstream Core consumers.
+CaseError = CoreError
+
 class CaseEngine:
     def __init__(self,db_path:str|Path):
         self.db_path=Path(db_path)
@@ -70,7 +73,7 @@ class CaseEngine:
                 b=c.execute("SELECT * FROM core_wallet_bindings WHERE wallet=? AND user_id=? AND status='ACTIVE'",(wallet.lower(),user_id)).fetchone()
                 if not b: raise CoreError("WALLET_MISMATCH","wallet is not bound to user",403)
             cid=ident("case"); truth="VERIFIED_REFERENCE" if search_hit else "TO_VERIFY"; t=now()
-            c.execute("INSERT INTO core_cases VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(cid,user_id,sic_id,wallet.lower() if wallet else None,project_ref,truth,"DRAFT",None,None,1,t,t,None))
+            c.execute("INSERT INTO core_cases VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(cid,user_id,sic_id,wallet.lower() if wallet else None,project_ref,truth,"DRAFT",None,None,1,t,t,None))
             ev={"event_id":ident("ce"),"case_id":cid,"actor":actor,"previous_state":None,"new_state":"DRAFT","reason":"case opened","timestamp":t,"request_id":request_id,"idempotency_key":idempotency_key,"authorization":"OWNER","audit_event":"CASE_CREATED","case_version":1}
             c.execute("INSERT INTO core_case_events VALUES(:event_id,:case_id,:actor,:previous_state,:new_state,:reason,:timestamp,:request_id,:idempotency_key,:authorization,:audit_event,:case_version)",ev)
             result={"case_id":cid,"state":"DRAFT","project_truth":truth,"version":1}; c.execute("INSERT INTO core_requests VALUES(?,?,?,?,?)",(idempotency_key,request_id,"open_case",json.dumps(result,sort_keys=True),t)); c.execute("COMMIT"); return result
