@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -95,6 +97,28 @@ def test_symlink_is_rejected_before_packaging(tmp_path):
         pytest.skip("symlink creation unavailable on this runner")
     errors = mod.validate_tree(tmp_path)
     assert any("forbidden symlink: linked-private.txt" in error for error in errors)
+
+
+def test_cli_rejects_symlink_candidate_root(tmp_path):
+    target = tmp_path / "real-candidate"
+    target.mkdir()
+    for required in mod.PROFILE_REQUIRED["pwa-shell"]:
+        (target / required).write_text("x", encoding="utf-8")
+    linked_root = tmp_path / "candidate-link"
+    try:
+        linked_root.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlink creation unavailable on this runner")
+
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), str(linked_root)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "candidate root must not be a symlink/reparse point" in proc.stdout
 
 
 def test_canonical_php_profile_rejects_known_drive_dirty_artifacts(tmp_path):
