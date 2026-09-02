@@ -1,58 +1,88 @@
 {
-  "schema_version": "1.0",
-  "chat": "CHAT06_GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE",
-  "state": "ACTIVE_BOOTSTRAP",
-  "role": "DERIVED_KNOWLEDGE_LAYER",
-  "authority_boundary": {
-    "owns": ["derived knowledge graph", "source and claim provenance", "recovery intelligence", "case context packs", "versioned DAPPMAP relationship releases"],
-    "does_not_own": ["MASTER", "Case authority", "financial authority", "payment truth", "entitlement ledger", "Digital Twin authority"]
+  "CHAT_ID": "CHAT06_GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE",
+  "DOMAIN": "GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE_RECOVERY_BRAIN",
+  "TIMESTAMP": "2026-09-02T12:01:00+02:00",
+  "VERSION": "0.2.0",
+  "PARENT_VERSION": "0.1.0",
+  "GIT_SHA": "4d71f96efa69763d8e6050aef2faf387625b4ab7",
+  "INPUT_VERSIONS": {
+    "CONTROL_LATEST_STATE": "schema-1.0@fcd04372099dcafa723fb3fa54e6083e44422573",
+    "OWNERSHIP": "schema-1.0@8773ed5678c9f04754aa6fefb6108f527d6cecc7",
+    "DEPENDENCIES": "schema-1.0@7e95497ae3cf1298b456fe029bddef9aa047348e",
+    "CHAT03": "twin-schema-1.0.0/dappmap-contract-1.0.0@a56ebec9e79b294e874f3aa31295f9cad47e7c62",
+    "KNOWLEDGE_GLOBAL_MANIFEST": "schema-1.0@c175318eb9df50a6109e24ecbc92f1eb338393ac"
   },
-  "pipeline": ["DISCOVER", "INGEST", "NORMALIZE", "ENTITY_RESOLVE", "SOURCE", "CLAIM", "EVIDENCE", "VERIFY", "CLASSIFY", "RELATE", "SCORE", "RELEASE", "TWIN", "DAPPMAP", "CASE_CONTEXT"],
-  "knowledge_states": ["VERIFIED", "SUPPORTED", "UNVERIFIED", "ANALYSIS", "COMMUNITY_REPORT", "CONTRADICTED", "UNKNOWN"],
-  "source_priority": ["ON_CHAIN", "REGULATOR_COURT_REGISTRY", "OFFICIAL_ARCHIVED_FIRST_PARTY", "INDEPENDENT_MULTISOURCE", "RELIABLE_SECONDARY", "INFERENCE"],
-  "canonical_inputs_reused": [
-    "knowledge/cryptoaid_master.json",
-    "knowledge/global/KNOWLEDGE_GLOBAL_MANIFEST.json",
-    "knowledge/global/DAPPMAP_MIRROR_REGISTRY.json",
-    "knowledge/hyperz/",
-    "knowledge/recovery/",
-    "knowledge/web3/"
+  "OUTPUT_VERSION": "CHAT06_HANDOFF_0.2.0",
+  "STATE": "DISCOVERED",
+  "FILES_CHANGED": [
+    "chat-handoffs/06-global-knowledge.json"
   ],
-  "rules": [
-    "Dead != scam",
-    "Offline != dead",
-    "TVL 0 != dead",
-    "Allegation != conviction",
-    "Wallet relation != person attribution",
-    "Migration != collapse",
-    "No blind global regeneration",
-    "Never expose private evidence",
-    "Marketing may consume only publishable verified claims"
+  "CONTRACTS_CHANGED": [
+    "CHAT06 handoff normalized to CRYPTOAID GLOBAL FACTORY CONTRACT minimum schema",
+    "CHAT06 ownership boundary reaffirmed",
+    "CHAT03 downstream need for versioned context-pack contract recorded"
   ],
-  "release_contract": {
-    "fields": ["KNOWLEDGE_VERSION", "SOURCE_DELTA", "CLAIMS_DELTA", "VERIFIED", "CONTRADICTED", "TO_VERIFY", "AFFECTED_TWINS", "AFFECTED_CASE_CONTEXT", "BLOCKERS"],
-    "consumers": ["CHAT03", "CHAT01", "CHAT07", "CHAT08", "CHAT09"]
+  "SCHEMA_CHANGED": true,
+  "BUILT": [
+    "Persisted CHAT06 derived-knowledge authority boundary",
+    "Persisted source priority and semantic safety rules",
+    "Persisted release fields KNOWLEDGE_VERSION/SOURCE_DELTA/CLAIMS_DELTA/VERIFIED/CONTRADICTED/TO_VERIFY/AFFECTED_TWINS/AFFECTED_CASE_CONTEXT/BLOCKERS",
+    "Reused existing knowledge MASTER, global manifest, DAPPMAP Mirror registry, HyperZ, Recovery and Web3 surfaces"
+  ],
+  "TESTED": [
+    "Repository access",
+    "CHAT06 ownership lookup",
+    "critical dependency lookup",
+    "own handoff readback",
+    "CHAT03 upstream/downstream contract readback",
+    "main branch head observation"
+  ],
+  "TEST_PASS": [
+    "CHAT06 is registered owner of global_knowledge",
+    "No duplicate MASTER created",
+    "No duplicate Twin authority created",
+    "Existing knowledge surfaces are discoverable and reusable",
+    "CHAT03 explicitly waits for a CHAT06 versioned context-pack contract"
+  ],
+  "TEST_FAIL": [],
+  "NOT_TESTED": [
+    "Source/claim/evidence provenance schema runtime validation",
+    "Knowledge state compatibility mapping regression",
+    "Case Context Pack schema validation",
+    "DAPPMAP relationship release integration with CHAT03",
+    "Publishability/contradiction/impact-propagation automated tests",
+    "Golden Journey E2E"
+  ],
+  "FIXED": [
+    "Previous CHAT06 machine handoff lacked mandatory global handoff fields; normalized without changing another Factory surface"
+  ],
+  "BLOCKERS": [
+    "Repository-wide GO/NO-GO remains owned by CHAT05 and is NO_GO",
+    "Existing knowledge verification vocabulary requires non-destructive compatibility mapping before migration",
+    "CHAT03 cannot pin knowledge_version until CHAT06 publishes tested context-pack release contract"
+  ],
+  "DEPENDENCIES": {
+    "UPSTREAM": ["CHAT00 control contracts", "existing MASTER/knowledge registries", "public/on-chain/regulatory sources"],
+    "DOWNSTREAM": ["CHAT03 Twin/DAPPMAP", "CHAT01 Case Context", "CHAT07 verified support knowledge", "CHAT08 analytics", "CHAT09 publishable verified claims"]
   },
-  "observed": {
-    "global_manifest_exists": true,
-    "dappmap_mirror_registry_exists": true,
-    "hyperz_surface_exists": true,
-    "recovery_surface_exists": true,
-    "web3_surface_exists": true,
-    "qa_global_sync_finding": "QA05-P0-002"
+  "COLLISIONS": [
+    "HANDOFF_06.md naming is already occupied by CHAT05 QA; CHAT06 machine handoff remains chat-handoffs/06-global-knowledge.json",
+    "control/latest-state.json observed_head and latest_ci are stale relative to current main/QA state; FINDING must be consumed by CHAT00, not modified by CHAT06"
+  ],
+  "HUMAN_GATES": [],
+  "BACKLOG": {
+    "P1": ["World Explorer enrichment after P0 contracts/tests"],
+    "P2": ["Broader historical backfill after integration"],
+    "P3": ["Cosmetic explorer enhancements"]
   },
-  "blocked": [
-    "Canonical CHAT06 release contract was previously absent from chat-handoffs",
-    "Repository-wide release remains NO_GO under CHAT05 independent QA",
-    "Existing knowledge verification vocabulary requires non-destructive compatibility mapping to CHAT06 states before broad migration"
+  "NEXT": [
+    "PLANNED: inventory canonical/global/hyperz/recovery/web3 schemas and calculate exact delta",
+    "PLANNED: define non-destructive verification-state compatibility mapping",
+    "PLANNED: implement source/claim/evidence/provenance contracts inside CHAT06-owned knowledge surface",
+    "PLANNED: implement Case Context Pack and versioned DAPPMAP relationship release contracts",
+    "PLANNED: add automated publishability, contradiction and impact-propagation tests",
+    "REQUEST CHAT00: reconcile stale control/latest-state head/CI fields",
+    "CONTRACT CHAT03: consume only tested versioned CHAT06 releases; never treat CHAT06 as Twin authority"
   ],
-  "next": [
-    "Inventory existing knowledge schemas and registries",
-    "Define compatibility mapping for verification states without breaking existing consumers",
-    "Materialize source/claim/evidence provenance contracts",
-    "Materialize entity relation and Case Context Pack contracts",
-    "Publish versioned DAPPMAP relationship contract for CHAT03",
-    "Add targeted tests for publishability, contradiction and impact propagation"
-  ],
-  "release_state": "NO_GO"
+  "GO_NO_GO": "NO_GO"
 }
