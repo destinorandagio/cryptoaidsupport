@@ -2,6 +2,11 @@ name: Release Candidate Package
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'frontend/public_html/**'
+      - 'scripts/mvp_release_candidate.py'
+      - '.github/workflows/release-candidate.yml'
   pull_request:
     paths:
       - 'frontend/public_html/**'
