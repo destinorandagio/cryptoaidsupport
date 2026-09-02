@@ -1,8 +1,8 @@
 """CHAT02 private Evidence storage containment for the 48H MVP.
 
-Case identifiers are logical identifiers, never filesystem paths.  Storage
+Case identifiers are logical identifiers, never filesystem paths. Storage
 rejects traversal, symlink/junction roots, and symlinked path components before
-Evidence bytes or rows can escape the configured private root.  On POSIX the
+Evidence bytes or rows can escape the configured private root. On POSIX the
 write path is anchored with directory file descriptors plus O_NOFOLLOW so a
 path-swap race cannot redirect quarantine/final bytes outside the root.
 """
@@ -44,8 +44,7 @@ def _is_link_or_reparse(path: Path) -> bool:
         is_junction = getattr(path, "is_junction", None)
         if callable(is_junction) and is_junction():
             return True
-        st = os.lstat(path)
-        return stat.S_ISLNK(st.st_mode)
+        return stat.S_ISLNK(os.lstat(path).st_mode)
     except FileNotFoundError:
         return False
 
@@ -129,11 +128,12 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
     ) -> tuple[Path, int, str]:
         """Write quarantine/final bytes beneath root using no-follow dirfds.
 
-        Returns (relative path, open evidence-directory fd, final filename).  The
+        Returns (relative path, open evidence-directory fd, final filename). The
         caller keeps the fd through DB commit so it can unlink the exact file on
         rollback without re-resolving an attacker-controlled pathname.
         """
         root_fd = case_fd = evidence_fd = None
+        success = False
         tmp_name = f"v{version}.quarantine"
         final_name = f"v{version}.bin"
         try:
@@ -169,7 +169,8 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
                 os.close(file_fd)
 
             try:
-                os.replace(
+                # renameat semantics, anchored to the already-open no-follow dir.
+                os.rename(
                     tmp_name,
                     final_name,
                     src_dir_fd=evidence_fd,
@@ -183,25 +184,22 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
                 self._raise_storage_link(exc)
 
             rel = Path(case_id) / evidence_id / final_name
+            success = True
             return rel, evidence_fd, final_name
         except OSError as exc:
             self._raise_storage_link(exc)
         finally:
+            if not success and evidence_fd is not None:
+                os.close(evidence_fd)
             if case_fd is not None:
                 os.close(case_fd)
             if root_fd is not None:
                 os.close(root_fd)
-            # evidence_fd intentionally remains open only on successful return.
 
     def _safe_write_fallback(
         self, *, case_id: str, evidence_id: str, version: int, content: bytes
     ) -> tuple[Path, None, Path]:
-        """Fail-closed fallback for platforms without POSIX dir_fd support.
-
-        It rejects link/reparse components immediately before and after each
-        directory creation and verifies resolved containment before an exclusive
-        quarantine write.  Production should prefer the POSIX no-follow path.
-        """
+        """Fail-closed fallback for platforms without POSIX dir_fd support."""
         case_dir = self.private_root / case_id
         evidence_dir = case_dir / evidence_id
         for component in (case_dir, evidence_dir):
@@ -240,7 +238,6 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
                         "EVIDENCE_STORAGE_ERROR", "Short private Evidence write"
                     )
                 written += n
-                # Re-check parent after each write on fallback platforms.
                 if _is_link_or_reparse(evidence_dir):
                     raise EvidencePaymentError(
                         "EVIDENCE_SYMLINK_FORBIDDEN",
@@ -274,7 +271,7 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
             os.open in getattr(os, "supports_dir_fd", set())
             and os.mkdir in getattr(os, "supports_dir_fd", set())
             and os.unlink in getattr(os, "supports_dir_fd", set())
-            and os.replace in getattr(os, "supports_dir_fd", set())
+            and os.rename in getattr(os, "supports_dir_fd", set())
             and bool(getattr(os, "O_NOFOLLOW", 0))
         )
         if supports_dir_fd:
@@ -328,7 +325,7 @@ class EvidencePaymentEngine(_MvpEvidencePaymentEngine):
         ):
             raise EvidencePaymentError("MIME_REJECTED", "MIME validation failed")
 
-        # Revalidate the root immediately before opening it.  A root path that
+        # Revalidate the root immediately before opening it. A root path that
         # was replaced by a symlink after construction is rejected.
         _assert_no_existing_link_components(self.private_root)
         digest = hashlib.sha256(content).hexdigest()
