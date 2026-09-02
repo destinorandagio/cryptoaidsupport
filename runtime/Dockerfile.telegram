@@ -7,5 +7,4 @@ COPY bot ./bot
 COPY config ./config
 COPY content ./content
 COPY knowledge ./knowledge
-COPY data ./data
 CMD ["python", "bot/runtime_supervisor.py"]
