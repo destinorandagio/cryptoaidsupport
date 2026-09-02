@@ -1,5 +1,7 @@
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 
 import pytest
 
@@ -171,6 +173,42 @@ def test_first_case_credit_is_released_if_unsubmitted_intent_expires():
     assert replacement["expected_value"] == "450"
 
 
+def test_first_case_credit_is_released_if_verification_rejects_attempt():
+    e = engine()
+    activation = e.create_activation_intent(
+        principal_id="sic-reject",
+        payer="0xsender",
+        request_id="req-a",
+        idempotency_key="idem-a",
+    )
+    settle_ok(e, activation, "0xactivation-reject")
+    first = e.create_case_payment_intent(
+        principal_id="sic-reject",
+        case_id="case-retry",
+        payer="0xsender",
+        request_id="req-old",
+        idempotency_key="idem-old",
+    )
+    for state in ("USER_ACTION_REQUIRED", "TX_OBSERVED", "VERIFYING"):
+        first = e.transition_payment(first["intent_id"], state, "test")
+    rejected = e.transition_payment(first["intent_id"], "REJECTED", "invalid synthetic receipt")
+    assert rejected["state"] == "REJECTED"
+    credit = e.get_activation_credit("sic-reject")
+    assert credit["state"] == "AVAILABLE" and credit["reserved_case_id"] is None
+    with e._connect() as c:
+        assert c.execute("SELECT COUNT(*) FROM settlement_certificates WHERE intent_id=?", (first["intent_id"],)).fetchone()[0] == 0
+        assert c.execute("SELECT COUNT(*) FROM entitlement_ledger WHERE intent_id=?", (first["intent_id"],)).fetchone()[0] == 0
+    retry = e.create_case_payment_intent(
+        principal_id="sic-reject",
+        case_id="case-retry",
+        payer="0xsender",
+        request_id="req-new",
+        idempotency_key="idem-new",
+    )
+    assert retry["intent_id"] != first["intent_id"]
+    assert retry["expected_value"] == "450"
+
+
 def test_first_case_parallel_reservation_fails_closed():
     e = engine()
     activation = e.create_activation_intent(
@@ -197,6 +235,47 @@ def test_first_case_parallel_reservation_fails_closed():
             idempotency_key="idem-2",
         )
     assert exc.value.code == "FIRST_CASE_PENDING"
+
+
+def test_first_case_concurrent_race_has_exactly_one_discount_reservation():
+    e = engine()
+    activation = e.create_activation_intent(
+        principal_id="sic-thread-race",
+        payer="0xsender",
+        request_id="req-a",
+        idempotency_key="idem-a",
+    )
+    settle_ok(e, activation, "0xactivation-thread-race")
+    barrier = Barrier(2)
+
+    def attempt(n):
+        barrier.wait()
+        try:
+            intent = e.create_case_payment_intent(
+                principal_id="sic-thread-race",
+                case_id=f"case-{n}",
+                payer="0xsender",
+                request_id=f"req-{n}",
+                idempotency_key=f"idem-{n}",
+            )
+            return ("ok", intent["intent_id"], intent["expected_value"])
+        except EvidencePaymentError as exc:
+            return ("error", exc.code, None)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(attempt, (1, 2)))
+    winners = [r for r in results if r[0] == "ok"]
+    losers = [r for r in results if r[0] == "error"]
+    assert len(winners) == 1 and winners[0][2] == "450"
+    assert len(losers) == 1 and losers[0][1] == "FIRST_CASE_PENDING"
+    credit = e.get_activation_credit("sic-thread-race")
+    assert credit["state"] == "RESERVED"
+    with e._connect() as c:
+        discounted = c.execute(
+            "SELECT COUNT(*) FROM economic_intents WHERE principal_id=? AND purpose='CASE' AND credit_applied='50'",
+            ("sic-thread-race",),
+        ).fetchone()[0]
+        assert discounted == 1
 
 
 def test_case_payment_requires_settled_activation_credit():
