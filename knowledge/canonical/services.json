@@ -1,0 +1,17 @@
+{
+  "status": "VERIFIED_BASELINE",
+  "it": [
+    {"id":"support","name":"Supporto CryptoAID","description":"Orientamento e assistenza di primo livello nella community."},
+    {"id":"security","name":"Crypto Security","description":"Educazione su phishing, scam, wallet safety, firme e social engineering."},
+    {"id":"recovery","name":"Recovery Education & Triage","description":"Comprensione del caso, organizzazione di informazioni pubbliche/non segrete, tracing e orientamento; nessuna garanzia di recupero."},
+    {"id":"web3","name":"Web3 Education","description":"Blockchain, wallet, smart contract, token, dApp, DEX, DeFi, NFT, bridge, gas e firme."},
+    {"id":"reports","name":"Scam Reports","description":"Raccolta prudente di segnalazioni con prove pubbliche e classificazione senza accuse automatiche."}
+  ],
+  "en": [
+    {"id":"support","name":"CryptoAID Support","description":"First-line orientation and assistance in the community."},
+    {"id":"security","name":"Crypto Security","description":"Education on phishing, scams, wallet safety, signatures and social engineering."},
+    {"id":"recovery","name":"Recovery Education & Triage","description":"Case understanding, organization of public/non-secret information, tracing and orientation; no recovery guarantee."},
+    {"id":"web3","name":"Web3 Education","description":"Blockchain, wallets, smart contracts, tokens, dApps, DEX, DeFi, NFTs, bridges, gas and signatures."},
+    {"id":"reports","name":"Scam Reports","description":"Prudent collection of reports using public evidence and classification without automatic accusations."}
+  ]
+}
