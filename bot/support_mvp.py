@@ -6,16 +6,20 @@ must supply the Case ownership verdict before a Case-linked request is accepted.
 """
 from __future__ import annotations
 
+from collections import defaultdict, deque
 from dataclasses import dataclass
+import json
+from pathlib import Path
 import re
 import time
-from collections import defaultdict, deque
+from urllib.parse import urlparse
 
 _SECRET_PATTERNS = (
     re.compile(r"\b(seed\s*phrase|mnemonic|private\s*key|secret\s*key)\b", re.I),
     re.compile(r"\b(password|passphrase|2fa|otp|one[- ]time\s+code)\b", re.I),
     re.compile(r"\b(?:0x)?[0-9a-f]{64}\b", re.I),
 )
+_OFFICIAL_LINKS_PATH = Path(__file__).resolve().parents[1] / "knowledge" / "canonical" / "official_links.json"
 
 
 class SupportRejected(ValueError):
@@ -32,6 +36,67 @@ class SupportRequest:
 
 def contains_secret(text: str) -> bool:
     return any(pattern.search(text or "") for pattern in _SECRET_PATTERNS)
+
+
+def _require_https(value: str, *, telegram_only: bool = False) -> str:
+    value = (value or "").strip()
+    parsed = urlparse(value)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise SupportRejected("invalid_official_link")
+    if telegram_only and parsed.netloc.lower() not in {"t.me", "www.t.me"}:
+        raise SupportRejected("invalid_official_telegram_link")
+    return value
+
+
+def load_official_links(path: str | Path | None = None) -> dict:
+    """Load only the version-controlled VERIFIED official-link registry.
+
+    The command fails closed if the registry is missing, malformed, unverified or
+    contains an unexpected transport/domain for Telegram links.
+    """
+    source = Path(path) if path is not None else _OFFICIAL_LINKS_PATH
+    try:
+        data = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SupportRejected("official_links_unavailable") from exc
+    if data.get("status") != "VERIFIED":
+        raise SupportRejected("official_links_not_verified")
+    telegram = data.get("telegram") or {}
+    bot = str(telegram.get("bot") or "").strip()
+    if not re.fullmatch(r"@[A-Za-z0-9_]{5,32}", bot):
+        raise SupportRejected("invalid_official_telegram_bot")
+    return {
+        "status": "VERIFIED",
+        "website": _require_https(str(data.get("website") or "")),
+        "telegram": {
+            "bot": bot,
+            "group": _require_https(str(telegram.get("group") or ""), telegram_only=True),
+            "channel": _require_https(str(telegram.get("channel") or ""), telegram_only=True),
+        },
+        "github": _require_https(str(data.get("github") or "")),
+    }
+
+
+def render_official_links(language: str = "en", path: str | Path | None = None) -> str:
+    links = load_official_links(path)
+    tg = links["telegram"]
+    title = "🔗 Link ufficiali CryptoAID" if language == "it" else "🔗 Official CryptoAID links"
+    warning = (
+        "Verifica sempre questi riferimenti prima di interagire."
+        if language == "it"
+        else "Always verify these references before interacting."
+    )
+    return "\n".join(
+        [
+            title,
+            f"Website: {links['website']}",
+            f"Telegram bot: {tg['bot']}",
+            f"Telegram group: {tg['group']}",
+            f"Telegram channel: {tg['channel']}",
+            f"GitHub: {links['github']}",
+            warning,
+        ]
+    )
 
 
 def build_case_support_request(
