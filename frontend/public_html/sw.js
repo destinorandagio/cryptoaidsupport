@@ -1,4 +1,4 @@
-const SHELL_VERSION='2.1.8';
+const SHELL_VERSION='2.1.9';
 const CACHE_PREFIX='caid-shell-v';
 const CACHE=`${CACHE_PREFIX}${SHELL_VERSION}`;
 const SHELL=['./','./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/runtime-bridge.js','./assets/app.js','./assets/shield.svg'];

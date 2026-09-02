@@ -46,7 +46,7 @@ def test_normal_package_loads_bridge_before_app_and_pwa_caches_it():
     assert bridge_tag in HTML
     assert HTML.index(bridge_tag) < HTML.index(app_tag)
     assert "./assets/runtime-bridge.js" in SW
-    assert "const SHELL_VERSION='2.1.8'" in SW
+    assert "const SHELL_VERSION='2.1.9'" in SW
 
 
 def test_browser_bridge_is_same_origin_fail_closed_and_does_not_author_identity_or_economics():
