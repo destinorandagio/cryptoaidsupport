@@ -1,51 +1,54 @@
 {
   "CHAT_ID": "08",
   "DOMAIN": "SUPER_ADMIN_CRM_MINIMUM_MVP",
-  "TIMESTAMP": "2026-09-02T13:20:30+02:00",
-  "VERSION": "0.3.0",
-  "PARENT_VERSION": "0.2.0",
-  "SOURCE_HEAD": "ea72c459a6fa12db2e76e5a77c8f73fa41d19cfd",
-  "ADMIN_SOURCE_COMMIT": "ff254b36fdb53274fe720d535c599357166dcd5b",
-  "ADMIN_OPS_BLOB": "5b62eba0bfb3a7a077af4ba08c6d9c7d4ed7f9bd",
-  "CI_RUN": "33624033617 / #278 SUCCESS / 57 passed",
+  "TIMESTAMP": "2026-09-02T14:20:00+02:00",
+  "VERSION": "0.3.1",
+  "PARENT_VERSION": "0.3.0",
+  "SOURCE_HEAD": "e9293f2e8c847722a073c950c543c6af857495f3",
+  "ADMIN_SOURCE_COMMIT": "ead9e5e74b8d692bf947d65ef993b2b65a6c548b",
+  "ADMIN_OPS_BLOB": "4c1d050f2f16cebe84dc0b95d00d1ab2a7bdf9cc",
+  "ADMIN_VERSION": "0.3.1",
+  "CI_RUN": "33629103587 / #340 SUCCESS / 80 passed",
   "INPUTS": {
-    "CHAT01": "1.3.0",
+    "CHAT01": "1.3.1",
     "CHAT02": "read-only payment/manual-review and entitlement effects only",
-    "OWNERSHIP": "Core/Admin source unlocked; CHAT00/10 active only on control/devops",
-    "AG_TASK": "1A6KtvQiIyczXDGTcxTjUagfbByD2wmO_AXA_RJ9QOA8"
+    "HANDOFF_01": "20260902-1400",
+    "OWNERSHIP": "CAID-LK-0098 owns Admin delta; CAID-LK-0097 control/devops only",
+    "AG_TASK": "169bnn9w9dPPDvJ2UzEghgipwFc09yAvZa7cUkpDtWB8"
   },
   "CONTRACT_CHANGES": [
-    "minimum RBAC user_lookup by SIC-ID or Case",
-    "minimum CRM timeline is audited Case-event projection",
-    "no profile JSON, wallet, private Evidence bytes, payer or treasury address in new projections"
+    "Core-guarded Admin mutations now require nonblank actor, reason, request_id and idempotency_key before any transition",
+    "admin user_lookup active_sessions excludes expired rows without mutating Core session truth"
   ],
   "SCHEMA_CHANGED": false,
+  "ECONOMICS_CHANGED": false,
   "BUILT": [
-    "user lookup with case/session counts",
-    "CRM timeline",
-    "existing Case queue/summary/manual review projection preserved",
-    "existing Core-guarded ADMIN_REVIEW transition preserved"
+    "audited Admin command field validation",
+    "normalized attributable transition metadata",
+    "expiry-aware active-session visibility",
+    "targeted negative regressions"
   ],
   "TEST_PASS": [
     "Admin RBAC denial",
-    "user lookup and CRM timeline",
-    "privacy minimization",
-    "manual-review projection read-only",
-    "Admin cannot force ACTIVE",
-    "synthetic Core+CHAT02+Admin Golden backend path",
-    "GitHub Actions 57/57"
+    "blank actor/reason/request_id/idempotency_key rejected before mutation",
+    "failed unattributed override leaves Case state and timeline unchanged",
+    "expired ACTIVE session row excluded from user lookup active_sessions count",
+    "Case queue/summary/manual review/CRM timeline privacy minimization preserved",
+    "Admin cannot force paid ACTIVE",
+    "GitHub Actions full pytest 80/80"
   ],
   "TEST_FAIL": [],
   "NOT_TESTED": [
     "protected browser Admin UI route",
     "production role issuance/auth plumbing",
+    "actual target-host runtime",
     "real payment/signing/deploy"
   ],
-  "STATE": "MVP_ADMIN_BACKEND_MINIMUM_COMPLETE_CI_GREEN_NO_GO_RELEASE",
+  "STATE": "MVP_ADMIN_BACKEND_MINIMUM_HARDENED_CI_GREEN_NO_GO_RELEASE",
   "GO_NO_GO": "NO_GO",
   "NEXT": [
-    "CHAT04/CHAT10 compose protected minimum Admin route",
-    "Antigravity execute exact-head local/runtime/browser acceptance",
-    "CHAT05 verify Admin RBAC/manual review in final Golden Journey"
+    "consume Antigravity exact-head local/runtime evidence",
+    "CHAT04/CHAT10 compose protected minimum Admin route without direct truth writes",
+    "CHAT05 verify RBAC/manual review/audit in final Golden Journey"
   ]
 }
