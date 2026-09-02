@@ -1,32 +1,24 @@
-# HANDOFF_05 — CRYPTO AID UI/UX/PWA — v2.1.5
+# HANDOFF_05 — CRYPTO AID UI/UX/PWA — v2.1.6
 
-cycle=20260902-2140
+cycle=20260902-2240
 stage=05/06 UI_UX_PWA
 owner=CHAT04_UI_UX_PWA
 growth_owner=CHAT09_GROWTH_MARKETING_PARTNERSHIP
 status=HANDOFF_READY_ENGINEERING_CANDIDATE_NO_GO
-release_state=NO_GO_SERIAL_REFRESH_AG_CHAT05_CHAT10
+release_state=NO_GO_SERIAL_REFRESH_RUNTIME_BRIDGE_AG_CHAT05_CHAT10
 branch=feat/chat04-sicid-login-freshmain-1642
-serial_pr48_observed=15a7fdc5822ba1970f72e37e9318284f10b11dcf
-runtime_logic_test_head=77216b56b683bff55ac72334a019ef98d696e8cb
-ui_version=2.1.1
-pwa_shell_version=2.1.4
+serial_pr50_observed=5ccbb6a0c989d5f6a22e7ddca7785f4db2bbd902
+runtime_logic_test_head=e6427ef1ab9136c22dcfeca6cf60c81c33ade173
+ui_version=2.1.2
+pwa_shell_version=2.1.5
 shared_production_public_html_mutated=NO
 production_MASTER_mutated=NO
 
-## P0 CLOSED — QUERY-STRING / OFFLINE ATTRIBUTION CONTAINMENT
+## P0 CLOSED — COREAPI 1.1 LOGIN/RESUME NEGOTIATION
 
-The exact serial PR48 correctly preserved CHAT04 PWA 2.1.3 cache namespace and current-cache isolation, but fresh release audit found a remaining PWA reliability blocker. Shell detection compared only URL pathname while `Cache.match(request)` remained query-sensitive by default. A warmed shell URL such as `/?utm_source=telegram` or `/index.html?utm_campaign=mvp` could therefore be classified as a shell request, miss the query-less precache key, call network fetch, and return from the shell branch before the generic navigation offline fallback. Offline reload could fail specifically on query-bearing landing/attribution URLs.
+Fresh serial reconciliation found the public UI requesting only CoreAPI 1.0.0 while the exact PR50 authoritative `core/api.py` declares CoreAPI 1.1.0. CHAT04 now accepts CoreAPI 1.0.0/1.1.0 explicitly, prefers 1.1.0 and sends `supportedCoreApiVersions`, `preferredCoreApiVersion` and `FAIL_CLOSED_EXPLICIT_VERSION_LIST` on `caid:sicid-login-request`. `requiresLiveSession=true`, `callerMayProvideIdentity=false` and `walletIsIdentity=false` remain mandatory. CHAT04 still does not create or authenticate identity.
 
-PWA 2.1.4 fixes this owner-safe without adding tracking runtime:
-
-- shell requests are classified only for the Service Worker scope origin;
-- a matching shell pathname is resolved to its canonical precached shell URL;
-- lookup occurs only inside the current `caid-shell-v2.1.4` cache using that canonical key;
-- the browser-visible URL and query string are not rewritten or stripped;
-- obsolete-cache deletion remains restricted to the `caid-shell-v` namespace;
-- `skipWaiting()` and `clients.claim()` remain;
-- `/api/`, `/evidence/`, `/payment` remain excluded from authoritative Cache Storage.
+Because `assets/app.js` is part of the offline shell, the Service Worker advances to `caid-shell-v2.1.5`. Previous namespace-scoped deletion, current-cache-only reads, same-origin/query canonicalization, `skipWaiting()`, `clients.claim()` and `/api/`, `/evidence/`, `/payment` dynamic-truth exclusions remain intact.
 
 ## GOLDEN PATH PRESENTATION
 
@@ -36,36 +28,39 @@ Navigation remains HOME | SEARCH | +CASE | RECOVERY | PROFILE. CONNECT WALLET re
 
 ## ENGINEERING EVIDENCE
 
-- runtime/test head: `77216b56b683bff55ac72334a019ef98d696e8cb`;
-- local `node --check sw.js` PASS;
-- deterministic canonicalization simulation PASS for `/?utm_source=telegram`, `/index.html?utm_campaign=launch`, `/assets/app.js?v=214`;
-- cross-origin same-path URL is not classified as CryptoAID shell;
-- GitHub Actions CI `33674976135` SUCCESS: checkout, Python setup/deps, compile, full pytest, PHP baseline, staging PWA shell package+restore smoke and token scan PASS;
-- Release Candidate Package `33674976134` SUCCESS: exact checkout, PWA validation/package/restore-check, release metadata and verified candidate artifact PASS; production remains human-gated.
+- exact runtime/test head: `e6427ef1ab9136c22dcfeca6cf60c81c33ade173`;
+- GitHub Actions CI `33681190014` SUCCESS: checkout, Python setup/deps, compile, full pytest, PHP baseline, staging PWA shell package/restore smoke and token scan PASS;
+- Release Candidate Package `33681190016` SUCCESS;
+- PR17 remains OPEN / DRAFT / MERGEABLE / REVIEW_ONLY;
+- no merge, real signing, payment, transaction, production deploy or cutover performed.
 
-## ACCESSIBILITY / PERFORMANCE
+## RELEASE-BLOCKING RUNTIME BRIDGE FINDING
 
-No HTML/CSS/app.js redesign or new framework, remote asset, tracker or marketing SDK was introduced in this delta. Existing skip-link, focus-visible, route-heading focus, 44px touch target, 390px overflow guard, aria-live and reduced-motion contracts remain unchanged. Real-browser keyboard/focus and Lighthouse/performance remain factual Antigravity gates.
+The exact serial PR50 public `index.html` loads only `assets/app.js`. The UI dispatches `caid:sicid-login-request`, `caid:case-request` and wallet events and expects approved Twin/Wallet runtime adapters, but the static public package does not load a trusted adapter bridge script/module. Consequently a synthetic adapter/listener injected through DevTools or a test harness is not evidence that the public MVP is usable.
+
+CHAT00/CHAT01/CHAT03 must compose the trusted protected-origin runtime bridge or equivalent without creating a second Core/Twin/Case authority. CHAT04 will consume that bridge; it must not fabricate identity, Case, payment, Twin or wallet truth.
+
+## ACCESSIBILITY / PERFORMANCE / GROWTH
+
+No HTML/CSS/copy redesign, framework, remote asset, tracker or marketing SDK was added. Existing skip-link, focus-visible, route-heading focus, 44px touch target, 390px overflow guard, aria-live and reduced-motion contracts remain. CHAT09 stays feature-frozen: HELP_FIRST, EVIDENCE_FIRST, VALUE_BEFORE_CTA, NO_PURCHASE_NEEDED, OFFICIAL_FREE_PATH_FIRST, no fake urgency/scarcity/testimonials, no recovery guarantee and no ROI.
 
 ## AG COORDINATION
 
-Do not credit PR48 or isolated PR17 as final release evidence after this owner delta. CHAT00 must first publish one refreshed exact serial Golden SHA containing PWA 2.1.4 (`77216b5...`) or byte-equivalent. Antigravity must then execute assertions 1-28 on that same exact SHA.
+CHAT00 must first publish one refreshed exact serial Golden SHA containing UI 2.1.2/PWA 2.1.5 and the trusted runtime bridge/equivalent. Antigravity must then execute assertions 1-30 on that same SHA.
 
-Assertion 28 — QUERYSTRING/OFFLINE ATTRIBUTION: warm the exact candidate online; navigate to a same-origin URL such as `/?utm_source=telegram&utm_campaign=mvp48h` and separately `/index.html?utm_source=telegram`; prove the shell renders and browser query is retained. Force offline and reload; prove the current shell/offline experience remains usable, the visible query is not mutated, the current `caid-shell-v2.1.4` supplies the canonical shell content, and `/api/`, `/evidence/`, `/payment` are absent from authoritative cache. Probe `/assets/app.js?v=214` and prove it resolves to the genuine current cached app.js, not stale/unrelated content. Repeat at 390x844 and 1440x900. Persist exact SHA, OS/browser/version, serve command/URL/timestamp, SW lifecycle/controller, before/after cache keys, network/console, response/cache source evidence, visible query evidence and screenshot filenames + SHA-256.
+Assertion 29 — COREAPI 1.1 NEGOTIATION: capture a normal user-triggered SIC-ID login event and prove CoreAPI 1.1.0 is preferred/current, 1.0.0+1.1.0 are explicitly supported, fail-closed negotiation is present, and an unsupported adapter cannot create LIVE identity.
 
-Assertions 1-27 remain mandatory. No real signing/payment/transaction/deploy is authorized.
+Assertion 30 — NORMAL-PACKAGE TRUSTED RUNTIME BRIDGE: do not inject adapters/globals/listeners through DevTools or a test harness. Launch exactly the refreshed public package and prove its trusted bridge consumes SIC-ID login/resume and Case requests and exposes approved Twin/Wallet adapters. Known/unknown Search and +CASE must work through packaged wiring; wallet remains explicit-provider and never authenticates SIC-ID. If the package lacks this bridge, mark FAIL with exact missing script/module/listener/network evidence rather than emulating success.
 
-## GROWTH
-
-CHAT09 remains v0.4.1 and feature-frozen. No campaign, attribution SDK/runtime, tracker, pricing/payment copy or cosmetic expansion was added. HELP_FIRST, EVIDENCE_FIRST, VALUE_BEFORE_CTA, NO_PURCHASE_NEEDED, OFFICIAL_FREE_PATH_FIRST, no fake urgency/scarcity/testimonials, no recovery guarantee and no ROI remain mandatory.
+Assertions 1-28 remain mandatory; PWA cache/update/query/offline assertions now expect `caid-shell-v2.1.5`. Persist exact SHA, OS/browser/version, serve command/URL/timestamp, event payloads, SW/controller/cache/network/console evidence and screenshot SHA-256. No real signing/payment/transaction/deploy is authorized.
 
 ## GLOBAL BLOCKERS
 
-1. CHAT00 must refresh the exact serial Golden candidate with PWA 2.1.4 or byte-equivalent.
-2. Antigravity real-origin assertions 1-28 are absent on that refreshed exact serial SHA.
+1. CHAT00 must serial-refresh PR50 with UI 2.1.2/PWA 2.1.5 and trusted runtime bridge/equivalent.
+2. Antigravity assertions 1-30 are absent on that refreshed exact serial SHA.
 3. CHAT05 full Golden Journey/privacy/security acceptance is pending.
 4. CHAT10 final package/manifest/backup/restore/rollback is pending.
 5. Physical wallet/sign/payment/tx/deploy remain HUMAN_GATE/NOT_TESTED.
 
-GO_NO_GO: NO_GO_SERIAL_REFRESH_AG_CHAT05_CHAT10
+GO_NO_GO: NO_GO_SERIAL_REFRESH_RUNTIME_BRIDGE_AG_CHAT05_CHAT10
 READBACK_REQUIRED: true
