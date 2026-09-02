@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.1",
+  "chat": "CHAT09_GROWTH_MARKETING_PARTNERSHIP",
+  "cycle": "20260902-1340",
+  "version": "0.2.0",
+  "state": "MVP_MINIMUM_CONTRACT_ONLY_NO_GO",
+  "scope": "conversion-critical public DApp copy/CTA/attribution only during 48H feature freeze",
+  "ownership": {
+    "owns": ["value-first CTA proposals", "ethical landing copy variants", "attribution event vocabulary", "no-purchase-needed presentation"],
+    "must_not_own": ["product truth", "prices", "payment verification", "Case state", "Knowledge classification", "recovery outcome claims", "partnership truth"]
+  },
+  "principles": ["HELP_FIRST", "EVIDENCE_FIRST", "VALUE_BEFORE_CTA", "NO_PURCHASE_NEEDED_ALLOWED", "OFFICIAL_FREE_PATH_FIRST", "NO_FAKE_SCARCITY", "NO_FAKE_URGENCY", "NO_FAKE_TESTIMONIALS", "NO_RECOVERY_GUARANTEE", "NO_ROI"],
+  "consumes": {
+    "chat04_ui": "1.9.0_CANDIDATE",
+    "product_truth": "READ_ONLY_UPSTREAM",
+    "privacy_security": "FAIL_CLOSED"
+  },
+  "mvp_copy_rule": "Public Search/Twin review and TO_VERIFY-to-Case continuation must not imply that a purchase is required before the user can understand the available path; any paid service activation is a separate upstream-owned step.",
+  "runtime_delta": "NONE_THIS_CYCLE",
+  "experiments": "POST_MVP_UNLESS_RELEASE_BLOCKING",
+  "go_no_go": "NO_GO",
+  "readback_required": true
+}

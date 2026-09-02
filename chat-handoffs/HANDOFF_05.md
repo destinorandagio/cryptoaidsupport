@@ -1,89 +1,76 @@
-# HANDOFF_05 — CRYPTO AID SUPER UI/UX/PWA — v1.7.0
+# HANDOFF_05 — CRYPTO AID SUPER UI/UX/PWA — v1.9.0
 
-cycle=20260902-1140  
+cycle=20260902-1340  
 stage=05/06 UI_UX_PWA  
 owner=CHAT04_UI_UX_PWA  
-status=HANDOFF_READY_NO_GO_VERSION_SYNC_PENDING  
-release_state=NO_GO_CHAT03_VERSION_SYNC_CI_ORIGIN_DEVICE_SERIAL_GATES  
-shared_public_html_mutated=NO  
+growth_owner=CHAT09_GROWTH_MARKETING_PARTNERSHIP  
+status=HANDOFF_READY_NO_GO  
+release_state=NO_GO_AG_ORIGIN_PR6_SERIAL_QA_GATES  
+shared_production_public_html_mutated=NO  
 production_MASTER_mutated=NO
 
 ## SYNC_INPUTS
 
-Global control-plane ownership/contracts fresh-read. Current Core consumer contract is v0.3.13; current CHAT02 Evidence+Payment is v0.6.7. Current-main CHAT03 Twin/Wallet/DAPPMAP contracts are 1.0.0. Knowledge MASTER V1 is present and consumed only as upstream baseline. No separately discoverable canonical CHAT06/07/08/09/10 handoff documents were available; no authority was invented.
+Fresh-read shared Drive ownership ledger, HANDOFF_04 v1.2.0, GitHub PR #5 and PR #6. Current Core contract remains `0.3.13`; current-main Twin/Wallet/DAPPMAP remains `1.0.0`; CHAT03 PR #6 is now clean/rebased and proposes tested `1.2.0` Twin/Wallet/DAPPMAP plus CHAT06 Knowledge Context `1.0.0`. No Antigravity completion evidence was found for the existing CHAT04 PWA task at run start.
 
-A late concurrent CHAT03 handoff dated 20260902-1130 was then fresh-read from `feat/chat03-twin-wallet-sync-v1-1` / PR #3. It is readback-verified on GitHub/Drive, closes its Core v0.3.13/H03 v0.6.7 parent drift and proposes Twin/Wallet/DAPPMAP `1.1.0`. It explicitly detects this CHAT04 consumer pin at `1.0.0` and requires `VERSION_SYNC_REQUIRED_BEFORE_MERGE`. CHAT04 therefore does not silently consume the unmerged `1.1.0` contract; current main remains fail-closed on 1.0.0 until coordinated version sync/merge.
+CHAT04 work remains isolated on `feat/chat04-ui-contract-compat-1-1` / PR #5. Shared ownership lock `CAID-LK-0094` covers only this branch/handoff surface; MASTER and production public_html remain read-only.
 
 ## CONTRACT_VERSIONS
 
-- Core: `0.3.13`.
-- Evidence/Payment: `0.6.7`.
-- Current-main Twin / Wallet matrix / DAPPMAP: `1.0.0`.
-- CHAT03 PR #3 proposed Twin / Wallet matrix / DAPPMAP: `1.1.0`, pending coordinated sync.
-- Knowledge baseline: `CRYPTOAID_KNOWLEDGE_MASTER_V1`, INGESTED; CHAT06 context-pack version unpinned/unavailable.
-- UI: `1.7.0`.
+- Core: `0.3.13`
+- Evidence/Payment presentation boundary: upstream-owned
+- Twin current-main fallback: `1.0.0`
+- Explicit CHAT04 Twin/Wallet/DAPPMAP acceptance: `1.0.0`, `1.1.0`, `1.2.0`
+- Preferred migration contract: `1.2.0`
+- Knowledge Context accepted: `1.0.0`
+- UI: `1.9.0`
+- CHAT09 minimum ethical growth contract: `0.2.0`
 
 ## UX_DELTA
 
-Repo-native isolated candidate: `frontend/public_html/`.
+`frontend/public_html/assets/app.js` now consumes HANDOFF_04 v1.2.0 fail-closed:
 
-Affected routes/components:
+- declared Twin adapters `1.0.0`, `1.1.0`, `1.2.0` are explicitly accepted; any other declared version is rejected before search invocation;
+- CHAT03 v1.2 `MATCH` / `USER_SUBMITTED_TO_VERIFY` result shapes are normalized without promoting candidate truth;
+- ambiguous multiple Twin results render `TO_VERIFY` and require a more specific chain/contract/name; the UI never auto-picks a Twin;
+- accepted provenance may be rendered as source/date/confidence using text-only DOM writes;
+- wallet negotiation accepts `1.0.0`–`1.2.0`, prefers `1.2.0`, keeps Polygon `137`, explicit provider choice and `connectIsAuthentication=false`;
+- a declared unsupported wallet adapter is rejected before any connect request;
+- no frontend price/economic truth, payment verification, Case truth, Knowledge promotion, generic signing or real transaction logic was added.
 
-- `#home`: white-dominant 9:16-friendly beginner landing, search-first CTA, safety principles, derived circuit/node/block motion.
-- header: persistent `CONNECT WALLET`, request adapter only.
-- `#search`: Twin adapter boundary, no-match => TO_VERIFY + +CASE continuation.
-- `#case`: four-step Situation/Project/Evidence/Review wizard; UNKNOWN beginner path; local SHA-256 Evidence preflight; no upload authority.
-- `#recovery`: Core-projected My Recovery, one primary Next Action, timeline and fail-closed payment-state presentation.
-- `#profile`: SIC-ID projection only and motion control.
-- bottom nav: exact `HOME | SEARCH | +CASE | RECOVERY | PROFILE`, red 58px central +CASE.
-- `sw.js`: explicit shell-only caching; API/Evidence/payment paths excluded.
-- `offline.html`: reconnect/resume guidance with no private Case/payment cache.
+## CHAT09 MINIMUM
 
-## OWNERSHIP / SAFETY PROOF
+CHAT09 remains feature-frozen to conversion-critical copy/CTA/attribution only. Public Search/Twin review and TO_VERIFY-to-Case continuation must not imply that payment is required merely to understand the available path; any paid service activation is a separate upstream-owned step. No campaign engine or dark-pattern runtime was added.
 
-Static tests assert no frontend economic truth (`50 POL`, `450 POL`, `500 POL` absent), no `window.ethereum`, no `personal_sign`, no generic `eth_sendTransaction`. UI receives Case/SIC-ID/next-action/payment-intent state through projections/adapters. Payment display requires upstream `persisted=true`, `verified=true`, `expired=false`, plus upstream display amount/purpose. Transaction submission is explicitly not Case activation. Evidence is PRIVATE BY DEFAULT and only locally hashed here.
+## STATIC / CI EVIDENCE
 
-## BROWSER_STATUS
+Focused frontend contract tests now assert UI `1.9.0`, explicit Twin/Wallet/DAPPMAP `1.2.0` compatibility, Knowledge Context `1.0.0`, ambiguous-result fail-closed behavior, provenance presentation, unsupported-wallet rejection and `connectIsAuthentication=false`.
 
-Local static contract suite: 9/9 PASS. JS/SW syntax PASS. Manifest parse PASS.
+Current-head GitHub CI is required before promotion beyond candidate. ChatGPT does not convert pending Actions or local-browser tests into PASS.
 
-Chromium injected-document probe PASS at 390×844 and 1440×900: no horizontal overflow (`scrollWidth` exactly viewport width); CONNECT top-right and 44px tall; +CASE 58×58; exact 5-item nav; Search miss visibly TO_VERIFY; Case route visible; focus outline 3px. Reduced-motion Chromium reports motion animation `none`.
+Previous verified byte-unchanged layout evidence remains valid for unchanged HTML/CSS: 390x844 and 1440x900 injected Chromium PASS, no horizontal overflow, visible focus, reduced-motion and minimum touch targets.
 
-Real origin: `NOT_TESTED_RUNTIME_BLOCKED_CHROMIUM_URL_POLICY_ERR_BLOCKED_BY_ADMINISTRATOR`; actual Service Worker registration, installability and offline→reconnect remain NOT_TESTED. Physical MetaMask/TokenPocket/Reown remains HUMAN_GATE.
+## BROWSER / PWA
 
-Repository CI run `33616070813` failed before CHAT04 tests could execute because `tests/test_core_case_engine.py` imports `CaseError`, but current `core.case_engine` does not expose it. CHAT03 PR CI fails on the same CHAT01/Core collection regression. CHAT04 did not modify Core.
+Real-origin browser/PWA acceptance for UI 1.9.0 remains **NOT_TESTED** until Antigravity persists factual environment/command/result/hash evidence. Existing task pack must be refreshed to current PR #5 head and test Twin adapters 1.0/1.1/1.2/unsupported, known/unknown/ambiguous Search, wallet event contract, service-worker install, offline/reconnect, keyboard, reduced-motion and network/cache safety.
 
-## A11Y
+Physical MetaMask/TokenPocket/Reown remains `HUMAN_GATE / NOT_TESTED`.
 
-Skip link; labels/fieldset/legend; aria-live status; keyboard focus and radio focus; route heading focus; ≥44px controls; reduced-motion; 390px no overflow. Contrast on white: red ≈6.96:1, main ink ≈18.45:1, muted ≈6.06:1. Automated real-origin axe audit NOT_TESTED. Plugin catalog returned no matching accessibility/Playwright/PWA plugin; no installation performed.
+## A11Y / PERF / SECURITY
 
-## PERF
+HTML/CSS and Service Worker are unchanged in this delta. Runtime remains self-contained with no external HTTP runtime asset dependency. Dynamic `/api/`, `/evidence/`, `/payment` paths remain excluded from authoritative SW caching. Search/provenance UI uses DOM `textContent`, not upstream HTML.
 
-Self-contained runtime: 7 files / 31,357 bytes total; CSS 9,171 B; JS 10,151 B; HTML 9,194 B; SVG 798 B; manifest 338 B; offline 736 B; SW 969 B. External runtime HTTP assets: 0. SHA-256 list is persisted in `frontend/SOURCE_MANIFEST.sha256`.
+## COLLISIONS / BLOCKERS
 
-## COLLISIONS
+- PR #6 is review-only pending Antigravity/CHAT05 acceptance; CHAT04 now consumes its contract but does not promote it to main authority.
+- PR #5 itself remains review-only until current-head CI and local real-origin acceptance are reconciled.
+- Final serial production public_html composition/package/rollback/restore is outside this run and remains gated.
 
-- CHAT03 PR #3 `1.1.0` proposal vs current-main CHAT04 `1.0.0` consumer pin: explicit version-sync gate.
-- CHAT00-owned `control/latest-state.json` is stale versus newer owner handoffs; not overwritten by CHAT04.
-- legacy dark `web3/ui/cryptoaid-brand.css` is not used as current white-dominant UI authority.
-- shared legacy production `public_html` remains DO_NOT_DEPLOY and untouched.
+## GO / NEXT
 
-## FIXED
+`GLOBAL_RELEASE=NO_GO`
 
-Frontend now has beginner-first progressive disclosure, upstream-only wallet and payment adapters, fail-closed TO_VERIFY Search, UNKNOWN Case choice, private local Evidence hash UX, one primary Next Action, dynamic truth labels, safe shell-only PWA caching, exact mobile nav, 390px overflow guard, focus-visible and reduced-motion. Late CHAT03 version drift is explicitly recorded instead of silently assumed compatible.
-
-## BLOCKED
-
-1. Coordinated CHAT03/CHAT04 contract version sync before PR #3 merge/final composition.
-2. CHAT01 Core `CaseError` public export mismatch keeps repository CI red.
-3. CHAT06/07/08/09/10 versioned canonical handoffs not discovered.
-4. Real-origin Chromium blocked by administrator URL policy; PWA origin tests remain NOT_TESTED.
-5. MetaMask/TokenPocket/Reown physical/origin tests remain HUMAN_GATE.
-6. No serial cutover to shared production `public_html`.
-
-## NEXT
-
-CHAT01 restores Core CI → CHAT03/CHAT04 complete 1.1.0 contract sync/compatibility gate → merge and fresh-read CHAT03 authority → publish missing CHAT06/CHAT10 versioned contracts → rerun CI → real-origin browser/PWA/accessibility → exact serial disposable composition → Stage06 release QA → HUMAN_GATE → production cutover only after GO.
-
-GLOBAL_RELEASE=NO_GO  
-READBACK_REQUIRED=YES
+Next critical path:
+1. Observe current PR #5 CI and fix any failure.
+2. Refresh Antigravity acceptance task to UI 1.9.0 / Twin 1.2.0 and ingest factual real-origin result.
+3. CHAT05 independently verifies PR #5 + PR #6 + runtime evidence before serial cutover/human go-live gate.
