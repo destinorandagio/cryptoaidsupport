@@ -1,118 +1,115 @@
 {
   "CHAT_ID": "02",
   "DOMAIN": "EVIDENCE_PAYMENT_ENTITLEMENT_TREASURY",
-  "TIMESTAMP": "2026-09-02T12:05:00+02:00",
-  "VERSION": "1.0.1",
-  "PARENT_VERSION": "1.0",
-  "GIT_SHA": "03ff01f7bb4e0d7b1a891e7d0ba838498f3913c5",
+  "TIMESTAMP": "2026-09-02T12:24:00+02:00",
+  "VERSION": "1.1.0",
+  "PARENT_VERSION": "1.0.1",
+  "GIT_SHA": "8611f17c3f0eb070d64cb1adf6fa61968a57d77a",
+  "SOURCE_BLOB_SHA": "6c12b52548dda036eeb907da91d848c983657cdf",
   "INPUT_VERSIONS": {
-    "CONTROL_LATEST_STATE": "1.0 bootstrap; observed_head=e365199e75f54d69189ccdb6959c54be3b97ddbb; STALE_VS_MAIN",
-    "CHAT01_CORE_CASE": "1.0 / HANDOFF_02 contract",
-    "CHAT02_PREVIOUS": "1.0",
-    "CHAT05_QA_SECURITY": "available; repository-wide CI blocker observed outside CHAT02 ownership",
+    "HANDOFF_02_REPO": "1.2.0 / Core source 138f5154aabf2f79b296bf40dcf59e9c36a576ab",
+    "HANDOFF_02_DRIVE_FACTORY_CORE": "v0.3.13",
+    "CONTROL_LATEST_STATE": "0.4.1; CHAT00-owned and lagging current D0B success at read time",
+    "CHAT02_PREVIOUS": "1.0.1",
+    "CHAT02_DRIVE_STAGE03": "0.6.7 source-preserving factory certificate",
+    "CHAT05_QA_SECURITY": "0.2.0 / cycle 20260902-1150; pre-D0B snapshot",
     "CHAT08_SUPER_ADMIN": "0.1.0 DISCOVERED",
-    "CHAT10_DEVOPS": "NOT_VERIFIED",
-    "OBSERVED_MAIN_HEAD": "03ff01f7bb4e0d7b1a891e7d0ba838498f3913c5"
+    "CHAT10_DEVOPS": "NOT_PERSISTED_AT_READ_TIME",
+    "OBSERVED_POST_FIX_CI": "run 33619108328 / #199 / SUCCESS"
   },
-  "OUTPUT_VERSION": "1.0.1",
+  "OUTPUT_VERSION": "1.1.0",
   "EVIDENCE_VERSION": "1.0",
   "PAYMENT_VERSION": "1.0",
   "ENTITLEMENT_VERSION": "1.0",
   "TREASURY_CONFIG_VERSION": "1.0",
+  "FACTORY_STAGE03_VERSION": "0.6.7_UNCHANGED",
+  "CONFIG_LABEL": "CHAT02_ECON_CONFIG_FROZEN_H01_1100_CORE_v0.3.13",
+  "CONFIG_FINGERPRINT_SHA256": "f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec",
   "FILES_CHANGED": [
+    "evidence_payment/engine.py",
     "chat-handoffs/02-evidence-payment.json"
   ],
-  "CONTRACTS_CHANGED": [
-    "CHAT02 handoff normalized to CRYPTOAID GLOBAL FACTORY CONTRACT minimum schema",
-    "CHAT01->CHAT02 boundary reaffirmed: CHAT02 emits durable ENTITLEMENT_GRANTED result; CHAT02 never mutates Case state",
-    "CHAT08 dependency updated from missing to DISCOVERED/contract-not-yet-integrated"
-  ],
+  "CONTRACTS_CHANGED": [],
   "SCHEMA_CHANGED": [],
   "BUILT": [
-    "existing evidence_payment/engine.py reused without duplicate authority",
-    "existing private Evidence storage guard reused",
-    "existing SHA-256/version/supersession lineage reused",
-    "existing payment state machine and two-provider agreement gate reused",
-    "existing tx uniqueness/replay guard reused",
-    "existing append-only entitlement ledger reused",
-    "existing versioned treasury configuration reused",
-    "machine-readable CHAT02 handoff reconciliation"
+    "D0B owner-side SQL binding repair: evidence_records INSERT now matches 17-column schema",
+    "D0B owner-side SQL binding repair: entitlement_ledger INSERT now matches 8-column schema",
+    "existing private Evidence lifecycle, SHA-256/version/supersession, payment verifier, replay guard and append-only entitlement truth preserved"
   ],
   "TESTED": [
-    "repository and main branch readback",
-    "control latest-state readback",
-    "CHAT02 previous handoff readback",
-    "CHAT01 upstream contract readback",
-    "CHAT05 downstream/release findings readback",
-    "CHAT08 newly persisted handoff readback",
-    "existing CHAT02 adversarial test source readback"
+    "fresh HANDOFF_02 v1.2.0 readback",
+    "fresh ownership/contracts/control readback",
+    "CHAT08 readback and CHAT10 absence check",
+    "Drive Stage03 v0.6.7 readback",
+    "GitHub Actions CI run 33619108328 on exact source commit 8611f17c3f0eb070d64cb1adf6fa61968a57d77a"
   ],
   "TEST_PASS": [
-    "CHAT02 ownership remains unique for evidence_payment",
-    "no parallel entitlement ledger created",
-    "no parallel payment verifier created",
-    "CHAT01 contract preserves Case authority boundary",
-    "CHAT08 handoff now exists and remains non-authoritative over payment/evidence truth",
-    "no real payment or transaction performed"
+    "CI #199 conclusion SUCCESS",
+    "python compile step PASS",
+    "pytest -q PASS",
+    "post-test obvious Telegram token scan PASS",
+    "CHAT02 D0B three previously failing Evidence/payment tests no longer block repository CI",
+    "no parallel Evidence/payment/entitlement authority created",
+    "no real payment, transaction, deploy, MASTER or public_html mutation"
   ],
   "TEST_FAIL": [],
   "NOT_TESTED": [
-    "current-main full CI completion after latest concurrent commits",
-    "live RPC/provider quorum",
-    "Polygon reorg/finality against real providers",
-    "production DB migration",
-    "production Evidence filesystem permissions",
+    "live RPC/provider quorum and Polygon reorg/finality against approved independent providers",
+    "production private Evidence filesystem/KMS/scanner/DLP/backup",
+    "production MASTER migration/composition in this repo cycle",
     "CHAT08 treasury proposal command integration",
     "CHAT10 runtime/provider adapter integration",
-    "Golden Journey E2E",
-    "production verification"
+    "Golden Journey E2E and production verification"
   ],
   "FIXED": [
-    "legacy CHAT02 handoff schema incomplete versus global minimum schema",
-    "stale blocker claiming CHAT08 handoff absent"
+    "ORCH-P0-011 evidence_records arity mismatch: 18 placeholders vs 17 columns",
+    "ORCH-P0-011 entitlement_ledger arity mismatch: 7 placeholders vs 8 columns",
+    "D0C repository CI now reaches and passes the configured post-test token scan on the exact D0B source commit"
   ],
   "BLOCKERS": [
-    "global control/latest-state.json is stale versus observed main HEAD and is CHAT00-owned",
-    "CHAT10 runtime/provider handoff not verified",
-    "CHAT08 is only DISCOVERED; treasury admin command integration remains untested",
-    "repository-wide CI has had an upstream CHAT01 Core collection regression; CHAT02 must not patch Core ownership surface",
-    "Golden Journey payment/evidence integration not yet independently verified by CHAT05",
-    "no production verification"
+    "CHAT00 control/latest-state still requires owner-side reconciliation to current D0B green evidence",
+    "CHAT10 current machine handoff not persisted at read time",
+    "CHAT03/CHAT04 exact consumer tuple remains to be certified",
+    "final serial package/Master-clone/runtime/Golden E2E and independent CHAT05 final QA remain open",
+    "production provider/runtime/private-Evidence infrastructure is not proven",
+    "HUMAN_GATE remains for real wallet/sign/payment/tx/deploy/cutover"
   ],
   "DEPENDENCIES": [
-    "CHAT01 Case authority and ENTITLEMENT_GRANTED consumer contract",
-    "CHAT08 authorized treasury proposal/admin command contract",
-    "CHAT10 provider/runtime configuration and secret injection",
-    "CHAT05 independent adversarial/integration/release verification",
-    "CHAT00 canonical control-plane reconciliation"
+    "CHAT01 Case authority consumes ENTITLEMENT_GRANTED only",
+    "CHAT08 may submit versioned authorized treasury/config proposals only",
+    "CHAT10 may supply runtime/provider plumbing only and may not mutate economics",
+    "CHAT05 independently verifies integration/security/release",
+    "CHAT00 reconciles canonical global control plane"
   ],
   "COLLISIONS": [
-    "control latest-state observed_head=e365199e75f54d69189ccdb6959c54be3b97ddbb versus observed main HEAD=03ff01f7bb4e0d7b1a891e7d0ba838498f3913c5",
-    "CHAT04 HANDOFF_05 reports Evidence/Payment 0.6.7 while CHAT02 authoritative main handoff and engine constants report 1.0; version reference requires consumer reconciliation, not silent downgrade"
+    "ACCEPT separate namespaces: repo CHAT02 1.1.0 and Drive Factory Stage03 0.6.7; no silent downgrade or overwrite",
+    "ACCEPT CHAT01 1.2.0 owner repair and CHAT02 boundary",
+    "REJECT any parallel ledger/verifier/Evidence authority or consumer direct truth mutation",
+    "REJECT unversioned treasury/economic mutation and exact-500-only legacy economics",
+    "DEFER CHAT10 integration because no current persisted machine handoff was found"
   ],
   "HUMAN_GATES": [
     "real payment",
-    "real blockchain transaction",
-    "production deploy",
+    "real blockchain transaction or wallet signature",
+    "production deploy or public upload",
     "production secrets",
     "irreversible treasury/configuration change"
   ],
   "MANUAL_REVIEW": [
-    "verification mismatch",
-    "provider disagreement",
-    "duplicate or replayed transaction",
-    "ambiguous payment",
-    "insufficient finality certainty"
+    "wrong chain/from/to/value/receipt/Case/entitlement",
+    "provider or block disagreement",
+    "duplicate/replayed transaction",
+    "ambiguous or insufficient finality",
+    "unresolved Evidence authorization/privacy/scanner result"
   ],
-  "STATE": "CODED",
-  "SYNC_INPUTS": "PARTIAL_VERIFIED",
+  "STATE": "CODED_CI_GREEN_NO_GO",
+  "SYNC_INPUTS": "VERIFIED_WITH_CHAT10_ABSENT",
   "NEXT": [
-    "consume CHAT10 runtime/provider handoff when persisted",
-    "consume CHAT08 treasury proposal contract when it advances beyond DISCOVERED",
-    "request CHAT00 reconcile stale global latest-state and version collision",
-    "run/observe fresh full CI after upstream Core collection blocker is resolved",
-    "extend CHAT02-owned adversarial tests only for uncovered payment/evidence integrity deltas",
-    "submit CHAT02 outputs to CHAT05 for independent integration/security gate"
+    "persist and read back CHAT02/HANDOFF_03 mirrors for this D0B cycle",
+    "let CHAT00 reconcile current green CI evidence into global control state",
+    "submit exact source commit 8611f17c3f0eb070d64cb1adf6fa61968a57d77a to CHAT05 independent QA",
+    "consume CHAT10 only when a versioned persisted runtime/provider handoff exists",
+    "keep economics, one-MASTER and CHAT02 sole truth ownership frozen"
   ],
   "GO_NO_GO": "NO_GO"
 }
