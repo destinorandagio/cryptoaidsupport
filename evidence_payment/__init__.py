@@ -2,6 +2,7 @@
 
 from .engine import EvidencePaymentError
 from .authorization_engine import EvidencePaymentEngine
+from .rpc_adapter import RPC_PROVENANCE_VERSION, TrustedPolygonRPCAdapter
 
 # Importing legacy implementation modules still executes this package initializer.
 # Patch their exported class attributes so runtime imports cannot bypass private
@@ -16,4 +17,9 @@ _mvp_engine_module.EvidencePaymentEngine = EvidencePaymentEngine
 _secure_engine_module.EvidencePaymentEngine = EvidencePaymentEngine
 _idempotency_engine_module.EvidencePaymentEngine = EvidencePaymentEngine
 
-__all__ = ["EvidencePaymentEngine", "EvidencePaymentError"]
+__all__ = [
+    "EvidencePaymentEngine",
+    "EvidencePaymentError",
+    "TrustedPolygonRPCAdapter",
+    "RPC_PROVENANCE_VERSION",
+]
