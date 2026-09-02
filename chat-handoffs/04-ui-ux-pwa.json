@@ -1,41 +1,42 @@
 {
   "CHAT_ID": "04",
   "DOMAIN": "SUPER_DAPP_UX_UI_PWA",
-  "TIMESTAMP": "2026-09-02T21:40:00+02:00",
-  "VERSION": "2.1.5-pwa-query-offline-containment",
-  "PARENT_VERSION": "2.1.4-current-cache-read-containment",
-  "RUNTIME_TEST_HEAD": "77216b56b683bff55ac72334a019ef98d696e8cb",
-  "SERIAL_PR48_OBSERVED": "15a7fdc5822ba1970f72e37e9318284f10b11dcf",
+  "TIMESTAMP": "2026-09-02T22:40:00+02:00",
+  "VERSION": "2.1.6-coreapi11-negotiation",
+  "PARENT_VERSION": "2.1.5-pwa-query-offline-containment",
+  "RUNTIME_TEST_HEAD": "e6427ef1ab9136c22dcfeca6cf60c81c33ade173",
+  "SERIAL_PR50_OBSERVED": "5ccbb6a0c989d5f6a22e7ddca7785f4db2bbd902",
   "INPUT_VERSIONS": {
-    "core_api": "1.0.0",
+    "core_api_current": "1.1.0",
+    "core_api_accepted": ["1.0.0", "1.1.0"],
     "twin_accepted": ["1.0.0", "1.1.0", "1.2.0"],
     "wallet_matrix_accepted": ["1.0.0", "1.1.0", "1.2.0"],
     "dappmap_accepted": ["1.0.0", "1.1.0", "1.2.0"],
     "knowledge_context": "1.0.0",
-    "pwa_shell": "2.1.4"
+    "pwa_shell": "2.1.5"
   },
-  "OUTPUT_VERSION": "CHAT04_HANDOFF_2.1.5",
-  "STATE": "BLOCKED_SERIAL_REFRESH_RUNTIME_QA",
-  "UI_VERSION": "2.1.1",
-  "PWA_SHELL_VERSION": "2.1.4",
+  "OUTPUT_VERSION": "CHAT04_HANDOFF_2.1.6",
+  "STATE": "BLOCKED_SERIAL_REFRESH_RUNTIME_BRIDGE_QA",
+  "UI_VERSION": "2.1.2",
+  "PWA_SHELL_VERSION": "2.1.5",
   "BRANCH": "feat/chat04-sicid-login-freshmain-1642",
   "GITHUB_PR": 17,
   "PR_STATE": "OPEN_DRAFT_MERGEABLE_REVIEW_ONLY",
   "OWNERSHIP": {
-    "owned": ["frontend presentation", "UX/UI", "PWA shell", "accessibility", "client-side contract adapters"],
+    "owned": ["frontend presentation", "UX/UI", "PWA shell", "accessibility", "client-side contract negotiation"],
     "read_only": ["CHAT00 control/master", "CHAT01 SIC-ID/Case authority", "CHAT02 Evidence/Payment/Entitlement", "CHAT03 Twin/Wallet/DAPPMAP authority", "CHAT06 Knowledge authority", "CHAT10 runtime/deploy authority", "canonical production public_html"],
     "one_writer": true
   },
   "BUILT": [
-    "LIVE SIC-ID remains required for Search, +CASE, Recovery and Profile",
-    "Recovery/Profile private projection remains scrubbed fail-closed when identity is non-LIVE",
-    "PWA shell cache deletion remains scoped to caid-shell-v namespace",
-    "shell reads remain scoped to the current CryptoAID cache",
-    "same-origin query-bearing shell URLs are mapped by pathname to their canonical precached URL before cache lookup",
-    "visible browser query strings are preserved; no attribution SDK/runtime is added"
+    "CoreAPI login/resume accepted versions are explicit 1.0.0 and 1.1.0",
+    "CoreAPI 1.1.0 is preferred/current and advertised in SIC-ID login event",
+    "SIC-ID event exposes supportedCoreApiVersions and preferredCoreApiVersion with fail-closed explicit negotiation",
+    "requiresLiveSession remains true; callerMayProvideIdentity and walletIsIdentity remain false",
+    "PWA shell advanced to 2.1.5 so offline clients refresh the security-sensitive app.js contract",
+    "prior PWA namespace-delete, current-cache-read and query canonicalization guards are preserved"
   ],
   "PWA_INVARIANTS": {
-    "cache_namespace": "caid-shell-v2.1.4",
+    "cache_namespace": "caid-shell-v2.1.5",
     "cache_prefix": "caid-shell-v",
     "same_origin_shell_only": true,
     "query_string_shell_lookup": "canonical precached URL by pathname inside current CACHE",
@@ -54,27 +55,27 @@
     "NO_ATTRIBUTION_RUNTIME_EXPANSION"
   ],
   "TESTED": [
-    "node --check sw.js PASS",
-    "deterministic query-to-canonical-shell-key simulation PASS",
-    "cross-origin same-path shell classification rejected",
-    "GitHub CI 33674976135 SUCCESS on runtime/test head",
-    "Release Candidate Package 33674976134 SUCCESS on runtime/test head"
+    "GitHub CI 33681190014 SUCCESS on exact runtime/test head",
+    "Release Candidate Package 33681190016 SUCCESS on exact runtime/test head",
+    "full repository CI includes compile, pytest, PHP baseline, staging PWA shell package/restore smoke and token scan"
   ],
-  "TEST_PASS": ["syntax", "query canonicalization regression", "full repository CI", "PWA package/restore verification"],
+  "TEST_PASS": ["CoreAPI 1.1 negotiation regression", "full repository CI", "PWA package/restore verification"],
   "TEST_FAIL": [],
   "NOT_TESTED": [
     "real-origin 390x844 refreshed-serial browser acceptance",
     "real-origin 1440x900 refreshed-serial browser acceptance",
-    "query-bearing warmed PWA offline reload in a real browser",
+    "normal-package trusted runtime bridge consumption",
+    "PWA install/update/offline/reconnect on refreshed exact serial",
     "keyboard/reduced-motion interaction in a real browser",
     "physical MetaMask/TokenPocket/Reown acceptance",
     "real signing/payment/transaction/deploy"
   ],
   "FIXED": [
-    "query-bearing shell/attribution URL could be classified as shell but miss the query-less precache key and fail offline before navigation fallback"
+    "public SIC-ID request advertised stale CoreAPI 1.0.0 while serial authoritative CoreAPI is 1.1.0"
   ],
   "BLOCKERS": [
-    "CHAT00 must publish a refreshed exact serial Golden SHA containing PWA 2.1.4 or byte-equivalent",
+    "CHAT00 must publish a refreshed exact serial Golden SHA containing UI 2.1.2 / PWA 2.1.5 or byte-equivalent",
+    "serial static public package does not currently load a trusted runtime adapter bridge for SIC-ID/Case/Twin/Wallet event consumption",
     "Antigravity factual browser/PWA result absent on refreshed serial SHA",
     "CHAT05 independent Golden Journey/privacy/security acceptance pending",
     "CHAT10 final package/backup/restore/rollback pending"
@@ -82,16 +83,17 @@
   "HUMAN_GATES": ["real wallet signing", "real payment/transaction", "production deploy/cutover"],
   "ANTIGRAVITY_GATE": {
     "status": "HOLD_PENDING_CHAT00_REFRESHED_EXACT_SERIAL_GOLDEN_SHA",
-    "assertions_required": 28,
-    "new_assertion_28": "Warm exact candidate online; load same-origin attribution URLs with query strings, force offline and reload; current shell must remain usable, visible query retained, canonical current cache used, dynamic truth not cached; repeat at 390x844 and desktop with exact factual evidence.",
-    "must_record": ["OS", "browser/version", "serve command", "URL", "exact SHA", "timestamp", "PASS/FAIL/NOT_TESTED per assertion", "console summary", "network summary", "service-worker lifecycle", "cache-key list", "visible query evidence", "screenshot filenames and SHA-256"],
-    "no_credit_for": "PR48 or isolated PR17 as final release evidence after PWA 2.1.4"
+    "assertions_required": 30,
+    "new_assertion_29": "Capture normal packaged SIC-ID login event and prove CoreAPI 1.1.0 preferred/current, 1.0.0+1.1.0 supported and unsupported versions fail closed without LIVE identity.",
+    "new_assertion_30": "Without DevTools/test-harness adapter injection, prove the normal public package contains or reaches trusted runtime bridge wiring that consumes SIC-ID/Case requests and approved Twin/Wallet adapters; if absent, FAIL with exact script/listener/network evidence.",
+    "must_record": ["OS", "browser/version", "serve command", "URL", "exact SHA", "timestamp", "PASS/FAIL/NOT_TESTED per assertion", "event payloads", "console summary", "network summary", "service-worker lifecycle", "cache-key list", "screenshot filenames and SHA-256"],
+    "no_credit_for": "synthetic injected adapters or stale serial/isolated PR17 as final release evidence"
   },
   "REQUESTS": [
-    {"to": "CHAT00", "priority": "P0", "type": "SERIAL_REFRESH", "request": "Compose one refreshed exact Golden SHA containing CHAT04 PWA 2.1.4 owner delta 77216b5 or byte-equivalent."},
-    {"to": "ANTIGRAVITY", "priority": "P0", "type": "TEST_REQUEST", "request": "On refreshed exact serial Golden SHA only, execute canonical assertions 1-28."},
+    {"to": "CHAT00", "priority": "P0", "type": "SERIAL_REFRESH_RUNTIME_BRIDGE", "request": "Compose one refreshed exact Golden SHA containing CHAT04 UI 2.1.2/PWA 2.1.5 owner delta and trusted protected-origin runtime bridge/equivalent without moving Core/Twin/Case authority into CHAT04."},
+    {"to": "ANTIGRAVITY", "priority": "P0", "type": "TEST_REQUEST", "request": "On refreshed exact serial Golden SHA only, execute canonical assertions 1-30 without synthetic adapter injection for assertion 30."},
     {"to": "CHAT05", "priority": "P0", "type": "QA_REQUEST", "request": "Consume exact-head Antigravity evidence and execute independent Golden Journey/privacy/security acceptance."}
   ],
-  "NEXT": ["CHAT00 serial refresh", "Antigravity assertions 1-28", "CHAT05 independent QA", "CHAT10 final release/rollback gate"],
-  "GO_NO_GO": "NO_GO_SERIAL_REFRESH_AG_CHAT05_CHAT10"
+  "NEXT": ["CHAT00 serial refresh + trusted runtime bridge", "Antigravity assertions 1-30", "CHAT05 independent QA", "CHAT10 final release/rollback gate"],
+  "GO_NO_GO": "NO_GO_SERIAL_REFRESH_RUNTIME_BRIDGE_AG_CHAT05_CHAT10"
 }
