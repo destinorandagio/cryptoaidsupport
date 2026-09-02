@@ -1,0 +1,90 @@
+{
+  "CHAT_ID": "CHAT07",
+  "DOMAIN": "SOCIAL_TELEGRAM_COMMUNITY_AI_RUNTIME",
+  "TIMESTAMP": "2026-09-02T18:30:00+02:00",
+  "VERSION": "0.5.0",
+  "PARENT_VERSION": "0.4.0",
+  "INPUT_VERSIONS": {
+    "TELEGRAM_LIVE_VERIFICATION": "879432a9a1c0702a6fdeedcbcb26f8524bb5bde2",
+    "SOCIAL_LAUNCH_PROFILE": "1.1.0",
+    "DRIVE_ASSET_MAP": "1.0.0",
+    "AI_SECRET_SLOTS": "1.0"
+  },
+  "BUILT": [
+    "bot/drive_media.py public/shared Drive transport with optional bearer mode",
+    "bot/content_engine.py semantic Drive image/video publisher with text fallback",
+    "bot/runtime_supervisor.py persistent restart supervisor",
+    "bot/api_server.py shared DAPP AI HTTP endpoint",
+    "runtime/run_with_env.py duplicate API-key normalization in memory",
+    "runtime/install_windows_task.ps1",
+    "runtime/cryptoaid-telegram.service",
+    "runtime/Dockerfile.telegram",
+    "tests/test_drive_media.py"
+  ],
+  "SECURITY": [
+    "No API key committed",
+    "No API key returned by DAPP endpoint",
+    "Drive bearer token optional and environment-only",
+    "Media MIME allowlist",
+    "Media size cap",
+    "HTML Drive response rejected as media",
+    "AI remains synthesis-only after verified Knowledge",
+    "Deterministic fallback remains available"
+  ],
+  "TESTED": [
+    "Previous controlled group/channel Telegram delivery PASS",
+    "Previous bot authentication/group/channel healthcheck PASS",
+    "Previous 85/85 baseline pytest PASS"
+  ],
+  "NOT_TESTED": [
+    "Exact-head CI for this runtime/media delta",
+    "Real Drive file download from production runtime",
+    "Real Telegram send_photo using Drive bytes",
+    "Real Telegram send_video using Drive bytes",
+    "Persistent supervisor 30-minute soak",
+    "Real provider AI smoke/failover",
+    "Public reverse-proxy exposure of /api/ai/assistant"
+  ],
+  "ANTIGRAVITY_TEST_PLAN": [
+    "Pull latest main and run python -m compileall bot runtime",
+    "Run pytest -q",
+    "Use one mapped JPEG and execute one controlled channel media publication",
+    "Use one mapped MP4 and execute one controlled group media publication",
+    "Verify no duplicate publication and no token/key in logs",
+    "Start runtime with runtime/run_with_env.py pointing at the authorized local apikeys.env copy",
+    "Verify /start and a 10-turn Telegram conversation",
+    "GET http://127.0.0.1:8787/health and confirm only provider counts are exposed",
+    "POST /api/ai/assistant with a safe CryptoAID question",
+    "Disable provider keys and verify deterministic Knowledge fallback",
+    "Kill Telegram child and verify supervisor restarts it",
+    "Kill AI API child and verify supervisor restarts it",
+    "Run a minimum 30-minute soak and record crashes/restarts",
+    "If local runtime is accepted, install Windows task; otherwise deploy Docker/systemd on selected server"
+  ],
+  "BLOCKERS": [
+    {
+      "id": "RUNTIME-DEPLOY-01",
+      "owner": "ANTIGRAVITY_CHAT10",
+      "status": "CODE_READY_NEEDS_PHYSICAL_DEPLOY",
+      "description": "Select existing always-on machine/server and install one persistent runtime mode."
+    },
+    {
+      "id": "MEDIA-LIVE-01",
+      "owner": "ANTIGRAVITY_CHAT10",
+      "status": "CODE_READY_NEEDS_REAL_DRIVE_TELEGRAM_TEST",
+      "description": "Verify shared Drive file URLs are downloadable in runtime; inject DRIVE_BEARER_TOKEN only if public/shared mode is insufficient."
+    }
+  ],
+  "HUMAN_GATES": [
+    "Production host choice if local Antigravity machine is not intended to stay online",
+    "Public reverse-proxy/domain exposure for DAPP AI endpoint",
+    "Any production credential rotation"
+  ],
+  "NEXT": [
+    "Antigravity executes exact physical test plan and returns evidence",
+    "CHAT10 aligns live scheduler to five Europe/Rome touchpoints",
+    "CHAT05 performs independent regression/security gate",
+    "CHAT07 enables EVERGREEN_WEBINAR after official webinar asset is supplied"
+  ],
+  "GO_NO_GO": "CODED_PENDING_RUNTIME_VERIFICATION"
+}
