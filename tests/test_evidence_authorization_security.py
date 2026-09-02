@@ -47,6 +47,7 @@ def _assert_no_evidence_side_effect(root, engine):
         " DENIED",
         "DENIED ",
         "allow",
+        "owner",
         "",
         "   ",
     ),
@@ -68,9 +69,10 @@ def test_missing_or_blank_consent_binding_fails_before_evidence_bytes_or_rows(co
     _assert_no_evidence_side_effect(root, engine)
 
 
-def test_explicit_allow_state_still_writes_private_evidence():
+@pytest.mark.parametrize("authorization", ("ALLOW", "OWNER"))
+def test_explicit_allowed_states_write_private_evidence(authorization):
     root, engine = _engine()
-    stored = _store(engine, authorization="ALLOW", consent_id="cons_123")
+    stored = _store(engine, authorization=authorization, consent_id="cons_123")
     assert stored["status"] == "AVAILABLE"
     assert len(list(root.rglob("*.bin"))) == 1
     assert not list(root.rglob("*.quarantine"))
