@@ -14,7 +14,7 @@ from pathlib import Path
 from .case_engine import CoreError
 from .case_engine_mvp import CaseEngine
 
-CORE_API_FACADE_VERSION = "1.2.0"
+CORE_API_FACADE_VERSION = "1.1.0"
 
 
 class CoreAPI:
