@@ -20,7 +20,12 @@ def test_required_nav_and_connect():
 def test_sicid_login_is_explicit_first_step_and_fail_closed():
     assert 'SIGN IN / SIC-ID' in HTML
     assert HTML.index('SIGN IN / SIC-ID') < HTML.index('id="heroSearchForm"')
-    assert "coreApi:'1.0.0'" in JS
+    assert "coreApi:Object.freeze(['1.0.0','1.1.0'])" in JS
+    assert "coreApi:'1.1.0'" in JS
+    assert "coreApiVersion:PREFERRED.coreApi" in JS
+    assert "supportedCoreApiVersions:[...ACCEPTED.coreApi]" in JS
+    assert "preferredCoreApiVersion:PREFERRED.coreApi" in JS
+    assert "contractNegotiation:'FAIL_CLOSED_EXPLICIT_VERSION_LIST'" in JS
     assert "caid:sicid-login-request" in JS
     assert "action:'LOGIN_OR_RESUME'" in JS
     assert "requiresLiveSession:true" in JS
@@ -30,7 +35,7 @@ def test_sicid_login_is_explicit_first_step_and_fail_closed():
     assert 'data-sicid-login' in HTML
 
 def test_live_sicid_is_required_before_private_golden_routes():
-    assert "ui:'2.1.1'" in JS
+    assert "ui:'2.1.2'" in JS
     assert "const PROTECTED_GOLDEN_ROUTES=new Set(['search','case','recovery','profile'])" in JS
     assert "r.identityDataState==='LIVE'" in JS
     assert "PROTECTED_GOLDEN_ROUTES.has(name)&&!requireLiveIdentity()" in JS
@@ -80,7 +85,7 @@ def test_service_worker_excludes_dynamic_truth():
     assert "req.mode==='navigate'" in SW
 
 def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
-    assert "const SHELL_VERSION='2.1.4'" in SW
+    assert "const SHELL_VERSION='2.1.5'" in SW
     assert "const CACHE_PREFIX='caid-shell-v'" in SW
     assert '${CACHE_PREFIX}${SHELL_VERSION}' in SW
     assert 'self.skipWaiting()' in SW
@@ -110,7 +115,8 @@ def test_manifest_valid():
     assert data['theme_color']=='#ffffff'
 
 def test_twin_wallet_contract_compatibility_is_explicit_and_fail_closed():
-    assert "ui:'2.1.1'" in JS
+    assert "ui:'2.1.2'" in JS
+    assert "coreApi:Object.freeze(['1.0.0','1.1.0'])" in JS
     assert "twin:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
     assert "walletMatrix:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
     assert "dappmap:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
