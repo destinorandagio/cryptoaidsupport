@@ -1,0 +1,9 @@
+from twin.engine import DigitalTwinEngine, TwinStatus
+from twin.mirror_adapter import adapt_mirror_row, minimal_twin_card
+MIRROR_0X={"ID MIRROR81+":"M81-DAPP-000005","Nome canonico":"0x","Alias / versioni":"0x Aggregator | 0x Bridge Aggregator | 0x Protocol","Stato prudenziale":"Presente in più registri — attività da verificare","Categoria":"DEX Aggregator | Bridge Aggregator","Chain":"","Chain primaria":"","Token":"ZRX","Contratti / indirizzi":"0xe41d2489571d322189246dafa5ebde1f4699f498","Sito ufficiale":"https://www.0x.org/","Copertura fonti":"DeFiLlama + DappRadar","Attendibilità":"A","Data acquisizione":"2026-08-20 00:00:00"}
+def test_real_mirror_known_project_and_alias_resolve_without_promotion():
+    record=adapt_mirror_row(MIRROR_0X,source_version="mirror81-2026-08-20"); engine=DigitalTwinEngine([record]); assert engine.resolve_one("0x").twin_id=="M81-DAPP-000005"; assert engine.resolve_one("0x Protocol").twin_id=="M81-DAPP-000005"; assert engine.resolve_one("ZRX").twin_id=="M81-DAPP-000005"; assert record.status==TwinStatus.KNOWN; assert record.context["mirror81"]["source_status"].endswith("attività da verificare")
+def test_minimal_twin_card_carries_epistemic_metadata_and_no_fake_live():
+    card=minimal_twin_card(adapt_mirror_row(MIRROR_0X,source_version="mirror81-2026-08-20")); assert card["twin_id"]=="M81-DAPP-000005"; assert card["status"]=="KNOWN"; assert card["source_date"]=="2026-08-20 00:00:00"; assert card["confidence"]==0.90; assert card["cache_state"]=="STALE"; assert card["truth_label"]=="CACHED"; assert card["source_status"]=="Presente in più registri — attività da verificare"; assert card["case_available"] is True
+def test_polygon_primary_chain_maps_only_when_explicit():
+    row=dict(MIRROR_0X); row["ID MIRROR81+"]="M81-TEST-POLYGON"; row["Nome canonico"]="Polygon Fixture"; row["Chain"]="Polygon"; row["Chain primaria"]="Polygon"; assert adapt_mirror_row(row,source_version="mirror81-2026-08-20").chain_id==137
