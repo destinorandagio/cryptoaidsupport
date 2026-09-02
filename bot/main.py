@@ -13,6 +13,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger("cryptoaid")
 GROUP = os.getenv("TELEGRAM_GROUP", "@cryptoAIDsupporter")
 CHANNEL = os.getenv("TELEGRAM_CHANNEL", "@cryptoaidsup")
+OFFICIAL_LINKS = {
+    "website": "https://cryptoaid.support",
+    "bot": "https://t.me/CryptoAIDsupportBOT",
+    "group": "https://t.me/cryptoAIDsupporter",
+    "channel": "https://t.me/cryptoaidsup",
+}
 
 TEXT = {
  "en": {
@@ -76,7 +82,11 @@ async def ask_cmd(update, context): await ask_text(update, " ".join(context.args
 async def about(update, context): await ask_text(update, "Cos'è CryptoAID?" if user_lang(update)=="it" else "What is CryptoAID?")
 async def services(update, context): await ask_text(update, "Quali servizi offre CryptoAID?" if user_lang(update)=="it" else "What services does CryptoAID provide?")
 async def recovery(update, context): await ask_text(update, "Come funziona il recovery CryptoAID?" if user_lang(update)=="it" else "How does CryptoAID recovery work?")
-async def links(update, context): await ask_text(update, "Quali sono i link ufficiali CryptoAID?" if user_lang(update)=="it" else "What are the official CryptoAID links?")
+async def links(update, context):
+    lang=user_lang(update)
+    title="🔗 Link ufficiali CryptoAID" if lang=="it" else "🔗 Official CryptoAID links"
+    body=f"{title}\n🌐 {OFFICIAL_LINKS['website']}\n🤖 {OFFICIAL_LINKS['bot']}\n💬 {OFFICIAL_LINKS['group']}\n📢 {OFFICIAL_LINKS['channel']}"
+    await update.effective_message.reply_text(body, disable_web_page_preview=True)
 async def language(update, context): await update.effective_message.reply_text("Choose language / Scegli lingua", reply_markup=keyboard())
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
