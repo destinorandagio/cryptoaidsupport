@@ -1,64 +1,74 @@
 {
   "CHAT_ID": "CHAT01",
   "DOMAIN": "CORE_USER_SICID_CASE_PRODUCT",
-  "TIMESTAMP": "2026-09-02T14:20:00+02:00",
-  "VERSION": "1.3.1",
-  "PARENT_VERSION": "1.3.0",
-  "SOURCE_HEAD": "e9293f2e8c847722a073c950c543c6af857495f3",
-  "CORE_SOURCE_COMMIT": "6ca11993aa6c7c26a520ebd27fe88c1c8211b434",
-  "CASE_ENGINE_BLOB": "bae5708e73fff547f4d3200cf259f4c6cd6ab62a",
-  "CORE_MODULE_VERSION": "1.2",
+  "TIMESTAMP": "2026-09-02T15:25:00+02:00",
+  "VERSION": "1.3.2",
+  "PARENT_VERSION": "1.3.1",
+  "FUNCTIONAL_HEAD": "5f00a3b61c10994eaf92f69c1d2b539183c6448c",
+  "CORE_SOURCE_COMMIT": "67f4bbaaea5a8d9d362e1bd62886417b0149b75b",
+  "CASE_ENGINE_BLOB": "dae4075809d4f9cba96e6b1a9b9b13d992a73014",
+  "FINGERPRINT_TEST_BLOB": "034787b53014f423ad83fef195a49fc8c52e0064",
+  "CORE_MODULE_VERSION": "1.3",
   "SCHEMA_VERSION": "chat01-core-1",
   "API_CONTRACT_VERSION": "v1",
-  "CI_RUN": "33629103587 / #340 SUCCESS / 80 passed",
+  "CASE_STATE_VERSION": "1.0",
+  "CI_RUN": "33635269624 / #368 SUCCESS / 85 passed",
   "INPUTS": {
-    "HANDOFF_01_DRIVE": "20260902-1400",
-    "CHAT00_MACHINE": "0.6.0",
-    "CHAT02": "1.1.1 accepted economics/effect authority; PR4 remains review-only",
-    "CHAT08": "0.3.1",
-    "OWNERSHIP": "CAID-LK-0098 CHATGPT_ACTIVE during build; CAID-LK-0097 control/devops only",
-    "AG_TASK": "169bnn9w9dPPDvJ2UzEghgipwFc09yAvZa7cUkpDtWB8"
+    "HANDOFF_01_DRIVE": "20260902-1500 v0.7.0 + late delta",
+    "HANDOFF_06_DRIVE": "20260902-1450 v0.6.0",
+    "QA_FINDING": "QA05-P0-010 same-operation idempotency subject/payload binding",
+    "CHAT02": "economics/evidence/payment/entitlement authority consumed read-only",
+    "CHAT08": "0.3.1 source contract unchanged",
+    "OWNERSHIP": "CAID-LK-0108 Core/Admin; CAID-LK-0107 integration/control was disjoint",
+    "AG_TASK": "14Z2J-K9lxlHkDDoontePH80FQtvikpI0aLVSQuSkKuk"
   },
   "CONTRACT_CHANGES": [
-    "idempotency keys are now operation-bound for register_user/create_session/bind_wallet/open_case/transition; cross-operation reuse fails IDEMPOTENCY_CONFLICT 409",
-    "idempotent mutators acquire BEGIN IMMEDIATE before replay check so concurrent same-key retries replay one committed response rather than racing duplicate side effects",
-    "bind_wallet now consumes and persists its previously-unused request_id/idempotency_key contract"
+    "idempotency replay now binds operation plus authenticated subject and canonical logical payload SHA-256 fingerprint",
+    "request_id is transport-only and may differ on an otherwise identical retry",
+    "same operation/key with changed SIC-ID, user, profile, TTL, wallet, project/search truth, actor/reason/authorization or expected_version fails IDEMPOTENCY_CONFLICT 409 before replay",
+    "legacy pre-fingerprint core_requests rows fail closed rather than replaying an unverifiable response",
+    "no schema migration: fingerprint envelope is stored inside existing core_requests.response_json"
   ],
   "SCHEMA_CHANGED": false,
   "ECONOMICS_CHANGED": false,
   "BUILT": [
-    "central request replay/record helpers",
-    "operation conflict guard",
-    "wallet binding replay persistence",
-    "same-key Case create concurrency determinism",
-    "targeted hardening regressions"
+    "canonical request fingerprint helper using JSON canonicalization and SHA-256",
+    "fingerprint-bound replay and record envelope",
+    "wallet normalization before fingerprinting",
+    "negative subject/payload replay regressions",
+    "concurrent same-key/different-project fail-closed regression",
+    "legacy permissive regression updated to enforce fail-closed semantics"
   ],
   "TEST_PASS": [
-    "cross-operation idempotency conflict",
-    "bind_wallet replay creates one binding/request",
-    "two-thread same-key open_case creates one Case/event/request and identical result",
-    "all previous first/returning user, session, TO_VERIFY, invalid/stale/concurrent transition, settlement-authorized ACTIVE and Next Action tests remain green",
-    "GitHub Actions full pytest 80/80",
-    "GitHub runner PHP baseline PDO/pdo_sqlite/curl/fileinfo/openssl/json PASS; PDO sqlite memory PASS",
-    "staging PWA shell package/restore smoke PASS and obvious Telegram token scan PASS"
+    "first and returning user semantics preserved",
+    "identical logical retry with new request_id replays the original response",
+    "changed SIC-ID/profile/session subject/TTL/wallet/project/search_hit/authorization conflicts 409",
+    "same-key same-payload concurrency remains one Case/event/request",
+    "same-key different-payload concurrency produces exactly one side effect and conflict",
+    "SIC-ID sessions, TO_VERIFY, Case resume, invalid/stale/concurrent transitions, settlement-effect ACTIVE gate and Next Action remain green",
+    "GitHub Actions full pytest 85/85",
+    "GitHub runner PHP baseline, SQLite memory, staging PWA shell restore smoke and token scan PASS"
   ],
-  "TEST_FAIL": [],
+  "TEST_FAIL_FIXED": [
+    "CI #367 initially exposed one stale regression that expected cross-subject replay; owner test was corrected and CI #368 is green"
+  ],
   "NOT_TESTED": [
     "actual target-host PHP/runtime",
     "real request-time SIC-ID authority",
-    "real-origin protected Admin browser route",
-    "real wallet/signature/payment/transaction/deploy"
+    "real-origin protected Admin browser route/accessibility",
+    "physical wallet/signature/payment/transaction/deploy"
   ],
   "COLLISIONS": [
-    {"classification": "ACCEPT", "request": "CHAT02 settlement effect", "decision": "consume durable same-Case effect read-only; no payment/entitlement writes"},
-    {"classification": "REJECT", "request": "cross-operation idempotency key reuse", "decision": "fail closed 409 to prevent wrong-shaped replay across Core commands"},
-    {"classification": "REJECT", "request": "parallel Core/Case authority", "decision": "one MASTER and CHAT01 Case authority preserved"}
+    {"classification": "ACCEPT", "request": "QA05-P0-010", "decision": "closed in CHAT01 source with fail-closed fingerprint binding; pending independent CHAT05 retest"},
+    {"classification": "ACCEPT", "request": "CHAT02 settled entitlement effect", "decision": "consume read-only only; no CHAT01 payment/entitlement writes"},
+    {"classification": "REJECT", "request": "same-key changed subject/payload replay", "decision": "IDEMPOTENCY_CONFLICT 409"},
+    {"classification": "REJECT", "request": "parallel Core/Case authority", "decision": "single MASTER and CHAT01 authority preserved"}
   ],
-  "STATE": "CORE_GOLDEN_BACKEND_GREEN_HARDENED_GLOBAL_NO_GO",
+  "STATE": "QA05_P0_010_OWNER_CLOSED_CI_GREEN_PENDING_INDEPENDENT_RETEST_GLOBAL_NO_GO",
   "GO_NO_GO": "NO_GO",
   "NEXT": [
-    "consume factual Antigravity exact-head result for task AG-CRYPTOAID-CORE-ADMIN-MVP-20260902-1410",
-    "serial-compose accepted CHAT02/03/04/10 tuple without duplicating authority",
-    "run protected Admin + real-origin Golden E2E then CHAT05 independent final QA"
+    "CHAT05 independently retest QA05-P0-010 on exact Core blob dae40758...",
+    "CHAT00/10 rebuild exact serial candidate because prior PR10 became stale after Core fix",
+    "consume only persisted Antigravity exact-head result; then run final Golden runtime journey"
   ]
 }
