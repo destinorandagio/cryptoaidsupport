@@ -3,6 +3,7 @@
 const API='/api/mvp';
 const sameOrigin=(value)=>new URL(value,location.href).origin===location.origin;
 const requestToken=(prefix)=>`${prefix}_${typeof crypto.randomUUID==='function'?crypto.randomUUID():[...crypto.getRandomValues(new Uint8Array(16))].map(v=>v.toString(16).padStart(2,'0')).join('')}`;
+const adaptTwinEnvelope=(result)=>{if(!result||typeof result!=='object')return result;if(result.state==='AMBIGUOUS'||result.requires_disambiguation===true){return{...result,ambiguous:true,results:Array.isArray(result.results)?result.results:[]}}if(result.state!=='MATCH')return result;const items=Array.isArray(result.results)?result.results:(result.result&&typeof result.result==='object'?[result.result]:[]);const normalized=items.map(item=>{if(!item||typeof item!=='object'||Array.isArray(item.provenance))return item;const fields=['source','source_date','confidence','cache_state','truth_label','version'];const provenance={};for(const field of fields)if(Object.prototype.hasOwnProperty.call(item,field))provenance[field]=item[field];return Object.keys(provenance).length?{...item,provenance:[provenance]}:item});return{...result,results:normalized}};
 async function request(path,options={}){
   if(location.protocol==='file:'||!sameOrigin(path))throw new Error('bridge_origin_rejected');
   const response=await fetch(`${API}${path}`,{credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json','Content-Type':'application/json',...(options.headers||{})},...options});
@@ -31,7 +32,7 @@ window.addEventListener('caid:case-request',event=>{
   const body={caseType:String(event.detail.caseType||'UNKNOWN').slice(0,80),projectQuery:String(event.detail.projectQuery||'').slice(0,500),description:String(event.detail.description||'').slice(0,4000),requestId:requestToken('ui_req'),idempotencyKey:requestToken('ui_idem')};
   request('/cases',{method:'POST',body:JSON.stringify(body)}).then(payload=>{if(publishCanonicalState(payload)&&payload.caseId)location.hash='recovery'}).catch(()=>{});
 });
-window.CryptoAIDTwin=Object.freeze({contractVersion:'1.0.0',search(query){return request(`/search?q=${encodeURIComponent(String(query||'').slice(0,500))}`)}});
-window.CryptoAIDRuntimeBridge=Object.freeze({version:'1.0.0',sameOriginOnly:true,resume});
+window.CryptoAIDTwin=Object.freeze({contractVersion:'1.0.0',search(query){return request(`/search?q=${encodeURIComponent(String(query||'').slice(0,500))}`).then(adaptTwinEnvelope)}});
+window.CryptoAIDRuntimeBridge=Object.freeze({version:'1.0.1',sameOriginOnly:true,resume});
 resume();
 })();
