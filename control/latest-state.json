@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "control_plane": "CHAT00_MASTER_CTO",
+  "repository": "destinorandagio/cryptoaidsupport",
+  "branch": "main",
+  "observed_head": "e365199e75f54d69189ccdb6959c54be3b97ddbb",
+  "state": "CONTROL_PLANE_BOOTSTRAPPED",
+  "release_gate": "NO_GO",
+  "canonical_authority": "knowledge/cryptoaid_master.json",
+  "golden_journey": ["LANDING","CONNECT_WALLET","POLYGON","SIC_ID","SEARCH_PROJECT","DIGITAL_TWIN_OR_TO_VERIFY","CASE","TRIAGE","PRODUCT_TIER","PRIVATE_EVIDENCE","CONSENT","PAYMENT","CASE_ACTIVE","MY_RECOVERY","NEXT_ACTION","EVIDENCE_PACK","SUPPORT","ADMIN"],
+  "verified": {
+    "repository_access": true,
+    "branch_main": true,
+    "latest_ci": "success"
+  },
+  "missing_or_unverified_p0": ["canonical_case_engine","sic_id_registry","canonical_entitlement_ledger","payment_truth","evidence_vault","golden_journey_e2e","production_verification"],
+  "rule": "CODED != TESTED != INTEGRATED != DEPLOYED != PRODUCTION_VERIFIED"
+}
