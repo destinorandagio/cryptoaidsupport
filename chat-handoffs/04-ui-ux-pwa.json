@@ -1,11 +1,12 @@
 {
   "schema_version": "1.2",
   "chat": "CHAT04_UI_UX_PWA",
-  "cycle": "20260902-1712",
-  "state": "FRONTEND_LIVE_SICID_GOLDEN_GATE_CANDIDATE_NO_GO",
+  "cycle": "20260902-1741",
+  "state": "FRONTEND_LIVE_SICID_PWA_CACHE_COHERENCE_CANDIDATE_NO_GO",
   "ui_version": "2.1.0",
+  "pwa_shell_version": "2.1.0",
   "branch": "feat/chat04-sicid-login-freshmain-1642",
-  "parent_main_observed": "fd952c591bb1f2c09576458c2a48c70af0c1b814",
+  "parent_main_observed": "b7f5345fdf4fa4de06fe9e1d601aa3d6aa1df843",
   "contracts_consumed": {
     "core": "0.3.13",
     "core_api": "1.0.0",
@@ -14,7 +15,7 @@
     "wallet_matrix_accepted": ["1.0.0", "1.1.0", "1.2.0"],
     "dappmap_accepted": ["1.0.0", "1.1.0", "1.2.0"],
     "knowledge_context_accepted": ["1.0.0"],
-    "chat03_freshmain_pr6": "TESTED_REVIEW_ONLY",
+    "chat03_search_runtime": "1.0.0_REVIEW_ONLY",
     "chat01_core_api": "1.0.0_LIVE_SESSION_AUTHORITY_REVIEW_ONLY"
   },
   "identity_policy": {
@@ -28,6 +29,15 @@
     "non_live_behavior": "fail closed to HOME, request trusted Core LOGIN_OR_RESUME, do not execute Search or submit Case",
     "fail_closed": "CHAT04 consumes an upstream projection only; it never creates, validates, refreshes or authenticates SIC-ID."
   },
+  "pwa_update_policy": {
+    "cache_namespace": "caid-shell-v2.1.0",
+    "security_ui_version_bound": true,
+    "install": "precache current self-contained shell then skipWaiting",
+    "activate": "delete prior shell cache namespaces then clients.claim",
+    "dynamic_truth_cache_exclusions": ["/api/", "/evidence/", "/payment"],
+    "reason": "UI 2.1 carries the LIVE SIC-ID Search/+CASE security gate; installed clients must not remain indefinitely on a stale v1.7 shell cache.",
+    "real_origin_update_offline_reconnect": "NOT_TESTED_PENDING_EXACT_SERIAL_ANTIGRAVITY"
+  },
   "compatibility_policy": {
     "mode": "FAIL_CLOSED_EXPLICIT_VERSION_LIST",
     "unsupported_twin_adapter": "TO_VERIFY_AND_CONTINUE_CASE_AFTER_LIVE_SICID",
@@ -37,42 +47,38 @@
     "authority": "CHAT04 presents requests/state only; CHAT01 owns SIC-ID/auth/Case, CHAT02 payment/economics, CHAT03 Twin/Wallet/DAPPMAP, CHAT06 knowledge."
   },
   "ux_delta": [
-    "Search and +CASE are now centrally gated on a LIVE SIC-ID projection",
-    "CACHED/TO_VERIFY/non-live identity no longer disables the resume CTA and cannot enter Search or Case submit",
-    "hero Search does not execute its Twin query when the route gate rejects",
-    "Case submit re-checks LIVE identity to cover mid-session expiry",
-    "state updates eject protected Search/Case views to HOME when LIVE identity disappears",
+    "LIVE SIC-ID gate from UI 2.1 remains unchanged and fail-closed",
+    "Service Worker shell cache namespace now tracks UI 2.1.0",
+    "install requests prompt worker activation with skipWaiting after shell precache",
+    "activate deletes old shell caches and claims clients",
+    "dynamic API/Evidence/payment truth remains outside authoritative cache",
     "wallet remains optional and cannot satisfy authentication",
-    "no frontend prices/payment verification/Case truth/Knowledge promotion/current web3 USDT Case semantics"
+    "no frontend prices/payment verification/Case truth/Knowledge promotion/current web3 Case-payment semantics"
   ],
   "growth_minimum": {
     "owner": "CHAT09",
     "version": "0.4.0",
     "principles": ["HELP_FIRST", "VALUE_BEFORE_CTA", "NO_PURCHASE_NEEDED_ALLOWED", "OFFICIAL_FREE_PATH_FIRST", "NO_DARK_PATTERNS", "NO_FAKE_URGENCY", "NO_RECOVERY_GUARANTEE", "NO_ROI"],
-    "runtime_delta": "identity-before-search/resume guidance only; no campaign expansion"
+    "runtime_delta": "NONE_THIS_CYCLE; feature freeze maintained"
   },
   "browser": {
-    "exact_candidate": "NOT_TESTED",
-    "reason": "Antigravity broad Golden runtime remains HOLD until CHAT00 publishes one exact serial candidate after global payment-authority quarantine.",
-    "previous_layout_evidence": "NOT promoted to this source head"
+    "exact_serial_candidate": "NOT_TESTED",
+    "reason": "Antigravity final factual acceptance must target one CHAT00 exact serial Golden SHA.",
+    "required_extra_pwa_assertion": "upgrade from prior shell cache -> caid-shell-v2.1.0, old cache removed, current app.js controlled, offline/reconnect safe"
+  },
+  "engineering_evidence": {
+    "pwa_logic_and_test_head": "fdd180d2244559651a724744325b5f90552972e0",
+    "ci_run": 33650534945,
+    "ci_status": "SUCCESS"
   },
   "blocked": [
-    "global QA05-P0-016 parallel Case-payment authority/economics collision",
-    "no one exact serial Golden candidate",
-    "Antigravity real-origin 390/desktop/PWA evidence must run on the later serial Golden head",
-    "CHAT05 independent QA and final package/rollback/restore pending",
+    "global Case-payment authority/economics serial reconciliation outside CHAT04",
+    "no one exact serial Golden candidate accepted",
+    "Antigravity real-origin 390/desktop/PWA update/offline/reconnect evidence on final serial head",
+    "CHAT05 independent Golden QA and CHAT10 final package/rollback/restore",
     "physical wallet/sign/payment/tx/deploy remain HUMAN_GATE/NOT_TESTED"
   ],
-  "go_no_go": "NO_GO",
+  "go_no_go": "NO_GO_GLOBAL_SERIAL_RUNTIME_QA_GATES",
   "readback_required": true,
-  "github_pr": 17,
-  "ci": {
-    "runtime_logic_head": "7213b4deb44d0be806a9268bfb45944c56511056",
-    "run_id": 33647671672,
-    "status": "SUCCESS",
-    "php_baseline": "PASS",
-    "staging_pwa_package_restore_smoke": "PASS",
-    "token_scan": "PASS",
-    "note": "CI verifies the UI 2.1.0 live-SIC-ID gate runtime+test delta; later handoff-only commits require final-head CI confirmation."
-  }
+  "github_pr": 17
 }
