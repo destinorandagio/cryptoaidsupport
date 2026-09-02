@@ -23,7 +23,6 @@ FIRST_CASE_CREDIT = "50"
 FIRST_CASE_PAYABLE = "450"
 SUBSEQUENT_CASE_PAYABLE = "500"
 _PRE_TX_STATES = {"INTENT_CREATED", "USER_ACTION_REQUIRED"}
-_RETRYABLE_TERMINAL_STATES = {"EXPIRED", "REJECTED"}
 
 
 def _parse_ts(value: str) -> datetime:
@@ -119,9 +118,10 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
                 AND reserved_case_id=NEW.case_id;
             END;
 
-            CREATE TRIGGER IF NOT EXISTS trg_case_credit_release_on_expiry
+            DROP TRIGGER IF EXISTS trg_case_credit_release_on_expiry;
+            CREATE TRIGGER IF NOT EXISTS trg_case_credit_release_on_retryable_terminal
             AFTER UPDATE OF state ON payment_intents
-            WHEN NEW.state='EXPIRED' AND OLD.state<>NEW.state
+            WHEN NEW.state IN ('EXPIRED','REJECTED') AND OLD.state<>NEW.state
             BEGIN
               UPDATE activation_credits
               SET state='AVAILABLE', reserved_case_id=NULL, updated_at=NEW.updated_at
