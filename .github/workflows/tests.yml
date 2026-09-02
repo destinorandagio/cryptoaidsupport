@@ -23,5 +23,19 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m compileall bot
       - run: pytest -q
+      - name: Verify GitHub runner MVP PHP baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -v
+          php -r '$required=["PDO","pdo_sqlite","curl","fileinfo","openssl","json"]; $loaded=array_map("strtolower",get_loaded_extensions()); $missing=[]; foreach($required as $ext){if(!in_array(strtolower($ext),$loaded,true)){$missing[]=$ext;}} echo json_encode(["required"=>$required,"missing"=>$missing],JSON_PRETTY_PRINT),PHP_EOL; if($missing){exit(2);} $db=new PDO("sqlite::memory:"); echo "pdo_sqlite_memory=PASS sqlite_version=".$db->query("select sqlite_version()") ->fetchColumn().PHP_EOL;'
+      - name: Staging PWA shell package and restore smoke (not final deploy package)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/mvp_release_candidate.py frontend/public_html \
+            --package "$RUNNER_TEMP/cryptoaid-pwa-shell.zip" \
+            --manifest "$RUNNER_TEMP/cryptoaid-pwa-shell-manifest.json" \
+            --restore-check
       - name: Ensure no obvious Telegram token committed
         run: '! grep -R -E "[0-9]{8,12}:[A-Za-z0-9_-]{30,}" --exclude-dir=.git .'
