@@ -1,0 +1,11 @@
+{
+  "name":"Crypto AID",
+  "short_name":"Crypto AID",
+  "description":"Evidence-first crypto recovery support.",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#ffffff",
+  "theme_color":"#ffffff",
+  "icons":[{"src":"assets/shield.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
