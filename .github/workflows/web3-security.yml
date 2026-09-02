@@ -22,10 +22,10 @@ jobs:
       - run: npm run compile
       - run: npm test -- --no-compile
       - run: npm run deploy:bundle
-      - name: Verify 48H MVP Case-payment authority quarantine in generated bundle
+      - name: Verify 48H MVP Case-payment authority quarantine in plan, manifest and generated bundle
         run: |
           set -euo pipefail
-          python3 ../scripts/check_mvp_authority.py deploy/deployment-plan.json --deployer deploy/index.html --exporter scripts/export-deploy-bundle.js --bundle deploy/deploy-bundle.json
+          python3 ../scripts/check_mvp_authority.py deploy/deployment-plan.json --manifest deploy/polygon-mainnet-manifest.json --deployer deploy/index.html --exporter scripts/export-deploy-bundle.js --bundle deploy/deploy-bundle.json
           ! grep -q '"name": "CryptoAIDCasePayment"' deploy/deploy-bundle.json
       - name: Build offline deploy package
         run: |
@@ -34,10 +34,11 @@ jobs:
           test -f deploy/index.html
           test -f deploy/deploy-bundle.json
           test -f deploy/deployment-plan.json
+          test -f deploy/polygon-mainnet-manifest.json
           test -f deploy/README-OFFLINE-DEPLOY.md
           grep -q './ethers.umd.min.js' deploy/index.html
           grep -q '"chainId":137' deploy/deployment-plan.json
-          (cd deploy && sha256sum index.html ethers.umd.min.js deploy-bundle.json deployment-plan.json > checksums.sha256)
+          (cd deploy && sha256sum index.html ethers.umd.min.js deploy-bundle.json deployment-plan.json polygon-mainnet-manifest.json > checksums.sha256)
       - uses: actions/upload-artifact@v4
         with:
           name: cryptoaid-polygon-mainnet-offline-deployer
@@ -46,6 +47,7 @@ jobs:
             web3/deploy/ethers.umd.min.js
             web3/deploy/deploy-bundle.json
             web3/deploy/deployment-plan.json
+            web3/deploy/polygon-mainnet-manifest.json
             web3/deploy/README-OFFLINE-DEPLOY.md
             web3/deploy/checksums.sha256
           if-no-files-found: error
