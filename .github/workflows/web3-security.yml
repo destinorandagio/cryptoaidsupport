@@ -1,9 +1,9 @@
 name: Web3 Security
 on:
   push:
-    paths: ['web3/**','.github/workflows/web3-security.yml']
+    paths: ['web3/**','.github/workflows/web3-security.yml','scripts/check_mvp_authority.py','tests/test_mvp_authority_guard.py']
   pull_request:
-    paths: ['web3/**']
+    paths: ['web3/**','scripts/check_mvp_authority.py','tests/test_mvp_authority_guard.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,6 +22,11 @@ jobs:
       - run: npm run compile
       - run: npm test -- --no-compile
       - run: npm run deploy:bundle
+      - name: Verify 48H MVP Case-payment authority quarantine in generated bundle
+        run: |
+          set -euo pipefail
+          python3 ../scripts/check_mvp_authority.py deploy/deployment-plan.json --deployer deploy/index.html --exporter scripts/export-deploy-bundle.js --bundle deploy/deploy-bundle.json
+          ! grep -q '"name": "CryptoAIDCasePayment"' deploy/deploy-bundle.json
       - name: Build offline deploy package
         run: |
           test -f node_modules/ethers/dist/ethers.umd.min.js
