@@ -1,0 +1,16 @@
+:root{--ca-red:#ff202e;--ca-red2:#b90013;--ca-black:#050505;--ca-panel:#0b0b0e;--ca-panel2:#131318;--ca-white:#fff;--ca-muted:#aaa;--ca-line:rgba(255,255,255,.10);--ca-glow:0 0 34px rgba(255,32,46,.30)}
+.ca-dappmap{min-height:100vh;background:radial-gradient(circle at 50% 0,rgba(255,32,46,.16),transparent 36%),var(--ca-black);color:var(--ca-white);font-family:Inter,system-ui,sans-serif}
+.ca-dappmap__topbar{position:sticky;top:0;z-index:30;display:flex;gap:18px;align-items:center;padding:14px 20px;background:rgba(5,5,5,.86);backdrop-filter:blur(18px);border-bottom:1px solid var(--ca-line)}
+.ca-dappmap__logo{height:42px;width:auto;filter:drop-shadow(0 0 12px rgba(255,32,46,.38))}
+.ca-search{flex:1;display:flex;align-items:center;background:var(--ca-panel);border:1px solid rgba(255,32,46,.35);border-radius:16px;padding:0 16px;box-shadow:var(--ca-glow)}
+.ca-search input{width:100%;padding:14px;background:transparent;border:0;outline:0;color:#fff;font-size:15px}
+.ca-grid{display:grid;grid-template-columns:300px 1fr 380px;min-height:calc(100vh - 72px)}
+.ca-sidebar,.ca-cardpanel{background:rgba(11,11,14,.88);border-right:1px solid var(--ca-line);padding:18px;overflow:auto}.ca-cardpanel{border-right:0;border-left:1px solid var(--ca-line)}
+.ca-mapstage{position:relative;overflow:hidden;background:radial-gradient(circle at center,rgba(255,32,46,.08),transparent 45%)}
+.ca-tool-card{background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.015));border:1px solid var(--ca-line);border-radius:20px;padding:16px;margin-bottom:12px;transition:.2s}.ca-tool-card:hover{border-color:rgba(255,32,46,.6);transform:translateY(-2px);box-shadow:var(--ca-glow)}
+.ca-badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(255,32,46,.13);border:1px solid rgba(255,32,46,.4);color:#ff6b74;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.ca-btn{border:0;border-radius:13px;padding:11px 15px;background:linear-gradient(135deg,var(--ca-red),var(--ca-red2));color:#fff;font-weight:800;cursor:pointer;box-shadow:0 8px 26px rgba(255,32,46,.22)}
+.ca-btn--ghost{background:transparent;border:1px solid var(--ca-line);box-shadow:none}.ca-stat{font-size:28px;font-weight:900}.ca-muted{color:var(--ca-muted)}
+.ca-node{filter:drop-shadow(0 0 9px rgba(255,32,46,.45));cursor:pointer}.ca-node--dead{opacity:.72}.ca-node--active{filter:drop-shadow(0 0 11px rgba(255,255,255,.4))}
+.ca-timeline{position:absolute;left:18px;right:18px;bottom:18px;padding:14px;border:1px solid var(--ca-line);border-radius:18px;background:rgba(5,5,5,.78);backdrop-filter:blur(16px)}
+@media(max-width:1100px){.ca-grid{grid-template-columns:240px 1fr}.ca-cardpanel{display:none}}@media(max-width:720px){.ca-grid{display:block}.ca-sidebar{display:none}.ca-mapstage{height:calc(100vh - 72px)}.ca-dappmap__topbar{padding:10px}.ca-dappmap__logo{height:34px}}
