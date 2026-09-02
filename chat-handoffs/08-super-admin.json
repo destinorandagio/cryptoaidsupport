@@ -1,103 +1,114 @@
 {
   "CHAT_ID": "08",
   "DOMAIN": "SUPER_ADMIN_CRM_ANALYTICS_TREASURY_CONTROL",
-  "TIMESTAMP": "2026-09-02T11:58:00+02:00",
-  "VERSION": "0.1.0",
-  "PARENT_VERSION": null,
-  "GIT_SHA": "4d71f96efa69763d8e6050aef2faf387625b4ab7",
+  "TIMESTAMP": "2026-09-02T12:42:00+02:00",
+  "VERSION": "0.2.0",
+  "PARENT_VERSION": "0.1.0",
+  "SOURCE_HEAD": "f88c87837b011dfa4256d56477053a86a5bc2c0b",
+  "CI_RUN": "33620689610 / #214 SUCCESS",
   "INPUT_VERSIONS": {
-    "CHAT00_MASTER": "1.0/bootstrap",
-    "CHAT01_CORE_CASE": "1.0",
-    "CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT": "1.0",
-    "CHAT03_TWIN_WALLET": "1.0.0 foundation",
-    "CHAT06_KNOWLEDGE": "0.1.0 active bootstrap",
-    "CHAT07_TELEGRAM": "NOT_VERIFIED",
-    "CHAT10_DEVOPS": "NOT_FOUND_OR_NOT_VERIFIED",
-    "CONTROL_LATEST_STATE_HEAD": "e365199e75f54d69189ccdb6959c54be3b97ddbb",
-    "OBSERVED_REPOSITORY_HEAD": "4d71f96efa69763d8e6050aef2faf387625b4ab7"
+    "HANDOFF_01_DRIVE": "20260902-1200 + late delta",
+    "CHAT01_CORE_CASE": "1.2.1",
+    "CHAT02_EVIDENCE_PAYMENT": "owner-fixed current main",
+    "OWNERSHIP": "1.0",
+    "CONTRACTS": "1.0",
+    "ANTIGRAVITY_EXECUTION_CONTRACT": "1.0.0"
   },
-  "OUTPUT_VERSION": "0.1.0",
+  "OUTPUT_VERSION": "0.2.0",
   "FILES_CHANGED": [
-    "chat-handoffs/08-super-admin.json"
+    "admin/__init__.py",
+    "admin/ops.py",
+    "tests/test_admin_ops.py",
+    "chat-handoffs/08-super-admin.json",
+    "chat-handoffs/HANDOFF_02.md"
   ],
-  "CONTRACTS_CHANGED": [],
-  "SCHEMA_CHANGED": [],
+  "CONTRACTS_CHANGED": [
+    "ADMIN_CASE_REVIEWER is the minimum CHAT08 runtime role for MVP Case operations",
+    "CHAT08 Case mutations route through CHAT01 CaseEngine transition guards and audit",
+    "CHAT08 payment MANUAL_REVIEW is read-only; CHAT02 retains payment/entitlement truth",
+    "Admin Case queue and summary are privacy-minimized and never expose private Evidence bytes"
+  ],
+  "SCHEMA_CHANGED": false,
+  "STATE": "MVP_ADMIN_BACKEND_TESTED_CI_GREEN_NO_GO_RELEASE",
+  "SYNC_INPUTS": "VERIFIED_HANDOFF_01_CONTROL_CONTRACTS_ANTIGRAVITY_CONTRACT_CURRENT_MAIN",
   "BUILT": [
-    "CHAT08 factory bootstrap handoff only"
+    "Fail-closed AdminOps facade over the canonical SQLite authority",
+    "RBAC-gated Case queue and Case summary",
+    "Read-only CHAT02 MANUAL_REVIEW payment queue with payer/treasury address excluded",
+    "Admin Case transition command routed through CHAT01 guards using ADMIN_REVIEW authorization",
+    "Entitlement bypass prevention: ADMIN_REVIEW cannot force ACTIVE",
+    "Synthetic regression coverage for RBAC, privacy minimization, guarded transition/audit and manual-review view"
   ],
   "TESTED": [
-    "canonical repository access",
-    "main branch existence",
-    "current repository HEAD observation",
-    "CHAT08 handoff absence before creation",
-    "upstream handoff readback for CHAT00/01/02/03 and knowledge bootstrap"
+    "GitHub Actions CI 33620689610 / #214 on source head f88c8783 completed SUCCESS",
+    "pytest step PASS and includes three new CHAT08 regression tests",
+    "compile/test pipeline and Telegram-token scan PASS",
+    "Current-main Core CI was already green before CHAT08 build; no Core business rule changed"
   ],
   "TEST_PASS": [
-    "repository accessible",
-    "branch main",
-    "CHAT08 ownership boundary established",
-    "no pre-existing CHAT08 handoff collision"
+    "unauthorized admin denied",
+    "Case queue privacy minimization",
+    "TO_VERIFY visibility",
+    "Case summary event/task counts",
+    "admin transition uses Core state guard and audit",
+    "admin cannot activate Case without entitlement authorization",
+    "MANUAL_REVIEW queue is read-only and excludes payer/treasury address",
+    "repository CI after CHAT08 delta"
   ],
   "TEST_FAIL": [],
   "NOT_TESTED": [
-    "Admin UI",
-    "CRM runtime",
-    "RBAC runtime",
-    "treasury admin command integration",
-    "product configuration integration",
-    "feature flags",
-    "kill switches",
-    "analytics runtime",
-    "audit viewer",
-    "manual review center",
-    "system health integration",
-    "security alerts integration",
-    "end-to-end Golden Journey ADMIN step"
+    "browser Admin UI",
+    "production identity-provider role issuance",
+    "target production PHP runtime",
+    "final composed Golden Journey Admin step",
+    "real payment/signing/deploy"
   ],
-  "FIXED": [],
+  "FIXED": [
+    "CHAT08 moved from bootstrap-only/discovered to executable minimum Admin backend surface",
+    "Golden-path Admin manual-review visibility now has a tested backend contract",
+    "Admin direct Case/payment authority ambiguity is fail-closed in code"
+  ],
   "BLOCKERS": [
-    "global release gate is NO_GO",
-    "control/latest-state.json observed_head is stale versus current main HEAD",
-    "CHAT07 Telegram upstream handoff identity/version requires reconciliation",
-    "CHAT10 DevOps handoff not yet verified",
-    "upstream command/API contracts must be verified before Admin writes are implemented"
+    "Admin public/protected UI is not yet composed into final runtime",
+    "Production role issuance/auth integration remains external to this Python contract",
+    "Final serial package, runtime and Golden E2E remain open",
+    "Global release remains NO_GO"
   ],
   "DEPENDENCIES": [
-    "CHAT01 Case command/API contracts",
-    "CHAT02 payment/evidence/entitlement/treasury contracts",
-    "CHAT03 Twin read contracts",
-    "CHAT06 knowledge analytics read contracts",
-    "CHAT07 Telegram/support command contracts",
-    "CHAT10 runtime/config/deployment contracts",
-    "CHAT05 independent QA release gate"
+    "CHAT01 Case command/state authority",
+    "CHAT02 payment/Evidence/entitlement authority",
+    "CHAT04 protected Admin UI consumer when explicitly contracted",
+    "CHAT10 runtime/deployment/auth plumbing",
+    "CHAT05 independent QA"
   ],
   "COLLISIONS": [
-    "control latest-state head drift",
-    "HANDOFF_07.md currently identifies CHAT06 rather than CHAT07"
+    {
+      "classification": "ACCEPT",
+      "surface": "admin/*",
+      "decision": "CHAT08-owned new isolated runtime surface; no pre-existing admin directory was present"
+    },
+    {
+      "classification": "REJECT",
+      "surface": "core/* and evidence_payment/*",
+      "decision": "No direct mutation; commands/views consume owner contracts only"
+    }
   ],
+  "ANTIGRAVITY": {
+    "contract_version": "1.0.0",
+    "active_handoff_found": false,
+    "delegation_needed_next": "protected Admin UI/runtime browser acceptance after CHAT04/CHAT10 compose the surface"
+  },
   "HUMAN_GATES": [
     "production deploy",
-    "real payment or transaction",
+    "real payment/transaction/signing",
+    "production secrets",
     "irreversible configuration change",
-    "external publication or spend"
+    "public publication"
   ],
   "NEXT": [
-    "read current ownership/dependency/contracts control files",
-    "inventory existing admin/config/analytics surfaces",
-    "verify CHAT01/02/03/07/10 command contracts",
-    "produce delta-only CHAT08 implementation plan",
-    "build P0 admin surfaces only after contract verification"
+    "Expose/protect the minimum Admin surface in the final composed runtime without duplicating Core/Auth truth",
+    "Have Antigravity execute real local protected-route/browser acceptance when the UI/runtime contract is available",
+    "CHAT05 independently verify Admin RBAC/manual-review in the Golden Journey"
   ],
-  "GO_NO_GO": "NO_GO",
-  "STATE": "DISCOVERED",
-  "SYNC_INPUTS": "PARTIAL_VERIFIED",
-  "RULES": [
-    "MASTER = authority",
-    "ADMIN is not source of Case/Payment/Evidence/Knowledge truth",
-    "NOT_OBSERVED != 0",
-    "NOT_TESTED != PASS",
-    "ONE_WRITER_PER_SHARED_SURFACE",
-    "REUSE_ADAPT_BEFORE_CREATE",
-    "DELTA_ONLY"
-  ]
+  "GO_NO_GO": "NO_GO"
 }
