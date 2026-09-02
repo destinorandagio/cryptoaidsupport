@@ -1,52 +1,56 @@
-# CHAT02 — Evidence + Payment — repo v1.1.0 / Factory Stage03 v0.6.7
+# CHAT02 HANDOFF — 2026-09-02 20:30 Europe/Rome — v1.12.0-candidate
 
-status=CI_GREEN_NO_GO
-cycle=20260902-1220
-owner=CHAT02_EVIDENCE_PAYMENT
-sole_truth=evidence_lifecycle,payment_verification,entitlement
-repo_source_commit=8611f17c3f0eb070d64cb1adf6fa61968a57d77a
-repo_source_blob=6c12b52548dda036eeb907da91d848c983657cdf
-parent_handoff02_repo=1.2.0
-parent_core_source=138f5154aabf2f79b296bf40dcf59e9c36a576ab
-parent_h02_factory=Core v0.3.13 Drive 16oHAKjgGrEYl34TRcQb9cbPmCvYaqQrdX3h3Pb9MkcU
-factory_stage03=0.6.7 UNCHANGED
-factory_stage03_exact_package_sha256=6419367f716fac62735b81e97c5a802318c3dcb3e332f7fcc0659ae25e0f3de9
-ci_run=33619108328
-ci_number=199
-ci_result=SUCCESS
+STATE: `CODE_GREEN_CI_GREEN_RUNTIME_PENDING_NO_GO`
+OWNER: CHAT02 — sole authority for Evidence lifecycle, payment verification, settlement truth, credit and entitlement ledger.
+FEATURE_FREEZE: 48H MVP GOLDEN PATH ONLY.
 
-## SYNC_INPUTS
+## SYNC INPUTS
+- Canonical shared Drive root: `1hYHHodtKYcnVdjYQ9bcDZw83XA_uZDl4`.
+- HANDOFF_02 accepted: v1.5.1 delta / one-head serial candidate context.
+- Serial parent accepted for this owner P0: PR44 `df61027abea76e7dced3d5f249a9a610a7ed1b03`.
+- Prior CHAT02 security/payment owner head consumed: `735458d2969a4503cedad8d7016bbcff5b2dc59d`.
+- CHAT10 v0.9.0 consumed read-only; QA/H06 consumed read-only.
+- Ownership: `CAID-LK-0147` CHAT02; concurrent `CAID-LK-0146` is Core-only and disjoint.
 
-Fresh-read repo HANDOFF_02 v1.2.0, CHAT00 ownership/contracts/latest-state, CHAT05 QA snapshot, CHAT08 v0.1.0 and prior Drive Stage03 v0.6.7. CHAT10 current machine handoff was not persisted at read time. CHAT00 control plane remains the sole global-control writer; this CHAT02 cycle did not mutate control/latest-state, MASTER, public_html or .htaccess.
+## CONFIG / ECONOMICS — UNCHANGED
+- Polygon chain id: `137`.
+- Activation: `50 POL` once -> durable credit 50.
+- First Case: nominal 500, payable `450 POL` after reserved/consumed credit.
+- Subsequent Cases: `500 POL`.
+- Payment/finality contract: v1.2, deterministic provider finalized-boundary; confirmation count alone never settles.
+- No real payment, signing, transaction, treasury movement or deploy performed.
 
-## CONFIG_VERSION
+## P0 CLOSED OWNER-SIDE — EVIDENCE AUTHORIZATION 1.0
+Fresh audit found `secure_engine.store_evidence()` rejected only falsy authorization or exact `DENIED`; truthy non-authorizing values such as `REVOKED`, `PENDING`, `FALSE`, `DENY`, `0`, whitespace-padded `DENIED`, and lowercase lookalikes could become `AVAILABLE`. Blank whitespace consent also passed the old truthiness check.
 
-Config label remains `CHAT02_ECON_CONFIG_FROZEN_H01_1100_CORE_v0.3.13`; fingerprint `f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec`. Polygon chainId=137; treasury=`0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`; SIC-ID is durable principal; wallet is revocable action/payment resource. Activation is 50 POL once per SIC-ID -> credit AVAILABLE->RESERVED -> 450 POL first Case remainder -> CONSUMED -> 500 POL subsequent Cases. Ambiguity is MANUAL_REVIEW; automatic acceptance is disabled. Evidence remains PRIVATE BY DEFAULT outside webroot.
+Test-first RED commit: `00a790e2bc4e112b5c007e51bb8620ff4784e2bd`; CI run `33666680703` failed as intended and proved the gap.
 
-## LEDGER / EVIDENCE DELTA
+The first strict implementation accepted only `ALLOW`; integration CI run `33666939576` then failed because the existing one-head Core/Admin Golden fixture uses the explicit authorizing state `OWNER`. That failure was treated as a contract-discovery signal, not as permission to reopen fail-closed behavior.
 
-CHAT02 fixed the exact repo D0B schema-engine binding defects without changing schema, economics or authority. `evidence_records` has 17 columns and now receives 17 SQL placeholders. `entitlement_ledger` has 8 columns and now receives 8 SQL placeholders. Evidence lifecycle, SHA-256 metadata, Case/consent/authorization binding, version/supersession, payment intent/idempotency, tx uniqueness, provider agreement and append-only entitlement semantics are unchanged.
+Final contract `EVIDENCE_AUTHORIZATION_CONTRACT_VERSION=1.0` allows exactly `ALLOW` and `OWNER`, case-sensitive. Every other, blank or non-string authorization is `UNAUTHORIZED`; blank/non-string consent is `CONSENT_REQUIRED`. Validation executes before Evidence bytes or Evidence rows. Legacy exported engine classes are patched to the canonical authorization layer so direct imports cannot bypass it.
 
-## COLLISIONS
+Code-green head before handoff-only commits: `114510999c84c887efec30818aa4d8c021f79175`.
+CI run `33667291726`: `SUCCESS` on that exact code head.
+PR: #46, DRAFT / REVIEW_ONLY / merge not authorized.
 
-ACCEPT repo CHAT02 v1.1.0 and Drive Factory Stage03 v0.6.7 as separate namespaces; neither silently supersedes the other. ACCEPT CHAT01 v1.2.0 Case repair and the boundary that CHAT02 emits durable entitlement authorization but never mutates Case truth. ACCEPT CHAT04/07 as consumers, CHAT08 only through versioned authorized config proposals, CHAT10 only as runtime/provider plumbing when persisted, and CHAT05 as independent verifier. REJECT parallel Evidence authority, ledger/verifier/entitlement truth, shadow database, direct consumer truth writes, legacy exact-500-only economics and unversioned treasury/economic changes.
+## CRYPTOGRAPHIC FILE FINGERPRINTS
+- `evidence_payment/authorization_engine.py` SHA-256: `f72d515a67f0a5d7615c5c5e420cb14b0de485b37ee7330cbaf0b36a59965452`.
+- `evidence_payment/__init__.py` SHA-256: `daccb75a8a77cdaf4b699f3777c67764cf4c69624815b74fdaa1077fed7aee2e`.
+- `tests/test_evidence_authorization_security.py` SHA-256: `44106aaabe3d2e397aa8fc00677538362b237a29517438b1c09c1003875cc380`.
 
-## TESTED
+## ACCEPTED / REJECTED SYNC DECISIONS
+ACCEPT: PR44 as this P0's serial parent; prior CHAT02 private-path, symlink, lineage, idempotency and finalized-boundary contracts; explicit current authorizing states `ALLOW` and `OWNER`.
+REJECT: any truthy-string authorization semantics; any parallel Evidence/verifier/ledger/settlement authority; UI/Admin/Growth/Telegram direct mutation of payment truth; CasePayment as MVP authority; any economics drift.
 
-GitHub Actions run `33619108328` on exact source commit `8611f17c3f0eb070d64cb1adf6fa61968a57d77a` completed SUCCESS. Checkout/setup/dependency install, bot compile, `pytest -q`, and the configured post-test Telegram-token scan all passed. This closes the three repository failures attributed to CHAT02 D0B. Prior Factory Stage03 v0.6.7 evidence remains separately valid: compatibility 20/20, adversarial contract 35/35, static/security 20/20, PHP lint 3/3; H06 separately recorded exact MASTER 001..008 x2, integrity/FK green, Stage03 schema/adversarial 41/41 and one-winner races. Those Factory suites were not falsely relabeled as freshly rerun in this repo cycle.
+## TEST STATUS
+PASS owner CI: full configured pytest + existing workflow gates on exact code head `114510999c84c887efec30818aa4d8c021f79175`.
+New adversarial regression proves zero `.bin`, zero `.quarantine`, zero Evidence DB rows, SQLite `integrity_check=ok` and empty FK check for rejected authorization/consent inputs. Valid `ALLOW` and `OWNER` remain available through private Evidence storage.
 
-## FIXED
+NOT TESTED / NOT ACCEPTED: Antigravity local exact-head filesystem/SQLite evidence; production private filesystem/scanner/KMS/DLP/backup; production independent Polygon authorities/reorg behavior; browser/PWA real-origin Golden; deploy/cutover.
 
-`evidence_records`: 18 placeholders -> 17. `entitlement_ledger`: 7 placeholders -> 8. Repository CI now passes through pytest and the configured token scan on the exact CHAT02 fix commit.
+## AG ACCEPTANCE
+`NONE` at publication. A new exact-head task must return persisted environment, commands, exit codes, timestamps and SHA-256 evidence before local runtime acceptance.
 
-## MANUAL_REVIEW
-
-Wrong/ambiguous chain, sender, treasury/to, amount/value, receipt, Case or entitlement binding; duplicate/replay; provider/block disagreement; insufficient/ambiguous finality; unresolved Evidence authorization/privacy/scanner status remain fail-closed to MANUAL_REVIEW. No real payment, wallet signature or chain transaction was performed.
-
-## BLOCKED
-
-Global release remains NO_GO. CHAT00 still must reconcile current D0B green evidence into its global state. CHAT10 current machine handoff/runtime proof is absent. Final exact CHAT03/04 tuple, disposable serial candidate, MASTER-clone migrations/integrity/FK/races, production private Evidence FS/KMS/scanner/DLP/backup, >=2 approved independent Polygon authorities, deterministic public package/rollback/restore, Golden E2E and CHAT05 independent final QA remain open. Real wallet/sign/payment/tx/deploy/cutover remain HUMAN_GATE.
-
-## NEXT
-
-Publish/read back HANDOFF_03 for this cycle, preserve repo-vs-Factory namespace mapping, hand exact commit `8611f17...` to CHAT05/CHAT00 consumers, and consume CHAT10 only after a versioned persisted contract exists. Keep one MASTER, frozen economics and CHAT02 sole Evidence/payment/entitlement truth.
+## GO / NO_GO
+GLOBAL: `NO_GO`.
+Reason: owner code/CI closure is not local/target/QA/release acceptance.
