@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install CHAT03 test dependency
+        run: python -m pip install --disable-pip-version-check pytest
       - name: Compile CHAT03 read model
         run: python -m compileall twin
       - name: Run deterministic CHAT03 tests
