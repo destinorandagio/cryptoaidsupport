@@ -1,8 +1,8 @@
 """CryptoAID multi-provider AI gateway.
 
 Server-side only. Providers are synthesis accelerators, never authorities.
-Keys are read from environment variables only. No provider is required for
-CryptoAID to answer: callers must retain deterministic knowledge fallback.
+The 48H MVP keeps every external provider explicit-opt-in and rejects sensitive,
+identifying or Case/evidence-like user text before any network I/O.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from typing import Iterable
 
 import httpx
 
-from .ai_provider import AIResponse, AIUnavailable, redact
+from .ai_provider import AIResponse, AIUnavailable, external_ai_safe_user_message, redact
 
 
 @dataclass(frozen=True)
@@ -101,7 +101,8 @@ def provider_inventory() -> dict[str, int]:
 
 
 def enabled() -> bool:
-    return os.getenv("AI_ENABLED", "true").lower() == "true" and any(provider_inventory().values())
+    """External synthesis is disabled unless an operator explicitly opts in."""
+    return os.getenv("AI_ENABLED", "false").lower() == "true" and any(provider_inventory().values())
 
 
 def _ordered_specs() -> Iterable[ProviderSpec]:
@@ -186,6 +187,8 @@ async def _call(spec: ProviderSpec, key: str, model: str, system: str, body: str
 async def synthesize(*, verified_context: str, user_message: str, language: str = "en") -> AIResponse:
     if not enabled():
         raise AIUnavailable("ai_gateway_disabled_or_unconfigured")
+    if not external_ai_safe_user_message(user_message):
+        raise AIUnavailable("sensitive_or_case_like_input")
 
     system = _system_prompt(language)
     body = f"VERIFIED CONTEXT:\n{redact(verified_context)}\n\nUSER:\n{redact(user_message)}"
@@ -201,7 +204,7 @@ async def synthesize(*, verified_context: str, user_message: str, language: str 
                     raise AIUnavailable("empty_response")
                 _HEALTH[spec.name].successes += 1
                 return AIResponse(text=text, provider=spec.name, model=model)
-            except Exception as exc:  # provider/network/quota failure => fail over
+            except Exception as exc:
                 health = _HEALTH[spec.name]
                 health.failures += 1
                 health.last_failure_at = time.time()
