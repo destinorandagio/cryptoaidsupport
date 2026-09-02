@@ -1,50 +1,49 @@
-# HANDOFF_03 — CRYPTO AID EVIDENCE + PAYMENT — v0.6.7
+# HANDOFF_03 — CRYPTO AID EVIDENCE + PAYMENT — repo v1.1.0 / Factory v0.6.7
 
-cycle=20260902-1120
-status=SOURCE_PRESERVING_PARENT_CERT_READBACK_VERIFIED
+cycle=20260902-1220
+status=REPO_D0B_FIXED_CI_GREEN_NO_GO
 release_state=NO_GO_EXTERNAL_RUNTIME_SERIAL_COMPOSITION_AND_HUMAN_GATES
 owner=CHAT02_EVIDENCE_PAYMENT
-source_delta=NONE
-parent_h02_drive=1y6Q0Z57IbF3B6qwMnfBND9OkTuPhYQMn-pCwFVxlw-8
-core_v0313_patch_bytes=11789
-core_v0313_patch_sha256=ffc2974e6f131ffec2050762ed6b70b6be307bb9554fc150572b53eb37b7f56e
-stage03_exact_v062_sha256=6419367f716fac62735b81e97c5a802318c3dcb3e332f7fcc0659ae25e0f3de9
-drive_handoff03=1IRC3LYNqt3aCVkw1TKysB9JlJjUvbyseMXsOhW79-Nc
-drive_chat02=1984TFbwh179AAaRvffbY2n1YjfGGPxG15uVJxvkPjos
-ownership_ledger=CAID-LK-0087 RELEASED_AFTER_READBACK_NO_GO
+repo_source_commit=8611f17c3f0eb070d64cb1adf6fa61968a57d77a
+repo_source_blob=6c12b52548dda036eeb907da91d848c983657cdf
+factory_stage03_version=0.6.7_UNCHANGED
+factory_stage03_exact_package_sha256=6419367f716fac62735b81e97c5a802318c3dcb3e332f7fcc0659ae25e0f3de9
+ci_run=33619108328
+ci_number=199
+ci_result=SUCCESS
 
 ## SYNC_INPUTS
 
-Consumed and verified H01 1100, H02 1110 Core v0.3.13, prior H03 1020 v0.6.6, H06 1050 independent QA, persisted ownership/control state and Core consumer contract. H02 v0.3.13 changes no schema/economics/CHAT02 ownership: Core remains 001..004; CHAT02 remains 005..008+ and sole Evidence/payment/entitlement truth.
+Verified repo HANDOFF_02 v1.2.0/Core source `138f5154aabf2f79b296bf40dcf59e9c36a576ab`, ownership/contracts/global state, CHAT08 v0.1.0, CHAT05 QA snapshot and prior Drive Factory Stage03 v0.6.7. CHAT10 current machine handoff was absent at read time. CHAT00 remains sole writer for global control; CHAT02 did not mutate MASTER, public_html or .htaccess.
 
 ## CONFIG_VERSION
 
-Effective CHAT02 frozen config fingerprint: `f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec`. Chain 137; treasury `0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`; 50 once→credit AVAILABLE→RESERVED→450 first Case→CONSUMED→500 subsequent; SIC-ID sole principal; ambiguity MANUAL_REVIEW; automatic ACCEPTED disabled; Evidence PRIVATE BY DEFAULT outside webroot.
+Config remains `CHAT02_ECON_CONFIG_FROZEN_H01_1100_CORE_v0.3.13`, fingerprint `f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec`. Chain 137; treasury `0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`; 50 once -> credit AVAILABLE -> RESERVED -> 450 first Case -> CONSUMED -> 500 subsequent. SIC-ID remains sole principal, wallet revocable resource, Evidence PRIVATE BY DEFAULT, ambiguity MANUAL_REVIEW and automatic acceptance disabled.
 
 ## LEDGER/EVIDENCE DELTA
 
-No Stage03 source or migration change. Core v0.3.13 adds upstream bounded SIC-ID response reading and an exact persisted `WALLET_BIND` purpose fence before signature recovery; both are compatible with and strengthen Stage03 authorization. Evidence lifecycle remains UPLOAD→QUARANTINE→VALIDATE→SHA256→METADATA→CASE_BINDING→AUTHORIZATION→AVAILABLE with append-only versions/supersession. Payment positive result remains `VERIFIED_CANDIDATE`, not economic acceptance.
+No schema/economic change. Repo D0B repair aligns `evidence_records` INSERT with its 17 columns and `entitlement_ledger` INSERT with its 8 columns. Evidence upload/quarantine/validation/SHA256/metadata/Case binding/authorization/version/supersession semantics and payment intent/idempotency/tx uniqueness/provider agreement/finality/append-only entitlement semantics remain unchanged.
 
 ## COLLISIONS
 
-Accepted: CHAT04/07 consumer-only; CHAT08 versioned authorized admin/config commands only; CHAT10 runtime/config evidence only; CHAT05/H06 independent QA only. Rejected: parallel Evidence authority, ledger/verifier/entitlement truth, shadow DB, direct consumer truth mutation, exact500-only legacy economics, unversioned treasury/economic changes, or provider observations without tx/chain/receipt/legal-operator identity binding.
+ACCEPT separate repo v1.1.0 and Factory v0.6.7 namespaces. ACCEPT CHAT01 consumer boundary, CHAT04/07 consumer-only, CHAT08 authorized versioned proposals only, CHAT10 plumbing only when persisted, CHAT05 independent QA. REJECT parallel evidence/ledger/verifier/entitlement authority, shadow DB, direct consumer truth write, legacy exact-500 economics and unversioned treasury/economic mutation.
 
 ## TESTED
 
-Fresh: Core-v0.3.13/Stage03 compatibility 20/20 PASS; Stage03 exact adversarial contract 35/35 PASS; Stage03 static/security 20/20 PASS; PHP lint 3/3 PASS. Core patch payload reconstructed exactly at 11,789 bytes and the stated SHA256. H06 independently proved Stage03 exact schema/adversarial 41/41 on canonical MASTER with migrations 001..008 applied twice, integrity=ok, FK0 and races one winner; not falsely claimed as a fresh local schema rerun this cycle.
+CI `33619108328` / #199 on exact D0B source commit `8611f17...` completed SUCCESS: compile PASS, `pytest -q` PASS and configured post-test Telegram-token scan PASS. The three repo failures assigned to CHAT02 are closed. Factory Stage03 v0.6.7 prior evidence remains separately recorded (20/20 compatibility, 35/35 adversarial contract, 20/20 static/security, PHP lint 3/3; H06 previously recorded exact MASTER 001..008 x2/integrity/FK/schema-adversarial/race evidence). Those Factory suites were not rerun in this repo cycle.
 
 ## FIXED
 
-No new Stage03 defect was found. Parent drift to Core v0.3.13 is closed by this source-preserving certificate; no opportunistic source mutation was made.
+Evidence INSERT placeholders 18 -> 17. Entitlement INSERT placeholders 7 -> 8. Repository CI progresses through and passes the configured security/token step.
 
 ## MANUAL_REVIEW
 
-Nonfinal settlement, provider/block disagreement, incomplete authority, missing observed tx identity, ambiguous receipt/finality, scanner error, unnecessary PII and unresolved privacy classification remain fail-closed to MANUAL_REVIEW. No real payment/signature/tx/deploy occurred.
+Wrong or ambiguous chain/from/to/value/receipt/Case/entitlement; duplicate/replay; provider/block disagreement; insufficient/ambiguous finality; unresolved Evidence authorization/privacy/scanner status remain fail-closed. No real payment/signature/tx/deploy occurred.
 
 ## BLOCKED
 
-Global release remains NO_GO pending target `pdo_sqlite/curl/fileinfo`, request-time SIC-ID authority, production private Evidence FS/KMS/scanner/DLP/backup, >=2 approved independent Polygon provider authorities/finality, exact H04/H05 serial byte composition, clean public package, browser/PWA/device Golden E2E, real wallet/payment/tx and HUMAN_GO_LIVE_GATE. MASTER/public_html/.htaccess untouched.
+Global release remains NO_GO pending CHAT00 global reconciliation, persisted CHAT10 runtime/provider contract, exact CHAT03/04 tuple, final serial disposable composition, fresh exact MASTER-clone verification, production private Evidence infrastructure, >=2 approved independent Polygon finality authorities, deterministic package/rollback/restore, Golden E2E and CHAT05 final independent QA. Real wallet/sign/payment/tx/deploy/cutover remain HUMAN_GATE.
 
 ## NEXT
 
-Downstream consumers use this v0.6.7 certificate without rewriting Stage03 source. Orchestrator serially composes exact H02/H03/H04/H05 only when deployable byte-real sources exist, then H06 performs final exact QA. Preserve one MASTER, SIC-ID, frozen economics and CHAT02 sole Evidence/payment/entitlement authority.
+CHAT00 consumes this repo D0B success without overwriting Factory lineage. CHAT05 independently verifies exact source commit `8611f17...`. CHAT10 is consumed only after versioned persistence. Preserve one MASTER, frozen economics and CHAT02 sole Evidence/payment/entitlement authority.
