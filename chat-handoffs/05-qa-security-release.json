@@ -1,0 +1,52 @@
+{
+  "chat": "05",
+  "owner": "QA_SECURITY_RELEASE",
+  "version": "0.1.0",
+  "cycle": "20260902-1152",
+  "status": "ACTIVE_NO_GO",
+  "release_authority": "GO_NO_GO",
+  "current_release_state": "NO_GO",
+  "tested_head": "838e346e3277463c910208ca27d7bceaee16f846",
+  "evidence": {
+    "latest_ci_run": 33616329394,
+    "ci": "FAIL",
+    "compile_bot": "PASS",
+    "pytest": "FAIL_COLLECTION",
+    "failure": "ImportError: core.__init__ imports CaseError but core.case_engine does not expose CaseError"
+  },
+  "upstream": {
+    "handoff_05_ui": "1.7.0",
+    "core": "0.3.13",
+    "evidence_payment": "0.6.7",
+    "twin": "1.0.0",
+    "wallet_matrix": "1.0.0",
+    "dappmap": "1.0.0"
+  },
+  "gates": {
+    "golden_journey": "NOT_TESTED",
+    "security_critical": "NOT_TESTED",
+    "release_package": "NOT_TESTED",
+    "rollback": "NOT_TESTED",
+    "restore": "NOT_TESTED",
+    "real_origin_pwa": "NOT_TESTED",
+    "physical_wallets": "HUMAN_GATE"
+  },
+  "blocking_findings": [
+    {
+      "id": "QA05-P0-001",
+      "severity": "P0",
+      "owner": "CHAT01_CORE_CASE",
+      "state": "OPEN",
+      "summary": "Repository CI cannot collect tests because CaseError contract is broken."
+    },
+    {
+      "id": "QA05-P0-002",
+      "severity": "P0",
+      "owner": "GLOBAL_SYNC",
+      "state": "OPEN",
+      "summary": "Canonical CHAT06-10 release-impacting handoffs are not yet reconciled/discoverable."
+    }
+  ],
+  "rule": "NOT_TESTED_NEVER_EQUALS_PASS",
+  "ready_for_human_go_live_gate": false
+}
