@@ -4,7 +4,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MASTER = ROOT / "knowledge" / "cryptoaid_master.json"
-FAQ = ROOT / "knowledge" / "faq.json"
+CANONICAL_MASTER = ROOT / "knowledge" / "canonical" / "cryptoaid_master.json"
+LEGACY_FAQ = ROOT / "knowledge" / "faq.json"
+CANONICAL_FAQ = ROOT / "knowledge" / "faq" / "faq_core.json"
+SERVICES = ROOT / "knowledge" / "canonical" / "services.json"
+LINKS = ROOT / "knowledge" / "canonical" / "official_links.json"
 
 
 def load_json(path: Path):
@@ -14,7 +18,7 @@ def load_json(path: Path):
 
 def detect_language(text: str) -> str:
     t = text.lower()
-    italian = (" cos'è ", " cosa ", " come ", " aiuto", "truff", "sicurezza", "recuper", "portafoglio", "servizi", "funziona")
+    italian = (" cos'è ", " cosa ", " come ", " aiuto", "truff", "sicurezza", "recuper", "portafoglio", "servizi", "funziona", "quali")
     padded = f" {t} "
     return "it" if any(x in padded for x in italian) else "en"
 
@@ -26,56 +30,66 @@ def normalize(text: str) -> set[str]:
 def score(query: str, candidate: str) -> float:
     q = normalize(query)
     c = normalize(candidate)
-    if not q or not c:
-        return 0.0
-    return len(q & c) / max(1, len(q))
+    return len(q & c) / max(1, len(q)) if q and c else 0.0
 
 
-def built_in_answers(master: dict, lang: str):
-    identity = master["identity"]
-    recovery = master["recovery"]
-    links = master["official_links"]
+def canonical_candidates(lang: str):
+    out = []
+    if CANONICAL_MASTER.exists():
+        m = load_json(CANONICAL_MASTER)
+        out.append(("cos'è cryptoaid cosa fa missione" if lang == "it" else "what is cryptoaid mission what does cryptoaid do", m["mission"][lang], "canonical-master"))
+    if SERVICES.exists():
+        s = load_json(SERVICES)
+        rendered = "\n".join(f"• {x['name']}: {x['description']}" for x in s[lang])
+        out.append(("servizi cosa fate supporto sicurezza recovery web3 scam" if lang == "it" else "services what do you do support security recovery web3 scam", rendered, "canonical-services"))
+    if LINKS.exists():
+        l = load_json(LINKS)
+        rendered = f"🌐 {l['website']}\n💬 {l['telegram']['group']}\n📢 {l['telegram']['channel']}"
+        out.append(("link ufficiali sito gruppo canale telegram" if lang == "it" else "official links website group channel telegram", rendered, "canonical-links"))
+    if CANONICAL_FAQ.exists():
+        for item in load_json(CANONICAL_FAQ):
+            if item.get("lang") == lang:
+                out.append((item["q"], item["a"], "canonical-faq"))
+    return out
+
+
+def legacy_candidates(lang: str):
+    if not MASTER.exists():
+        return []
+    master = load_json(MASTER)
+    identity, recovery, links = master["identity"], master["recovery"], master["official_links"]
     if lang == "it":
-        return [
-            ("cos'è cryptoaid cosa è cryptoaid chi siete", identity["description_it"]),
-            ("sito link ufficiali telegram gruppo canale", f"Link ufficiali CryptoAID:\n🌐 {links['website']}\n💬 {links['group']}\n📢 {links['channel']}"),
-            ("recovery recupero fondi truffa scam investigazione", recovery["positioning_it"] + " Non condividere mai seed phrase, chiavi private, password o codici 2FA."),
-            ("sicurezza seed phrase chiave privata password 2fa", "CryptoAID mette la sicurezza al primo posto: non condividere mai seed phrase, chiave privata, password o codici 2FA. Un supporto legittimo CryptoAID non te li chiederà."),
-            ("servizi cosa fate aiuto supporto", "CryptoAID offre orientamento e supporto su ecosistema CryptoAID, sicurezza crypto, scam, wallet, blockchain, Web3, token, dApp, recovery education, segnalazioni e triage tecnico."),
+        out = [
+            ("cos'è cryptoaid chi siete", identity["description_it"], "legacy-master"),
+            ("recovery recupero fondi truffa scam investigazione", recovery["positioning_it"] + " Non condividere mai seed phrase, chiavi private, password o codici 2FA.", "legacy-master"),
         ]
-    return [
-        ("what is cryptoaid who are you", identity["description_en"]),
-        ("official links website telegram group channel", f"Official CryptoAID links:\n🌐 {links['website']}\n💬 {links['group']}\n📢 {links['channel']}"),
-        ("recovery recover funds scam investigation", recovery["positioning_en"] + " Never share a seed phrase, private key, password or 2FA code."),
-        ("security seed phrase private key password 2fa", "CryptoAID puts security first: never share your seed phrase, private key, password or 2FA codes. Legitimate CryptoAID support will never ask for them."),
-        ("services help support what do you do", "CryptoAID provides orientation and support around the CryptoAID ecosystem, crypto security, scams, wallets, blockchain, Web3, tokens, dApps, recovery education, reports and technical triage."),
-    ]
+    else:
+        out = [
+            ("what is cryptoaid who are you", identity["description_en"], "legacy-master"),
+            ("recovery recover funds scam investigation", recovery["positioning_en"] + " Never share a seed phrase, private key, password or 2FA code.", "legacy-master"),
+        ]
+    if LEGACY_FAQ.exists():
+        data = load_json(LEGACY_FAQ)
+        for item in data if isinstance(data, list) else data.get("items", []):
+            item_lang = item.get("language") or item.get("lang")
+            if item_lang and item_lang != lang:
+                continue
+            q, a = item.get("question") or item.get("q"), item.get("answer") or item.get("a")
+            if q and a:
+                out.append((q, a, "legacy-faq"))
+    return out
 
 
 def answer(query: str, language: str | None = None) -> tuple[str, float, str]:
-    master = load_json(MASTER)
     lang = language or detect_language(query)
-    candidates = [(k, v, "master") for k, v in built_in_answers(master, lang)]
-
-    if FAQ.exists():
-        data = load_json(FAQ)
-        items = data if isinstance(data, list) else data.get("items", [])
-        for item in items:
-            if item.get("language", lang) != lang:
-                continue
-            q = item.get("question") or item.get("q") or ""
-            a = item.get("answer") or item.get("a") or ""
-            if q and a:
-                candidates.append((q, a, "faq"))
-
+    candidates = canonical_candidates(lang) + legacy_candidates(lang)
     ranked = sorted(((score(query, key), text, source) for key, text, source in candidates), reverse=True)
     if ranked and ranked[0][0] >= 0.28:
         confidence, text, source = ranked[0]
         return text, confidence, source
-
     fallback = (
-        "Non ho ancora una risposta CryptoAID verificata abbastanza precisa per questa domanda. Usa /support: posso indirizzare la richiesta a un amministratore senza inventare informazioni."
+        "Non ho ancora una risposta CryptoAID verificata abbastanza precisa per questa domanda. Usa /support: la richiesta può essere indirizzata a un amministratore senza inventare informazioni."
         if lang == "it" else
-        "I don't yet have a sufficiently verified CryptoAID answer for that question. Use /support and I can route the request to a human admin rather than invent information."
+        "I don't yet have a sufficiently verified CryptoAID answer for that question. Use /support so the request can be routed to a human admin rather than inventing information."
     )
     return fallback, 0.0, "escalation"
