@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "chat": "CHAT06_GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE",
+  "state": "ACTIVE_BOOTSTRAP",
+  "role": "DERIVED_KNOWLEDGE_LAYER",
+  "authority_boundary": {
+    "owns": ["derived knowledge graph", "source and claim provenance", "recovery intelligence", "case context packs", "versioned DAPPMAP relationship releases"],
+    "does_not_own": ["MASTER", "Case authority", "financial authority", "payment truth", "entitlement ledger", "Digital Twin authority"]
+  },
+  "pipeline": ["DISCOVER", "INGEST", "NORMALIZE", "ENTITY_RESOLVE", "SOURCE", "CLAIM", "EVIDENCE", "VERIFY", "CLASSIFY", "RELATE", "SCORE", "RELEASE", "TWIN", "DAPPMAP", "CASE_CONTEXT"],
+  "knowledge_states": ["VERIFIED", "SUPPORTED", "UNVERIFIED", "ANALYSIS", "COMMUNITY_REPORT", "CONTRADICTED", "UNKNOWN"],
+  "source_priority": ["ON_CHAIN", "REGULATOR_COURT_REGISTRY", "OFFICIAL_ARCHIVED_FIRST_PARTY", "INDEPENDENT_MULTISOURCE", "RELIABLE_SECONDARY", "INFERENCE"],
+  "canonical_inputs_reused": [
+    "knowledge/cryptoaid_master.json",
+    "knowledge/global/KNOWLEDGE_GLOBAL_MANIFEST.json",
+    "knowledge/global/DAPPMAP_MIRROR_REGISTRY.json",
+    "knowledge/hyperz/",
+    "knowledge/recovery/",
+    "knowledge/web3/"
+  ],
+  "rules": [
+    "Dead != scam",
+    "Offline != dead",
+    "TVL 0 != dead",
+    "Allegation != conviction",
+    "Wallet relation != person attribution",
+    "Migration != collapse",
+    "No blind global regeneration",
+    "Never expose private evidence",
+    "Marketing may consume only publishable verified claims"
+  ],
+  "release_contract": {
+    "fields": ["KNOWLEDGE_VERSION", "SOURCE_DELTA", "CLAIMS_DELTA", "VERIFIED", "CONTRADICTED", "TO_VERIFY", "AFFECTED_TWINS", "AFFECTED_CASE_CONTEXT", "BLOCKERS"],
+    "consumers": ["CHAT03", "CHAT01", "CHAT07", "CHAT08", "CHAT09"]
+  },
+  "observed": {
+    "global_manifest_exists": true,
+    "dappmap_mirror_registry_exists": true,
+    "hyperz_surface_exists": true,
+    "recovery_surface_exists": true,
+    "web3_surface_exists": true,
+    "qa_global_sync_finding": "QA05-P0-002"
+  },
+  "blocked": [
+    "Canonical CHAT06 release contract was previously absent from chat-handoffs",
+    "Repository-wide release remains NO_GO under CHAT05 independent QA",
+    "Existing knowledge verification vocabulary requires non-destructive compatibility mapping to CHAT06 states before broad migration"
+  ],
+  "next": [
+    "Inventory existing knowledge schemas and registries",
+    "Define compatibility mapping for verification states without breaking existing consumers",
+    "Materialize source/claim/evidence provenance contracts",
+    "Materialize entity relation and Case Context Pack contracts",
+    "Publish versioned DAPPMAP relationship contract for CHAT03",
+    "Add targeted tests for publishability, contradiction and impact propagation"
+  ],
+  "release_state": "NO_GO"
+}
