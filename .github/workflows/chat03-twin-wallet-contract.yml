@@ -1,0 +1,38 @@
+name: CHAT03 Twin Wallet Knowledge Contract
+on:
+  pull_request:
+    paths:
+      - 'twin/**'
+      - 'knowledge/context_contract.py'
+      - 'tests/test_twin_engine.py'
+      - 'tests/test_wallet_read_model.py'
+      - 'tests/test_chat06_context.py'
+      - 'tests/test_mirror_adapter.py'
+      - 'tests/test_mirror_registry.py'
+      - 'tests/test_twin_runtime_search.py'
+      - '.github/workflows/chat03-twin-wallet-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  twin-wallet-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile CHAT03 and CHAT06 contract modules
+        run: python -m compileall twin knowledge/context_contract.py
+      - name: Run CHAT03/CHAT06 deterministic tests
+        run: python -m pytest -q tests/test_twin_engine.py tests/test_wallet_read_model.py tests/test_chat06_context.py tests/test_mirror_adapter.py tests/test_mirror_registry.py tests/test_twin_runtime_search.py
+      - name: Enforce no committed wallet secret material
+        shell: bash
+        run: |
+          ! grep -R -E '(seed phrase value|mnemonic value|private[_ -]?key value|-----BEGIN (EC|PRIVATE) KEY-----)' \
+            twin knowledge/context_contract.py tests/test_twin_engine.py tests/test_wallet_read_model.py tests/test_chat06_context.py tests/test_mirror_adapter.py tests/test_mirror_registry.py tests/test_twin_runtime_search.py
