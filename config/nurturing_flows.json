@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "timezone": "Europe/Rome",
+  "principles": ["HELP_FIRST","SECURITY_FIRST","EVIDENCE_FIRST","NO_HALLUCINATED_FACTS"],
+  "anti_spam": {"max_nurture_touches_per_day": 2, "min_hours_between_touches": 6, "no_unsolicited_dm": true, "no_fake_scarcity": true, "no_guaranteed_recovery": true},
+  "flows": {
+    "onboarding_7d": [
+      {"day":0,"stage":"DISCOVERY","goal":"understand_cryptoaid","cta":"JOIN_GROUP","topic":"what_cryptoaid_is"},
+      {"day":1,"stage":"AWARE","goal":"security_trust","cta":"SAVE_SECURITY_RULES","topic":"seed_private_key_safety"},
+      {"day":2,"stage":"PROBLEM_AWARE","goal":"recovery_reality","cta":"ASK_BOT","topic":"what_recovery_can_and_cannot_do"},
+      {"day":3,"stage":"EVIDENCE_AWARE","goal":"preserve_evidence","cta":"USE_CHECKLIST","topic":"tx_hash_addresses_urls"},
+      {"day":4,"stage":"ENGAGED","goal":"service_discovery","cta":"START_CASE_ORIENTATION","topic":"case_flow"},
+      {"day":5,"stage":"COMMUNITY","goal":"participation","cta":"ANSWER_POLL","topic":"community_question"},
+      {"day":6,"stage":"ADVOCACY_READY","goal":"invite_loop","cta":"INVITE_ONE_PERSON","topic":"bring_someone_who_needs_safe_crypto_help"}
+    ],
+    "recovery_14d": [
+      {"day":0,"goal":"stop_risk","cta":"SECURITY_CHECKLIST","topic":"stop_signing_and_preserve_facts"},
+      {"day":2,"goal":"classify_problem","cta":"ASK_BOT","topic":"scam_dead_dapp_token_wallet_issue"},
+      {"day":4,"goal":"understand_tracing","cta":"LEARN","topic":"blockchain_tracing_limits"},
+      {"day":6,"goal":"organize_evidence","cta":"START_CASE_ORIENTATION","topic":"public_evidence_bundle"},
+      {"day":9,"goal":"human_support","cta":"OPEN_SUPPORT","topic":"when_human_review_is_needed"},
+      {"day":12,"goal":"retention","cta":"FOLLOW_CHANNEL","topic":"verified_updates_only"},
+      {"day":14,"goal":"advocacy","cta":"INVITE_AFFECTED_USER","topic":"reconnect_people_from_same_project"}
+    ],
+    "weekly_retention": [
+      {"weekday":"monday","goal":"education","cta":"SAVE_AND_SHARE","topic":"security_tip"},
+      {"weekday":"wednesday","goal":"engagement","cta":"VOTE_AND_COMMENT","topic":"community_poll"},
+      {"weekday":"friday","goal":"service_discovery","cta":"ASK_CRYPTAID","topic":"ask_cryptoaid"},
+      {"weekday":"sunday","goal":"recap","cta":"INVITE_ONE_PERSON","topic":"weekly_recap_and_invite"}
+    ]
+  },
+  "cta_registry": {
+    "JOIN_GROUP":"https://t.me/cryptoAIDsupporter",
+    "FOLLOW_CHANNEL":"https://t.me/cryptoaidsup",
+    "ASK_BOT":"https://t.me/CryptoAIDsupportBOT",
+    "OPEN_SUPPORT":"https://t.me/CryptoAIDsupportBOT",
+    "START_CASE_ORIENTATION":"https://t.me/CryptoAIDsupportBOT",
+    "INVITE_ONE_PERSON":"https://t.me/cryptoAIDsupporter",
+    "INVITE_AFFECTED_USER":"https://t.me/cryptoAIDsupporter"
+  }
+}
