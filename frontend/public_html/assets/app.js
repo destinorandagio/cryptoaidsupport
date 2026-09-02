@@ -1,13 +1,14 @@
 (()=>{
 'use strict';
 const ACCEPTED=Object.freeze({
+  coreApi:Object.freeze(['1.0.0','1.1.0']),
   twin:Object.freeze(['1.0.0','1.1.0','1.2.0']),
   walletMatrix:Object.freeze(['1.0.0','1.1.0','1.2.0']),
   dappmap:Object.freeze(['1.0.0','1.1.0','1.2.0']),
   knowledgeContext:Object.freeze(['1.0.0'])
 });
-const CONTRACTS=Object.freeze({core:'0.3.13',coreApi:'1.0.0',evidencePayment:'0.6.7',twin:'1.0.0',walletMatrix:'1.0.0',dappmap:'1.0.0',knowledgeContext:'1.0.0',ui:'2.1.1'});
-const PREFERRED=Object.freeze({twin:'1.2.0',walletMatrix:'1.2.0',dappmap:'1.2.0',knowledgeContext:'1.0.0'});
+const CONTRACTS=Object.freeze({core:'0.3.13',coreApi:'1.1.0',evidencePayment:'0.6.7',twin:'1.0.0',walletMatrix:'1.0.0',dappmap:'1.0.0',knowledgeContext:'1.0.0',ui:'2.1.2'});
+const PREFERRED=Object.freeze({coreApi:'1.1.0',twin:'1.2.0',walletMatrix:'1.2.0',dappmap:'1.2.0',knowledgeContext:'1.0.0'});
 const acceptedVersion=(kind,version)=>typeof version==='string'&&Array.isArray(ACCEPTED[kind])&&ACCEPTED[kind].includes(version);
 const declaredAdapterVersion=(adapter)=>{if(!adapter||typeof adapter!=='object')return null;for(const v of [adapter.contractVersion,adapter.version,adapter.schemaVersion])if(typeof v==='string'&&v.trim())return v.trim();return null};
 const TRUTH=new Set(['LIVE','CACHED','HISTORICAL','DERIVED','TO_VERIFY','UNKNOWN']);
@@ -22,7 +23,7 @@ const toast=(message)=>{const n=el('toast');n.textContent=message;n.hidden=false
 function runtime(){const r=window.__CRYPTOAID_STATE__;return r&&typeof r==='object'?r:{dataState:'CACHED'}}
 function hasLiveIdentity(){const r=runtime();return typeof r.sicId==='string'&&r.sicId.trim().length>0&&r.identityDataState==='LIVE'}
 function requestIdentity(){
-  const detail={coreApiVersion:CONTRACTS.coreApi,action:'LOGIN_OR_RESUME',requiresLiveSession:true,callerMayProvideIdentity:false,walletIsIdentity:false};
+  const detail={coreApiVersion:PREFERRED.coreApi,supportedCoreApiVersions:[...ACCEPTED.coreApi],preferredCoreApiVersion:PREFERRED.coreApi,action:'LOGIN_OR_RESUME',requiresLiveSession:true,callerMayProvideIdentity:false,walletIsIdentity:false,contractNegotiation:'FAIL_CLOSED_EXPLICIT_VERSION_LIST'};
   const ev=new CustomEvent('caid:sicid-login-request',{detail,cancelable:true});
   const handled=!window.dispatchEvent(ev);
   if(!handled)toast('SIC-ID identity adapter is not connected. No session was created.');
