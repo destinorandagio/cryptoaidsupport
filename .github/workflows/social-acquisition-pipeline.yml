@@ -1,0 +1,76 @@
+name: CryptoAID Social Acquisition Pipeline
+on:
+  workflow_dispatch:
+    inputs:
+      language:
+        type: choice
+        options: [en, it]
+        default: en
+      pillar:
+        type: choice
+        options: [auto, social_proof, web3_intelligence, educational, founder]
+        default: auto
+      publish_telegram:
+        type: boolean
+        default: false
+  schedule:
+    - cron: '35 7 * * 1-5'
+permissions:
+  contents: read
+concurrency:
+  group: social-acquisition-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - run: pip install -r requirements-dev.txt
+      - run: python -m compileall bot
+      - run: pytest -q
+      - name: Secret guard
+        run: '! grep -R -E "[0-9]{8,12}:[A-Za-z0-9_-]{30,}" --exclude-dir=.git .'
+  generate:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Generate EN/IT channel drafts
+        shell: bash
+        run: |
+          LANG="${{ inputs.language }}"; [ -z "$LANG" ] && LANG=en
+          PILLAR="${{ inputs.pillar }}"; [ -z "$PILLAR" ] && PILLAR=auto
+          EXTRA=""; [ "$PILLAR" != "auto" ] && EXTRA="--pillar $PILLAR"
+          python bot/social_pipeline.py --lang "$LANG" $EXTRA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: social-acquisition-drafts
+          path: data/social/*.json
+          retention-days: 14
+  telegram:
+    needs: [validate, generate]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_telegram == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12', cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Publish through existing safe publisher
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL: '@cryptoaidsup'
+          TELEGRAM_GROUP: '@cryptoAIDsupporter'
+        run: python bot/content_engine.py --destination channel --live
+  linkedin-draft:
+    needs: generate
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'LinkedIn is draft-only until an approved official API integration is configured. No scraping or gray-hat automation.'

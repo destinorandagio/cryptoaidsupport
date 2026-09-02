@@ -1,0 +1,27 @@
+name: Acquisition Safety Audit
+on:
+  pull_request:
+    paths:
+      - 'bot/**'
+      - 'config/acquisition.yml'
+      - '.github/workflows/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Compile acquisition modules
+        run: python -m compileall bot
+      - name: Verify mandatory trust rules
+        run: |
+          grep -q 'no_recovery_guarantees: true' config/acquisition.yml
+          grep -q 'never_request_wallet_secrets: true' config/acquisition.yml
+          grep -q 'linkedin_automation: official_or_manual_only' config/acquisition.yml
+      - name: Block obvious committed secrets
+        run: '! grep -R -E "(TELEGRAM_BOT_TOKEN\s*[:=]\s*[^$]|[0-9]{8,12}:[A-Za-z0-9_-]{30,})" --exclude-dir=.git .'
