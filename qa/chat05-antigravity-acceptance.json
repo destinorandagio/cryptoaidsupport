@@ -1,0 +1,189 @@
+{
+  "CHAT_ID": "05",
+  "DOMAIN": "QA_SECURITY_RED_TEAM_RELEASE",
+  "TIMESTAMP": "2026-09-02T18:19:00+02:00",
+  "VERSION": "0.9.0",
+  "PARENT_VERSION": "0.6.0",
+  "TARGET_MAIN_SHA": "1f6379b4e236901cf8e4b0812582f65f01a3a417",
+  "STATE": "TESTING",
+  "AUTHORITY": "QA_GO_NO_GO_ONLY",
+  "RULES": [
+    "NOT_TESTED_NEVER_EQUALS_PASS",
+    "MODEL_OR_SIMULATION_NEVER_EQUALS_LIVE_PASS",
+    "ONE_WRITER_PER_SHARED_SURFACE",
+    "NO_REAL_SIGNING_PAYMENT_TX_DEPLOY_UPLOAD_WITHOUT_HUMAN_GATE"
+  ],
+  "FILES_ALLOWED": [
+    "qa/**",
+    "tests/** only when test-only and no owner source semantics are changed"
+  ],
+  "FILES_FORBIDDEN": [
+    "core/**",
+    "evidence_payment/**",
+    "frontend/public_html/**",
+    "bot/**",
+    "knowledge/**",
+    "web3/**",
+    "control/**",
+    "config/**"
+  ],
+  "CURRENT_FINDINGS": [
+    {
+      "id": "QA05-P0-PAY-IDEMPOTENCY",
+      "severity": "P0",
+      "owner": "CHAT02",
+      "state": "OPEN",
+      "evidence": "PR23 encodes a failing release contract against CHAT02 candidate until operation + authenticated principal + canonical security-critical request fingerprint are bound to idempotency keys.",
+      "acceptance": [
+        "exact replay returns same logical result without duplicate economic side effects",
+        "same idempotency key with changed payer/principal/case/amount/purpose/payload fails closed",
+        "concurrent conflicting replay has exactly one accepted semantic request and no credit leakage",
+        "SQLite integrity_check=ok and foreign_key_check empty"
+      ]
+    },
+    {
+      "id": "QA05-P0-SUPPORT-DURABILITY",
+      "severity": "P0",
+      "owner": "CHAT07_CHAT10",
+      "state": "OPEN_PARTIAL",
+      "evidence": "PR26 adds canonical Case-owner authorization and PR24 hardens Telegram rate/privacy boundaries, but durable transport receipt/dedupe and end-to-end authenticated support are not release-proven.",
+      "acceptance": [
+        "Telegram principal resolves to LIVE SIC-ID through trusted adapter",
+        "canonical Core Case-owner authorization is required",
+        "duplicate event retry produces one durable delivery effect",
+        "unauthorized Case and stale/revoked session fail closed",
+        "no Evidence bytes, wallet, payment, secret or free-form private payload in notification/logs"
+      ]
+    },
+    {
+      "id": "QA05-P0-SERIAL-CANDIDATE",
+      "severity": "P0",
+      "owner": "CHAT00_CHAT10",
+      "state": "OPEN",
+      "evidence": "Current main advanced to AI gateway commits while multiple owner candidates remain isolated review PRs; no single current exact Golden SHA is certified.",
+      "acceptance": [
+        "one exact serial candidate SHA",
+        "all owner contracts reconciled against that SHA",
+        "no stale PR metadata used as runtime authority",
+        "full CI and scoped suites PASS on the same SHA"
+      ]
+    },
+    {
+      "id": "QA05-P0-GOLDEN-JOURNEY",
+      "severity": "P0",
+      "owner": "CHAT05_WITH_ANTIGRAVITY",
+      "state": "NOT_TESTED",
+      "acceptance": [
+        "Landing -> LIVE SIC-ID -> Search known/unknown -> Twin/TO_VERIFY -> +CASE -> Evidence -> activation 50 -> first Case 450 -> returning Case 500 -> synthetic finalized settlement -> Case ACTIVE -> Recovery -> Next Action -> Support -> Admin -> PWA",
+        "all negative transitions fail closed",
+        "no production payment/signature/transaction is executed"
+      ]
+    },
+    {
+      "id": "QA05-P0-RELEASE-PACKAGE",
+      "severity": "P0",
+      "owner": "CHAT10",
+      "state": "OPEN",
+      "acceptance": [
+        "public_html contains no DB/private Evidence/secrets/backups/dev junk",
+        ".htaccess present",
+        "no demo/open-admin flags",
+        "recursive secret/PII/private-data scan PASS",
+        "VERSION/GIT_SHA/BUILD_SHA256/SCHEMA_VERSION/CONFIG_VERSION/DEPENDENCIES/test counts persisted",
+        "backup restore and rollback executed on disposable environment and evidenced"
+      ]
+    },
+    {
+      "id": "QA05-P1-BRANCH-PROTECTION",
+      "severity": "P1",
+      "owner": "CHAT00_CHAT10",
+      "state": "OPEN",
+      "evidence": "main protected=false and required_status_checks are disabled at 2026-09-02T18:19+02:00."
+    }
+  ],
+  "ANTIGRAVITY_EXECUTION": {
+    "target_rule": "Run only on the final exact serial candidate SHA supplied by CHAT00/10; do not convert isolated PR passes into release PASS.",
+    "required_commands": [
+      "git rev-parse HEAD",
+      "git status --porcelain",
+      "python -m compileall -q .",
+      "pytest -q",
+      "php -v",
+      "php -m",
+      "git diff --check"
+    ],
+    "required_runtime_tests": [
+      "Core same-key exact replay and changed-subject/payload negative matrix",
+      "Payment same-key changed payer/principal/case/amount/purpose plus concurrent conflict",
+      "Evidence traversal/MIME/private-root negative matrix",
+      "Telegram unauthorized Case, duplicate notification, rate concurrency, AI privacy quarantine, transport dedupe",
+      "390x844 and desktop real-origin browser run",
+      "PWA install/cache-version upgrade/offline/reconnect with old-cache removal",
+      "Admin RBAC/role escalation/kill-switch/manual-review negative matrix",
+      "synthetic Golden Journey end-to-end",
+      "disposable backup->restore->health and rollback->health",
+      "recursive final deploy-package secret/DB/private-Evidence/dev-junk scan"
+    ],
+    "evidence_required": [
+      "exact SHA before and after tests",
+      "UTC/local timestamp",
+      "OS/runtime versions",
+      "commands with exit codes",
+      "test pass/fail counts",
+      "browser viewport and console/network/service-worker evidence",
+      "SQLite integrity_check and foreign_key_check output",
+      "package SHA-256",
+      "backup/restore/rollback hashes and health output",
+      "explicit NOT_TESTED and HUMAN_GATE list"
+    ],
+    "stop_conditions": [
+      "HEAD changes during test run",
+      "dirty owner source not part of approved serial candidate",
+      "secret/private Evidence discovered in public package",
+      "any P0 fails",
+      "test requires real payment/signing/transaction/deploy without explicit human authorization"
+    ]
+  },
+  "BUILT": [
+    "machine-readable Antigravity acceptance contract",
+    "current blocker matrix",
+    "exact evidence requirements",
+    "fail-closed stop conditions"
+  ],
+  "TESTED": [
+    "repository/Drive state discovery",
+    "current main SHA readback",
+    "current PR delta review"
+  ],
+  "TEST_PASS": [
+    "main SHA readback",
+    "ownership boundary preserved"
+  ],
+  "TEST_FAIL": [],
+  "NOT_TESTED": [
+    "final exact serial candidate runtime",
+    "Golden Journey",
+    "real-origin browser/PWA",
+    "durable Telegram delivery",
+    "backup/restore/rollback final package"
+  ],
+  "FIXED": [
+    "stale QA baseline replaced by an exact-head execution contract without modifying owner surfaces"
+  ],
+  "BLOCKERS": [
+    "payment idempotency semantic binding",
+    "durable authenticated support transport",
+    "single exact serial candidate",
+    "Golden Journey",
+    "release package restore rollback",
+    "branch protection"
+  ],
+  "DEPENDENCIES": ["CHAT00","CHAT01","CHAT02","CHAT03","CHAT04","CHAT06","CHAT07","CHAT08","CHAT09","CHAT10","ANTIGRAVITY"],
+  "COLLISIONS": [
+    "current main contains new AI gateway integration after prior CHAT05 v0.6.0",
+    "isolated PRs cannot be treated as one release candidate"
+  ],
+  "HUMAN_GATES": ["real wallet signing","real payment","real transaction","production deploy","public upload","spend"],
+  "NEXT": "CHAT00/10 produces one exact serial Golden SHA; Antigravity executes this contract on that SHA; CHAT05 re-audits factual evidence only.",
+  "GO_NO_GO": "NO_GO"
+}
