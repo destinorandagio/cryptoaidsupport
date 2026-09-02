@@ -57,11 +57,13 @@ class FakeRPC:
     def __call__(self, provider_id: str, method: str, params: list):
         tx_hash = params[0].lower() if params and isinstance(params[0], str) and params[0].startswith("0x") else None
         if method == "eth_chainId":
-            # Any configured transaction for this provider carries the same chain.
             row = next(value for (provider, _), value in self.rows.items() if provider == provider_id)
             return hex(row["chain_id"])
         if method == "eth_getBlockByNumber":
-            row = next(value for (provider, _), value in self.rows.items() if provider == provider_id)
+            row = max(
+                (value for (provider, _), value in self.rows.items() if provider == provider_id),
+                key=lambda value: value["finalized"],
+            )
             return {"number": hex(row["finalized"])}
         row = self.rows[(provider_id, tx_hash)]
         if method == "eth_getTransactionByHash":
