@@ -48,3 +48,26 @@ def test_manifest_valid():
     data=json.loads((ROOT/'manifest.webmanifest').read_text())
     assert data['display']=='standalone'
     assert data['theme_color']=='#ffffff'
+
+def test_twin_wallet_contract_compatibility_is_explicit_and_fail_closed():
+    assert "ui:'1.9.0'" in JS
+    assert "twin:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
+    assert "walletMatrix:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
+    assert "dappmap:Object.freeze(['1.0.0','1.1.0','1.2.0'])" in JS
+    assert "knowledgeContext:Object.freeze(['1.0.0'])" in JS
+    assert "contractRejected:true" in JS
+    assert "supportedWalletMatrixVersions" in JS
+    assert "preferredWalletMatrixVersion:PREFERRED.walletMatrix" in JS
+    assert "connectIsAuthentication:false" in JS
+    assert "FAIL_CLOSED_EXPLICIT_VERSION_LIST" in JS
+    assert "acceptedContracts:ACCEPTED" in JS
+    assert "acceptsContract:acceptedVersion" in JS
+
+def test_twin_12_result_shapes_are_fail_closed_and_case_continuable():
+    assert "result.state==='MATCH'" in JS
+    assert "candidate_status==='USER_SUBMITTED_TO_VERIFY'" in JS
+    assert "ambiguous:result.results.length>1" in JS
+    assert 'The UI will not silently pick a Twin.' in JS
+    assert 'CONTINUE TO +CASE' in JS
+    assert 'appendProvenance' in JS
+    assert 'confidence' in JS

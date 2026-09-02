@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "owner": "CHAT00+CHAT10",
+  "status": "REVIEW_ONLY",
+  "purpose": "48H MVP exact serial-composition candidate; no production authority",
+  "base_main": "e2d69b070a4c20cdbaabfeb1e3a76760a932c04b",
+  "composition_commit": "d69db8af3fba0862f70672e067d4c24daeab6001",
+  "inputs": {
+    "chat02_pr8": "59fb969d52004f198b9ed02367203e7d957a6e99",
+    "chat03_chat06_pr6": "82d08fb867137963b0a5b779ead3e4c008b8b110",
+    "chat04_chat09_pr5": "14912b54886a5a7ecefd08a64720b76936c0df8e",
+    "chat07_main": "e2d69b070a4c20cdbaabfeb1e3a76760a932c04b"
+  },
+  "overlay_rule": "runtime/source/tests only; PR handoff metadata excluded so canonical control truth remains on current main/Drive",
+  "known_release_blockers": [
+    "QA05-P0-010 Core same-operation idempotency subject/payload binding",
+    "QA05-P0-013 Polygon finalized-boundary settlement proof",
+    "Antigravity exact-head real-origin/browser/PWA evidence",
+    "CHAT05 exact-candidate Golden Journey",
+    "canonical public_html recursive release hygiene + final package/manifest/rollback/restore"
+  ],
+  "polygon_finality_reference": "Official Polygon PoS docs require comparing tx block to eth_getBlockByNumber('finalized'); confirmations-only remains fail-closed for release.",
+  "forbidden": ["real signing", "real payment", "real transaction", "production deploy", "public upload", "MASTER mutation", "canonical public_html mutation"]
+}

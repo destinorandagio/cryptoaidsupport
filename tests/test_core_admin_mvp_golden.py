@@ -105,8 +105,8 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
         "required_confirmations": 2,
     }
     providers = [
-        {"tx_hash": tx_hash, "block_hash": block_hash, "receipt_status": 1},
-        {"tx_hash": tx_hash, "block_hash": block_hash, "receipt_status": 1},
+        {"provider_id": "rpc_a", "tx_hash": tx_hash, "block_hash": block_hash, "receipt_status": 1},
+        {"provider_id": "rpc_b", "tx_hash": tx_hash, "block_hash": block_hash, "receipt_status": 1},
     ]
     settled = payments.settle(intent["intent_id"], observation, providers)
     assert settled["verdict"] == "SETTLED" and settled["entitlement_granted"] is True
