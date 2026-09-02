@@ -1,0 +1,46 @@
+name: Telegram Publisher
+on:
+  workflow_dispatch:
+    inputs:
+      destination:
+        required: true
+        default: channel
+        type: choice
+        options: [channel, group]
+      live:
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    - cron: '15 8 * * *'
+    - cron: '15 17 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: cryptoaid-publisher
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Select and publish
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP: '@cryptoAIDsupporter'
+          TELEGRAM_CHANNEL: '@cryptoaidsup'
+        run: |
+          DEST="channel"
+          LIVE=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DEST="${{ inputs.destination }}"
+            if [ "${{ inputs.live }}" = "true" ]; then LIVE="--live"; fi
+          fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then LIVE="--live"; fi
+          python bot/content_engine.py --destination "$DEST" $LIVE
