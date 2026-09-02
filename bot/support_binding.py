@@ -4,13 +4,14 @@ This module does not mint SIC-ID, Case, Evidence, payment, or ownership truth.
 A user first proves an already-live canonical Core session in the DApp context.
 CHAT07 then issues a short-lived, one-time link code whose plaintext is never
 stored. Telegram consumes that code once and receives an opaque support-session
-token, also stored only as a SHA-256 digest. A principal-scoped resolver can be
-injected into ``core.TrustedSupportAPI``; Core re-validates the underlying
-session/SIC-ID pair on every private Case authorization request.
+token, also stored only as a SHA-256 digest. The Telegram principal identifier is
+stored only as a digest as well. A principal-scoped resolver can be injected into
+``core.TrustedSupportAPI``; Core re-validates the underlying session/SIC-ID pair
+on every private Case authorization request.
 
 The SQLite store is transport metadata only. It must live outside public_html.
 It intentionally stores no Case IDs, Evidence, wallets, payment data, free-form
-support text, or provider secrets.
+support text, raw Telegram principal IDs, or provider secrets.
 """
 from __future__ import annotations
 
@@ -79,7 +80,7 @@ class SupportBindingStore:
                     consumed_at INTEGER
                 );
                 CREATE TABLE IF NOT EXISTS support_principal_bindings (
-                    telegram_principal TEXT PRIMARY KEY,
+                    telegram_principal_hash TEXT PRIMARY KEY,
                     support_session_hash TEXT NOT NULL UNIQUE,
                     core_session_id TEXT NOT NULL,
                     sic_id TEXT NOT NULL,
@@ -155,6 +156,7 @@ class SupportBindingStore:
         telegram_principal = self._clean(
             telegram_principal, field="telegram_principal", max_len=128
         )
+        principal_hash = _digest(telegram_principal)
         link_code = self._clean(link_code, field="link_code", max_len=128)
         current = self._now(now)
         support_session = secrets.token_urlsafe(32)
@@ -180,14 +182,14 @@ class SupportBindingStore:
 
             conn.execute(
                 "INSERT INTO support_principal_bindings("
-                "telegram_principal,support_session_hash,core_session_id,sic_id,created_at,expires_at,revoked_at"
+                "telegram_principal_hash,support_session_hash,core_session_id,sic_id,created_at,expires_at,revoked_at"
                 ") VALUES(?,?,?,?,?,?,NULL) "
-                "ON CONFLICT(telegram_principal) DO UPDATE SET "
+                "ON CONFLICT(telegram_principal_hash) DO UPDATE SET "
                 "support_session_hash=excluded.support_session_hash,"
                 "core_session_id=excluded.core_session_id,sic_id=excluded.sic_id,"
                 "created_at=excluded.created_at,expires_at=excluded.expires_at,revoked_at=NULL",
                 (
-                    telegram_principal,
+                    principal_hash,
                     _digest(support_session),
                     row["core_session_id"],
                     row["sic_id"],
@@ -204,8 +206,8 @@ class SupportBindingStore:
         )
         with self._conn() as conn:
             conn.execute(
-                "UPDATE support_principal_bindings SET revoked_at=? WHERE telegram_principal=?",
-                (self._now(now), telegram_principal),
+                "UPDATE support_principal_bindings SET revoked_at=? WHERE telegram_principal_hash=?",
+                (self._now(now), _digest(telegram_principal)),
             )
 
     def resolver_for_principal(
@@ -218,6 +220,7 @@ class SupportBindingStore:
         telegram_principal = self._clean(
             telegram_principal, field="telegram_principal", max_len=128
         )
+        principal_hash = _digest(telegram_principal)
         clock = now or time.time
 
         def resolve(support_session_id: str) -> Mapping[str, Any] | None:
@@ -232,8 +235,8 @@ class SupportBindingStore:
                 row = conn.execute(
                     "SELECT core_session_id,sic_id,expires_at,revoked_at "
                     "FROM support_principal_bindings "
-                    "WHERE telegram_principal=? AND support_session_hash=?",
-                    (telegram_principal, _digest(support_session_id_clean)),
+                    "WHERE telegram_principal_hash=? AND support_session_hash=?",
+                    (principal_hash, _digest(support_session_id_clean)),
                 ).fetchone()
             if row is None or row["revoked_at"] is not None or row["expires_at"] < current:
                 return None
