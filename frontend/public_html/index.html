@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Crypto AID — evidence-first crypto recovery support.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/shield.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/app.css">
+  <title>Crypto AID</title>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="app-shell" data-app-state="CACHED">
+  <header class="topbar">
+    <a class="brand" href="#home" data-route-link="home" aria-label="Crypto AID home">
+      <img src="assets/shield.svg" width="42" height="42" alt="">
+      <span><strong>Crypto AID</strong><small>Evidence first. Recovery without promises.</small></span>
+    </a>
+    <button class="wallet-button" id="walletButton" type="button" aria-describedby="walletHelp">CONNECT WALLET</button>
+  </header>
+  <p id="walletHelp" class="sr-only">Wallet connection is optional until an action requires it. Never share a seed phrase or private key.</p>
+
+  <main id="main" tabindex="-1">
+    <section class="view is-active" id="view-home" data-route="home" aria-labelledby="homeTitle">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">CRYPTO RECOVERY SUPPORT</span>
+          <h1 id="homeTitle">What happened to your crypto?</h1>
+          <p class="lede">Search a project, describe what happened, and Crypto AID will surface the safest next action. No recovery guarantee. No ROI claims.</p>
+          <form class="search-box" id="heroSearchForm">
+            <label for="heroSearch">Project, token, contract or platform</label>
+            <div class="search-row">
+              <input id="heroSearch" name="q" autocomplete="off" placeholder="Search by name, ticker or address">
+              <button class="primary" type="submit">SEARCH</button>
+            </div>
+          </form>
+          <div class="trust-row" aria-label="Safety principles">
+            <span>Private evidence by default</span><span>Polygon actions verified upstream</span><span>No seed phrase requests</span>
+          </div>
+        </div>
+        <div class="chain-visual" aria-hidden="true">
+          <div class="circuit-line line-a"></div><div class="circuit-line line-b"></div>
+          <div class="node n1"></div><div class="node n2"></div><div class="node n3"></div>
+          <div class="block-card"><span>CASE</span><b>TO_VERIFY</b></div>
+          <div class="block-card second"><span>EVIDENCE</span><b>PRIVATE</b></div>
+        </div>
+      </div>
+      <div class="cards three">
+        <article class="card"><span class="state state-derived">DERIVED</span><h2>Begin with facts</h2><p>Public project data is separated from private Case evidence and always carries a truth state.</p></article>
+        <article class="card"><span class="state state-cached">CACHED</span><h2>Keep control</h2><p>Your SIC-ID is the durable principal. A wallet is an action resource, not your identity.</p></article>
+        <article class="card"><span class="state state-to-verify">TO_VERIFY</span><h2>One next action</h2><p>Complex internal states are reduced to one clear action whenever the Case contract provides one.</p></article>
+      </div>
+    </section>
+
+    <section class="view" id="view-search" data-route="search" aria-labelledby="searchTitle">
+      <div class="section-head"><div><span class="eyebrow">SEARCH</span><h1 id="searchTitle">Find the project first</h1></div><span class="state state-to-verify" id="searchTruth">TO_VERIFY</span></div>
+      <form class="search-box" id="searchForm">
+        <label for="searchInput">Project, token, contract or SIC-ID</label>
+        <div class="search-row"><input id="searchInput" autocomplete="off" placeholder="Example: project name or 0x…"><button class="primary" type="submit">SEARCH</button></div>
+      </form>
+      <div id="searchResult" class="empty-state" role="status" aria-live="polite">
+        <h2>No search yet</h2><p>Results are not invented. Search uses the versioned Twin/DAPPMAP adapter when it is available.</p>
+      </div>
+    </section>
+
+    <section class="view" id="view-case" data-route="case" aria-labelledby="caseTitle">
+      <div class="section-head"><div><span class="eyebrow">+CASE</span><h1 id="caseTitle">Tell us what happened</h1></div><span class="state state-to-verify">TO_VERIFY</span></div>
+      <ol class="stepper" aria-label="Case creation progress"><li class="current">Situation</li><li>Project</li><li>Evidence</li><li>Review</li></ol>
+      <form id="caseWizard" class="wizard" novalidate>
+        <fieldset data-step="1"><legend>1. What happened?</legend><div class="choice-grid" id="caseTypeChoices"></div><label for="caseNote">Describe it in your own words</label><textarea id="caseNote" rows="4" placeholder="A short description is enough to start."></textarea></fieldset>
+        <fieldset data-step="2" hidden><legend>2. Which project?</legend><label for="caseProject">Project, token, platform or contract</label><input id="caseProject" autocomplete="off" placeholder="Search or type what you remember"><p class="hint">If no canonical project matches, the Case can continue as TO_VERIFY.</p></fieldset>
+        <fieldset data-step="3" hidden><legend>3. What evidence do you have?</legend><div class="privacy-banner"><strong>PRIVATE BY DEFAULT</strong><span>Files are not uploaded by this frontend candidate. A local SHA-256 can be calculated before any authorized Evidence flow.</span></div><label for="evidenceFile">Choose a file to hash locally</label><input id="evidenceFile" type="file"><output id="hashOutput" class="hash-output">No file selected.</output></fieldset>
+        <fieldset data-step="4" hidden><legend>4. Review before activation</legend><div id="caseReview" class="review-grid"></div><div class="notice"><strong>Service activation is not an investment.</strong><p>Pricing, credits, payment verification and Case activation come only from upstream Core/Evidence-Payment contracts. This UI does not calculate or approve them.</p></div></fieldset>
+        <div class="wizard-actions"><button type="button" class="secondary" id="caseBack" hidden>BACK</button><button type="button" class="primary" id="caseNext">NEXT</button><button type="submit" class="primary" id="caseSubmit" hidden>REQUEST CASE</button></div>
+      </form>
+    </section>
+
+    <section class="view" id="view-recovery" data-route="recovery" aria-labelledby="recoveryTitle">
+      <div class="section-head"><div><span class="eyebrow">MY RECOVERY</span><h1 id="recoveryTitle">Your next action</h1></div><span class="state state-cached" id="recoveryTruth">CACHED</span></div>
+      <article class="next-action-card" aria-live="polite"><span class="micro">PRIMARY NEXT ACTION</span><h2 id="nextActionTitle">No active Case loaded</h2><p id="nextActionBody">Sign in through the Core identity flow or open a Case. The UI will not invent Case state.</p><button class="primary" id="nextActionButton" type="button" disabled>NO ACTION AVAILABLE</button></article>
+      <div class="cards two">
+        <article class="card"><h2>Case timeline</h2><ol id="timeline" class="timeline"><li><span class="dot"></span><div><b>Waiting for Core projection</b><small>TO_VERIFY</small></div></li></ol></article>
+        <article class="card"><h2>Payment state</h2><div id="paymentState" class="payment-state"><span class="state state-to-verify">TO_VERIFY</span><p>No verified persisted payment intent is loaded.</p></div></article>
+      </div>
+    </section>
+
+    <section class="view" id="view-profile" data-route="profile" aria-labelledby="profileTitle">
+      <div class="section-head"><div><span class="eyebrow">PROFILE</span><h1 id="profileTitle">Identity & preferences</h1></div><span class="state state-to-verify">TO_VERIFY</span></div>
+      <div class="cards two"><article class="card"><h2>SIC-ID</h2><p id="sicIdValue">Not loaded</p><small>Durable identity is supplied by Core. Wallet addresses never replace it.</small></article><article class="card"><h2>Motion</h2><p>System reduced-motion preferences are respected automatically.</p><button id="motionToggle" class="secondary" type="button">REDUCE MOTION HERE</button></article></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <button data-route-target="home" aria-current="page"><span aria-hidden="true">⌂</span><small>HOME</small></button>
+    <button data-route-target="search"><span aria-hidden="true">⌕</span><small>SEARCH</small></button>
+    <button data-route-target="case" class="case-nav"><span aria-hidden="true">＋</span><small>+CASE</small></button>
+    <button data-route-target="recovery"><span aria-hidden="true">↻</span><small>RECOVERY</small></button>
+    <button data-route-target="profile"><span aria-hidden="true">◎</span><small>PROFILE</small></button>
+  </nav>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</div>
+<script src="assets/app.js" defer></script>
+</body>
+</html>
