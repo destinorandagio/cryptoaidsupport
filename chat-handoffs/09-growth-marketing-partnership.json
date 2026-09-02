@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.2",
+  "chat": "CHAT09_GROWTH_MARKETING_PARTNERSHIP",
+  "cycle": "20260902-2240",
+  "version": "0.4.1",
+  "state": "MVP_MINIMUM_FEATURE_FREEZE_RUNTIME_BRIDGE_NO_GO",
+  "scope": "conversion-critical public DApp copy/CTA/attribution only during 48H feature freeze",
+  "ownership": {
+    "owns": ["value-first CTA copy", "SIC-ID explanatory/resume copy", "ethical landing copy", "attribution event vocabulary", "no-purchase-needed presentation"],
+    "must_not_own": ["identity/auth truth", "product truth", "prices", "payment verification", "Case state", "Knowledge classification", "recovery outcome claims", "partnership truth", "PWA cache/runtime authority"]
+  },
+  "principles": ["HELP_FIRST", "EVIDENCE_FIRST", "VALUE_BEFORE_CTA", "NO_PURCHASE_NEEDED_ALLOWED", "OFFICIAL_FREE_PATH_FIRST", "NO_FAKE_SCARCITY", "NO_FAKE_URGENCY", "NO_FAKE_TESTIMONIALS", "NO_RECOVERY_GUARANTEE", "NO_ROI", "PRIVATE_STATE_REQUIRES_LIVE_IDENTITY"],
+  "consumes": {
+    "chat04_ui": "2.1.2_OWNER_CANDIDATE",
+    "chat04_pwa_shell": "2.1.5_OWNER_CANDIDATE",
+    "chat04_runtime_test_head": "e6427ef1ab9136c22dcfeca6cf60c81c33ade173",
+    "serial_pr50": "5ccbb6a0c989d5f6a22e7ddca7785f4db2bbd902_SUPERSEDED_FOR_FINAL_CHAT04_BROWSER_ONLY",
+    "core_api": "1.1.0_READ_ONLY_CONTRACT_WITH_1.0.0_COMPATIBILITY",
+    "product_truth": "READ_ONLY_UPSTREAM",
+    "privacy_security": "FAIL_CLOSED"
+  },
+  "mvp_copy_rule": "Only an upstream LIVE SIC-ID projection may be described as signed in. Stale/non-live identity receives resume guidance. Wallet stays optional and never identity. No paid activation is implied merely to understand the support path.",
+  "attribution_rule": "No attribution SDK/runtime expansion during feature freeze. Query-bearing same-origin landing URLs may be used only with the existing PWA reliability contract.",
+  "runtime_delta": "NONE_GROWTH; CHAT04 COREAPI1.1 NEGOTIATION AND PWA2.1.5 ARE OWNER SECURITY/COMPATIBILITY FIXES ONLY",
+  "campaign_expansion": "NONE_FEATURE_FREEZE_MAINTAINED",
+  "tests_consumed": ["CHAT04 CI 33681190014 SUCCESS", "CHAT04 Release Candidate Package 33681190016 SUCCESS"],
+  "browser_gate": "Antigravity assertions 1-30 on refreshed exact serial SHA; assertion 30 forbids synthetic adapter injection and requires normal-package trusted runtime bridge consumption",
+  "release_blocker": "Current serial static public package does not load the trusted runtime adapter bridge needed to turn public CTA/events into factual Golden-path behavior; synthetic injected adapters are not conversion evidence.",
+  "experiments": "POST_MVP_UNLESS_RELEASE_BLOCKING",
+  "go_no_go": "NO_GO_SERIAL_REFRESH_RUNTIME_BRIDGE_QA",
+  "readback_required": true
+}
