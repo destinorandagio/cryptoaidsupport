@@ -9,6 +9,7 @@ from moderation import classify_message
 from knowledge_engine import answer as knowledge_answer, detect_language
 from acquisition_engine import assess, next_step
 from support_mvp import RateLimiter, SupportRejected, contains_secret, render_official_links
+from ai_provider import AIUnavailable, synthesize
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("cryptoaid")
@@ -83,6 +84,13 @@ async def ask_text(update: Update, question: str):
     if intent.safety_risk:
         await update.effective_message.reply_text(next_step(intent, language)); return
     text, confidence, source = knowledge_answer(question, language)
+    if source != "escalation" and confidence > 0:
+        try:
+            ai = await synthesize(verified_context=text, user_message=question, language=language)
+            text = ai.text
+            log.info("ai_synthesis provider=%s model=%s", ai.provider, ai.model)
+        except AIUnavailable as exc:
+            log.info("ai_fallback reason=%s", exc)
     await update.effective_message.reply_text(text)
     if intent.case_intent:
         await update.effective_message.reply_text(next_step(intent, language))
