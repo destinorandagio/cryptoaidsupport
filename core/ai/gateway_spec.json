@@ -1,0 +1,36 @@
+{
+  "schema": "cryptoaid.ai-gateway.v1",
+  "endpoint": "/api/ai/chat",
+  "execution": "server-side-only",
+  "primaryProvider": "groq",
+  "providerPolicy": {
+    "groq": {"mode": "credential-pool", "purpose": "primary-low-latency"},
+    "fallbacks": ["openai", "gemini", "anthropic", "openrouter"],
+    "retry": {"maxProviderAttempts": 2, "retry429": false},
+    "circuitBreaker": true
+  },
+  "surfaces": ["general", "dappmap", "case", "rank", "quest", "miner", "web3"],
+  "security": {
+    "secretsInBrowser": false,
+    "secretsInRepository": false,
+    "privateEvidenceDefault": "deny",
+    "piiMinimization": true,
+    "maxInputChars": 16000,
+    "timeoutSeconds": 25,
+    "redactLogs": true,
+    "rateLimitRequired": true
+  },
+  "request": {
+    "required": ["message"],
+    "optional": ["surface", "sicIdRef", "caseId", "publicWeb3Context", "locale"]
+  },
+  "response": {
+    "fields": ["ok", "answer", "provider", "model", "requestId", "fallbackUsed"]
+  },
+  "grounding": {
+    "web3Manifest": "web3/deploy/polygon-mainnet-manifest.json",
+    "masterAuthority": true,
+    "dappmapPublicContext": true,
+    "privateEvidenceRequiresExplicitAuthorization": true
+  }
+}
