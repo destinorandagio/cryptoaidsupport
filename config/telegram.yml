@@ -1,0 +1,10 @@
+bot_username: "@CryptoAIDsupportBOT"
+group: "@cryptoAIDsupporter"
+channel: "@cryptoaidsup"
+default_language: en
+supported_languages:
+  - en
+  - it
+publishing:
+  parse_mode: HTML
+  disable_web_page_preview: true
