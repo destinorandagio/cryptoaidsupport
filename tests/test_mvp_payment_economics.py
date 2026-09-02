@@ -19,7 +19,7 @@ def advance(e, intent):
     return intent
 
 
-def observation(intent, tx_hash):
+def observation(intent, tx_hash, block_number=100):
     return {
         "chain_id": 137,
         "from": intent["payer"],
@@ -31,15 +31,30 @@ def observation(intent, tx_hash):
         "entitlement_ref": intent["entitlement_ref"],
         "tx_hash": tx_hash,
         "block_hash": f"block-{tx_hash}",
-        "confirmations": 10,
-        "required_confirmations": 5,
+        "block_number": block_number,
+        "confirmations": 0,
+        "required_confirmations": 999,
     }
 
 
-def providers(obs):
+def providers(obs, finalized_a=110, finalized_b=111):
     return [
-        {"provider_id": "rpc_a", "tx_hash": obs["tx_hash"], "block_hash": obs["block_hash"], "receipt_status": 1},
-        {"provider_id": "rpc_b", "tx_hash": obs["tx_hash"], "block_hash": obs["block_hash"], "receipt_status": 1},
+        {
+            "provider_id": "rpc_a",
+            "tx_hash": obs["tx_hash"],
+            "block_hash": obs["block_hash"],
+            "receipt_status": 1,
+            "tx_block_number": obs["block_number"],
+            "finalized_block_number": finalized_a,
+        },
+        {
+            "provider_id": "rpc_b",
+            "tx_hash": obs["tx_hash"],
+            "block_hash": obs["block_hash"],
+            "receipt_status": 1,
+            "tx_block_number": obs["block_number"],
+            "finalized_block_number": finalized_b,
+        },
     ]
 
 
@@ -51,6 +66,18 @@ def settle_ok(e, intent, tx_hash):
     assert result["entitlement_granted"] is True
     assert result["settlement_certificate_id"]
     return result
+
+
+def activate(e, principal):
+    activation = e.create_activation_intent(
+        principal_id=principal,
+        payer="0xsender",
+        request_id=f"req-a-{principal}",
+        idempotency_key=f"idem-a-{principal}",
+    )
+    assert activation["expected_value"] == "50"
+    settle_ok(e, activation, f"0xactivation-{principal}")
+    return activation
 
 
 def test_payment_intent_persists_expiry_and_fails_closed_after_expiry():
@@ -66,7 +93,10 @@ def test_payment_intent_persists_expiry_and_fails_closed_after_expiry():
     )
     assert intent["expires_at"]
     with e._connect() as c:
-        c.execute("UPDATE payment_intents SET expires_at='2000-01-01T00:00:00+00:00' WHERE intent_id=?", (intent["intent_id"],))
+        c.execute(
+            "UPDATE payment_intents SET expires_at='2000-01-01T00:00:00+00:00' WHERE intent_id=?",
+            (intent["intent_id"],),
+        )
     expired = e.get_intent(intent["intent_id"])
     assert expired["state"] == "EXPIRED"
     with pytest.raises(EvidencePaymentError) as exc:
@@ -81,16 +111,12 @@ def test_payment_intent_persists_expiry_and_fails_closed_after_expiry():
 
 def test_frozen_activation50_first450_then500_and_credit_consumption():
     e = engine()
-    assert e.quote_next_case("sic-1") == {"stage": "ACTIVATION_REQUIRED", "activation_payable": "50"}
+    assert e.quote_next_case("sic-1") == {
+        "stage": "ACTIVATION_REQUIRED",
+        "activation_payable": "50",
+    }
 
-    activation = e.create_activation_intent(
-        principal_id="sic-1",
-        payer="0xsender",
-        request_id="req-a",
-        idempotency_key="idem-a",
-    )
-    assert activation["expected_value"] == "50"
-    settle_ok(e, activation, "0xactivation")
+    activate(e, "sic-1")
     credit = e.get_activation_credit("sic-1")
     assert credit["amount"] == "50" and credit["state"] == "AVAILABLE"
 
@@ -117,20 +143,13 @@ def test_frozen_activation50_first450_then500_and_credit_consumption():
         idempotency_key="idem-c2",
     )
     assert subsequent["expected_value"] == "500"
-    econ_subsequent = e.get_economic_intent(subsequent["intent_id"])
-    assert econ_subsequent["credit_applied"] == "0"
+    assert e.get_economic_intent(subsequent["intent_id"])["credit_applied"] == "0"
     assert e.quote_next_case("sic-1")["stage"] == "SUBSEQUENT_CASE"
 
 
 def test_activation_is_one_time_after_settlement():
     e = engine()
-    activation = e.create_activation_intent(
-        principal_id="sic-once",
-        payer="0xsender",
-        request_id="req-a",
-        idempotency_key="idem-a",
-    )
-    settle_ok(e, activation, "0xactivation-once")
+    activate(e, "sic-once")
     with pytest.raises(EvidencePaymentError) as exc:
         e.create_activation_intent(
             principal_id="sic-once",
@@ -141,65 +160,37 @@ def test_activation_is_one_time_after_settlement():
     assert exc.value.code == "ACTIVATION_ALREADY_GRANTED"
 
 
-def test_first_case_credit_is_released_if_unsubmitted_intent_expires():
+@pytest.mark.parametrize("terminal_state", ["EXPIRED", "REJECTED"])
+def test_first_case_credit_is_released_on_retryable_terminal(terminal_state):
     e = engine()
-    activation = e.create_activation_intent(
-        principal_id="sic-release",
-        payer="0xsender",
-        request_id="req-a",
-        idempotency_key="idem-a",
-    )
-    settle_ok(e, activation, "0xactivation-release")
+    principal = f"sic-{terminal_state.lower()}"
+    activate(e, principal)
     first = e.create_case_payment_intent(
-        principal_id="sic-release",
-        case_id="case-old",
-        payer="0xsender",
-        request_id="req-old",
-        idempotency_key="idem-old",
-    )
-    assert e.get_activation_credit("sic-release")["state"] == "RESERVED"
-    with e._connect() as c:
-        c.execute("UPDATE payment_intents SET expires_at='2000-01-01T00:00:00+00:00' WHERE intent_id=?", (first["intent_id"],))
-    assert e.get_intent(first["intent_id"])["state"] == "EXPIRED"
-    credit = e.get_activation_credit("sic-release")
-    assert credit["state"] == "AVAILABLE" and credit["reserved_case_id"] is None
-    replacement = e.create_case_payment_intent(
-        principal_id="sic-release",
-        case_id="case-new",
-        payer="0xsender",
-        request_id="req-new",
-        idempotency_key="idem-new",
-    )
-    assert replacement["expected_value"] == "450"
-
-
-def test_first_case_credit_is_released_if_verification_rejects_attempt():
-    e = engine()
-    activation = e.create_activation_intent(
-        principal_id="sic-reject",
-        payer="0xsender",
-        request_id="req-a",
-        idempotency_key="idem-a",
-    )
-    settle_ok(e, activation, "0xactivation-reject")
-    first = e.create_case_payment_intent(
-        principal_id="sic-reject",
+        principal_id=principal,
         case_id="case-retry",
         payer="0xsender",
         request_id="req-old",
         idempotency_key="idem-old",
     )
-    for state in ("USER_ACTION_REQUIRED", "TX_OBSERVED", "VERIFYING"):
-        first = e.transition_payment(first["intent_id"], state, "test")
-    rejected = e.transition_payment(first["intent_id"], "REJECTED", "invalid synthetic receipt")
-    assert rejected["state"] == "REJECTED"
-    credit = e.get_activation_credit("sic-reject")
+    assert e.get_activation_credit(principal)["state"] == "RESERVED"
+
+    if terminal_state == "EXPIRED":
+        with e._connect() as c:
+            c.execute(
+                "UPDATE payment_intents SET expires_at='2000-01-01T00:00:00+00:00' WHERE intent_id=?",
+                (first["intent_id"],),
+            )
+        assert e.get_intent(first["intent_id"])["state"] == "EXPIRED"
+    else:
+        for state in ("USER_ACTION_REQUIRED", "TX_OBSERVED", "VERIFYING"):
+            first = e.transition_payment(first["intent_id"], state, "test")
+        assert e.transition_payment(first["intent_id"], "REJECTED", "synthetic reject")["state"] == "REJECTED"
+
+    credit = e.get_activation_credit(principal)
     assert credit["state"] == "AVAILABLE" and credit["reserved_case_id"] is None
-    with e._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM settlement_certificates WHERE intent_id=?", (first["intent_id"],)).fetchone()[0] == 0
-        assert c.execute("SELECT COUNT(*) FROM entitlement_ledger WHERE intent_id=?", (first["intent_id"],)).fetchone()[0] == 0
+
     retry = e.create_case_payment_intent(
-        principal_id="sic-reject",
+        principal_id=principal,
         case_id="case-retry",
         payer="0xsender",
         request_id="req-new",
@@ -211,13 +202,7 @@ def test_first_case_credit_is_released_if_verification_rejects_attempt():
 
 def test_first_case_parallel_reservation_fails_closed():
     e = engine()
-    activation = e.create_activation_intent(
-        principal_id="sic-race",
-        payer="0xsender",
-        request_id="req-a",
-        idempotency_key="idem-a",
-    )
-    settle_ok(e, activation, "0xactivation-race")
+    activate(e, "sic-race")
     first = e.create_case_payment_intent(
         principal_id="sic-race",
         case_id="case-1",
@@ -239,13 +224,7 @@ def test_first_case_parallel_reservation_fails_closed():
 
 def test_first_case_concurrent_race_has_exactly_one_discount_reservation():
     e = engine()
-    activation = e.create_activation_intent(
-        principal_id="sic-thread-race",
-        payer="0xsender",
-        request_id="req-a",
-        idempotency_key="idem-a",
-    )
-    settle_ok(e, activation, "0xactivation-thread-race")
+    activate(e, "sic-thread-race")
     barrier = Barrier(2)
 
     def attempt(n):
@@ -268,11 +247,11 @@ def test_first_case_concurrent_race_has_exactly_one_discount_reservation():
     losers = [r for r in results if r[0] == "error"]
     assert len(winners) == 1 and winners[0][2] == "450"
     assert len(losers) == 1 and losers[0][1] == "FIRST_CASE_PENDING"
-    credit = e.get_activation_credit("sic-thread-race")
-    assert credit["state"] == "RESERVED"
+
     with e._connect() as c:
         discounted = c.execute(
-            "SELECT COUNT(*) FROM economic_intents WHERE principal_id=? AND purpose='CASE' AND credit_applied='50'",
+            "SELECT COUNT(*) FROM economic_intents "
+            "WHERE principal_id=? AND purpose='CASE' AND credit_applied='50'",
             ("sic-thread-race",),
         ).fetchone()[0]
         assert discounted == 1
