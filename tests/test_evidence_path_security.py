@@ -1,3 +1,5 @@
+import os
+import stat
 import tempfile
 from pathlib import Path
 
@@ -5,6 +7,7 @@ import pytest
 
 from evidence_payment import EvidencePaymentEngine, EvidencePaymentError
 from evidence_payment.engine import EvidencePaymentEngine as DirectEngine
+import evidence_payment.secure_engine as secure_engine
 
 
 MALICIOUS_CASE_IDS = (
@@ -37,6 +40,21 @@ def _store(e, case_id):
     )
 
 
+def _symlink_dir(link: Path, target: Path):
+    target.mkdir(parents=True, exist_ok=True)
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"directory symlink unavailable in this runtime: {exc}")
+
+
+def _assert_zero_evidence_rows(e):
+    with e._connect() as c:
+        assert c.execute("SELECT COUNT(*) FROM evidence_records").fetchone()[0] == 0
+        assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert c.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
 @pytest.mark.parametrize("case_id", MALICIOUS_CASE_IDS)
 def test_case_id_path_traversal_fails_before_any_evidence_write(case_id):
     root, e = _engine()
@@ -45,8 +63,7 @@ def test_case_id_path_traversal_fails_before_any_evidence_write(case_id):
     assert exc.value.code == "INVALID_CASE_STORAGE_KEY"
     assert not list(root.rglob("*.bin"))
     assert not list(root.rglob("*.quarantine"))
-    with e._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM evidence_records").fetchone()[0] == 0
+    _assert_zero_evidence_rows(e)
 
 
 def test_valid_case_key_stays_beneath_private_root_and_hashes_bytes():
@@ -64,6 +81,64 @@ def test_valid_case_key_stays_beneath_private_root_and_hashes_bytes():
     assert row["sha256"] == stored["sha256"]
     assert "public_html" not in str(physical).lower()
     assert not list(root.rglob("*.quarantine"))
+    if os.name != "nt":
+        assert stat.S_IMODE(physical.stat().st_mode) == 0o600
+
+
+def test_symlink_case_directory_cannot_redirect_private_evidence():
+    root, e = _engine()
+    outside = root / "outside-case-target"
+    _symlink_dir(e.private_root / "CASE123", outside)
+
+    with pytest.raises(EvidencePaymentError) as exc:
+        _store(e, "CASE123")
+    assert exc.value.code == "EVIDENCE_SYMLINK_FORBIDDEN"
+    assert not list(outside.rglob("*.bin"))
+    assert not list(outside.rglob("*.quarantine"))
+    _assert_zero_evidence_rows(e)
+
+
+def test_symlink_evidence_directory_cannot_redirect_private_evidence(monkeypatch):
+    root, e = _engine()
+    case_dir = e.private_root / "CASE123"
+    case_dir.mkdir(mode=0o700)
+    outside = root / "outside-evidence-target"
+    _symlink_dir(case_dir / "ev_fixed", outside)
+    monkeypatch.setattr(secure_engine, "_id", lambda prefix: "ev_fixed")
+
+    with pytest.raises(EvidencePaymentError) as exc:
+        _store(e, "CASE123")
+    assert exc.value.code == "EVIDENCE_SYMLINK_FORBIDDEN"
+    assert not list(outside.rglob("*.bin"))
+    assert not list(outside.rglob("*.quarantine"))
+    _assert_zero_evidence_rows(e)
+
+
+def test_private_root_symlink_is_rejected_before_engine_initialization():
+    root = Path(tempfile.mkdtemp())
+    outside = root / "outside-root-target"
+    link = root / "private-evidence-link"
+    _symlink_dir(link, outside)
+
+    with pytest.raises(EvidencePaymentError) as exc:
+        EvidencePaymentEngine(root / "BLOCKCHAINPLUS-MASTER.sqlite", link)
+    assert exc.value.code == "EVIDENCE_SYMLINK_FORBIDDEN"
+    assert not list(outside.rglob("*.bin"))
+    assert not list(outside.rglob("*.quarantine"))
+
+
+def test_private_root_replaced_by_symlink_after_init_is_rejected_before_write():
+    root, e = _engine()
+    outside = root / "outside-root-swap"
+    e.private_root.rmdir()
+    _symlink_dir(e.private_root, outside)
+
+    with pytest.raises(EvidencePaymentError) as exc:
+        _store(e, "CASE123")
+    assert exc.value.code == "EVIDENCE_SYMLINK_FORBIDDEN"
+    assert not list(outside.rglob("*.bin"))
+    assert not list(outside.rglob("*.quarantine"))
+    _assert_zero_evidence_rows(e)
 
 
 def test_direct_engine_import_cannot_bypass_canonical_storage_guard():
