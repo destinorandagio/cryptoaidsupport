@@ -61,12 +61,37 @@ RPC_HEALTH_CONTRACT = {
     "no_secret_config": True,
 }
 
+# Compatibility is intentionally fail-closed. CHAT06 is a derived context layer;
+# these mappings affect only the read-context label and can never promote the
+# authoritative Twin record. Existing manifest vocabulary is accepted during
+# migration so consumers do not need a destructive knowledge rewrite.
+CHAT06_STATUS_MAP = {
+    "VERIFIED": "VERIFIED",
+    "SUPPORTED": "SUPPORTED",
+    "UNVERIFIED": "TO_VERIFY",
+    "CANDIDATE": "TO_VERIFY",
+    "ANALYSIS": "TO_VERIFY",
+    "COMMUNITY_REPORT": "TO_VERIFY",
+    "CONTRADICTED": "TO_VERIFY",
+    "UNKNOWN": "UNKNOWN",
+    "TO_VERIFY": "TO_VERIFY",
+    # Existing KNOWLEDGE_GLOBAL_MANIFEST verification vocabulary.
+    "VERIFIED_PRIMARY_SOURCE": "VERIFIED",
+    "HIGH_CONFIDENCE": "SUPPORTED",
+    "DRAFT": "TO_VERIFY",
+    "UNRESOLVED": "TO_VERIFY",
+    "CONFLICT": "TO_VERIFY",
+    "OBSOLETE": "UNKNOWN",
+}
+
 KNOWLEDGE_CONTEXT_CONTRACT = {
     "owner": "CHAT06",
     "consumer": "CHAT03",
     "required": ["pack_id", "version", "status", "provenance", "generated_at"],
-    "allowed_status": ["VERIFIED", "SUPPORTED", "CANDIDATE", "UNVERIFIED", "TO_VERIFY"],
-    "promotion_rule": "CHAT03_NEVER_PROMOTES_CANDIDATE_OR_UNVERIFIED_TO_VERIFIED",
+    "allowed_status": sorted(CHAT06_STATUS_MAP),
+    "status_map": CHAT06_STATUS_MAP,
+    "promotion_rule": "CHAT03_NEVER_PROMOTES_DERIVED_CONTEXT_TO_TWIN_AUTHORITY",
+    "candidate_rule": "CANDIDATE_UNVERIFIED_ANALYSIS_COMMUNITY_CONTRADICTED_CONFLICT_TO_TO_VERIFY",
     "authority": "DERIVED_CONTEXT_ONLY_NOT_FINANCIAL_OR_CORE_AUTHORITY",
 }
 
