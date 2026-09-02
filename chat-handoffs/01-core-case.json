@@ -1,99 +1,57 @@
 {
   "CHAT_ID": "CHAT01",
   "DOMAIN": "CORE_USER_SICID_CASE_PRODUCT",
-  "TIMESTAMP": "2026-09-02T12:43:00+02:00",
-  "VERSION": "1.2.2",
-  "PARENT_VERSION": "1.2.1",
-  "SOURCE_COMMIT": "138f5154aabf2f79b296bf40dcf59e9c36a576ab",
-  "CORE_INIT_BLOB": "f1f7b479d4cf1cf7eb34b6921b5b63b83bdcf6d1",
-  "CASE_ENGINE_BLOB": "8a5bdc73a53d1a525f7a56ed4e732d9cb9bfc700",
-  "CURRENT_ADMIN_CONSUMER_HEAD": "f88c87837b011dfa4256d56477053a86a5bc2c0b",
-  "CURRENT_ADMIN_CI": "33620689610 / #214 SUCCESS",
-  "INPUT_VERSIONS": {
+  "TIMESTAMP": "2026-09-02T13:20:30+02:00",
+  "VERSION": "1.3.0",
+  "PARENT_VERSION": "1.2.2",
+  "SOURCE_HEAD": "ea72c459a6fa12db2e76e5a77c8f73fa41d19cfd",
+  "CORE_SOURCE_COMMIT": "a4f420f62e52bee9292af45847d010d444d6e786",
+  "CASE_ENGINE_BLOB": "98565bee1fcdcfb33f78d917071bea77181dc138",
+  "CI_RUN": "33624033617 / #278 SUCCESS / 57 passed",
+  "INPUTS": {
     "HANDOFF_01_DRIVE": "20260902-1200 + late delta",
-    "OWNERSHIP": "1.0",
-    "CONTRACTS": "1.0",
-    "CHAT02": "current owner-fixed main",
-    "CHAT08": "0.2.0",
-    "ANTIGRAVITY_EXECUTION_CONTRACT": "1.0.0"
+    "CHAT02": "current main owner contract; PR4 remains review-gated",
+    "CHAT08": "0.3.0",
+    "OWNERSHIP_LEDGER": "no AG_ACTIVE on Core/Admin; CHAT00/10 active only on control/devops surfaces",
+    "AG_TASK": "1A6KtvQiIyczXDGTcxTjUagfbByD2wmO_AXA_RJ9QOA8"
   },
-  "OUTPUT_VERSION": "1.2.2",
-  "FILES_CHANGED": [
-    "chat-handoffs/01-core-case.json",
-    "chat-handoffs/HANDOFF_02.md"
+  "CONTRACT_CHANGES": [
+    "additive SIC-ID session create/resume/revoke contract over existing core_sessions schema",
+    "paid ACTIVE now verifies same-Case settled positive CHAT02 entitlement effect instead of trusting caller-supplied ENTITLEMENT_GRANTED"
   ],
-  "CONTRACTS_CHANGED": [],
   "SCHEMA_CHANGED": false,
-  "STATE": "CORE_STABLE_ADMIN_CONSUMER_TESTED_GLOBAL_NO_GO",
-  "SYNC_INPUTS": "VERIFIED_CURRENT_MAIN_PLUS_CHAT08_MVP_DELTA",
   "BUILT": [
-    "No Core source mutation in this kickoff",
-    "Accepted CHAT08 minimum Admin consumer contract as a guarded Core consumer",
-    "Preserved Case/auth one-writer ownership and entitlement-gated ACTIVE transition"
-  ],
-  "TESTED": [
-    "Prior CHAT01 targeted Core 6/6 PASS remains valid for unchanged Core blobs",
-    "Current CHAT08 consumer regression commit f88c8783 passed GitHub Actions CI 33620689610 / #214",
-    "Admin regression proves ADMIN_REVIEW transitions pass through Core guard/audit and cannot force ACTIVE without entitlement"
+    "create_session with bounded TTL and idempotency",
+    "resume_session with SIC-ID/status/expiry fail-closed checks",
+    "revoke_session",
+    "read-only CHAT02 entitlement/payment effect guard for paid ACTIVE",
+    "cross-owner synthetic Golden regression without writing CHAT02 truth"
   ],
   "TEST_PASS": [
-    "Core Case contract unchanged",
-    "Admin consumer cannot bypass Core ACTIVE entitlement guard",
-    "Admin Case transition audit authorization preserved",
-    "Repository CI after Admin consumer delta"
+    "first/returning user",
+    "SIC-ID session idempotency/resume/mismatch/revoke",
+    "Case create/idempotency/resume and TO_VERIFY",
+    "invalid/stale transition guards",
+    "forged ENTITLEMENT_GRANTED rejected",
+    "settled same-Case entitlement permits ACTIVE",
+    "Next Action",
+    "GitHub Actions full pytest 57/57 and Telegram-token scan"
   ],
   "TEST_FAIL": [],
   "NOT_TESTED": [
-    "final composed protected Admin browser route",
-    "production role issuance",
-    "target runtime",
-    "Golden Journey E2E",
-    "real signing/payment/transaction/deploy"
-  ],
-  "FIXED": [
-    "CHAT08 bootstrap-only gap advanced to a tested guarded consumer without changing Core truth"
-  ],
-  "BLOCKERS": [
-    "final composed runtime and Golden E2E",
-    "CHAT03/CHAT04 exact tuple certification",
-    "CHAT10 runtime/release evidence",
-    "protected Admin UI/browser acceptance"
-  ],
-  "DEPENDENCIES": [
-    "CHAT00 control reconciliation",
-    "CHAT02 entitlement/payment authority",
-    "CHAT03 Twin read input",
-    "CHAT04 UX consumer",
-    "CHAT05 independent QA",
-    "CHAT06 Knowledge read input",
-    "CHAT07 support consumer",
-    "CHAT08 guarded Admin consumer 0.2.0",
-    "CHAT10 runtime/deploy evidence"
+    "target PHP pdo_sqlite/curl/fileinfo runtime",
+    "real-origin protected Admin browser route",
+    "real wallet/signing/payment/transaction/deploy"
   ],
   "COLLISIONS": [
-    {
-      "classification": "ACCEPT",
-      "request": "CHAT08 minimum Admin Case operations",
-      "decision": "Accepted only through CHAT01 CaseEngine commands and read projections; direct Core writes remain forbidden"
-    }
+    {"classification":"ACCEPT","request":"CHAT02 settlement effect","decision":"consume read-only durable effect only; CHAT01 never writes payment/entitlement truth"},
+    {"classification":"REJECT","request":"caller/admin supplied ENTITLEMENT_GRANTED as sufficient authority","decision":"paid ACTIVE now fails closed without durable CHAT02 effect"}
   ],
-  "ANTIGRAVITY": {
-    "contract_version": "1.0.0",
-    "active_completion_handoff_found": false,
-    "next_local_acceptance": "protected Admin route/browser test after runtime composition"
-  },
-  "HUMAN_GATES": [
-    "production deploy",
-    "real payment/transaction/signing",
-    "production secrets",
-    "irreversible configuration change",
-    "public publication"
-  ],
+  "STATE": "CORE_GOLDEN_BACKEND_GREEN_GLOBAL_NO_GO",
+  "GO_NO_GO": "NO_GO",
   "NEXT": [
-    "CHAT00 reconcile stale blockers against current green CI",
-    "CHAT04/CHAT10 compose minimum Admin route",
-    "Antigravity perform local protected-route/browser acceptance",
-    "CHAT05 independently verify final Admin step in Golden E2E"
-  ],
-  "GO_NO_GO": "NO_GO"
+    "consume accepted CHAT02 PR4/finality contract when owner+QA+AG approve exact head",
+    "compose exact CHAT03/04/10 runtime tuple",
+    "run Antigravity local/runtime/browser acceptance then CHAT05 final QA"
+  ]
 }
