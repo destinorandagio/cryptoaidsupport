@@ -1,0 +1,46 @@
+name: Telegram Community Engagement
+on:
+  workflow_dispatch:
+    inputs:
+      language:
+        type: choice
+        options: [en, it]
+        default: en
+      live:
+        type: boolean
+        default: false
+  schedule:
+    - cron: '20 15 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: cryptoaid-community-engagement
+  cancel-in-progress: false
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Publish native community poll
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP: '@cryptoAIDsupporter'
+        shell: bash
+        run: |
+          LANG=en
+          LIVE="--live"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            LANG="${{ inputs.language }}"
+            LIVE=""
+            if [ "${{ inputs.live }}" = "true" ]; then LIVE="--live"; fi
+          else
+            DOW=$(date -u +%u)
+            if [ $((DOW % 2)) -eq 0 ]; then LANG=it; fi
+          fi
+          python -m bot.engagement_publisher --language "$LANG" $LIVE
