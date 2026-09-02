@@ -1,88 +1,19 @@
 {
-  "CHAT_ID": "CHAT06_GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE",
-  "DOMAIN": "GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE_RECOVERY_BRAIN",
-  "TIMESTAMP": "2026-09-02T12:01:00+02:00",
-  "VERSION": "0.2.0",
-  "PARENT_VERSION": "0.1.0",
-  "GIT_SHA": "4d71f96efa69763d8e6050aef2faf387625b4ab7",
-  "INPUT_VERSIONS": {
-    "CONTROL_LATEST_STATE": "schema-1.0@fcd04372099dcafa723fb3fa54e6083e44422573",
-    "OWNERSHIP": "schema-1.0@8773ed5678c9f04754aa6fefb6108f527d6cecc7",
-    "DEPENDENCIES": "schema-1.0@7e95497ae3cf1298b456fe029bddef9aa047348e",
-    "CHAT03": "twin-schema-1.0.0/dappmap-contract-1.0.0@a56ebec9e79b294e874f3aa31295f9cad47e7c62",
-    "KNOWLEDGE_GLOBAL_MANIFEST": "schema-1.0@c175318eb9df50a6109e24ecbc92f1eb338393ac"
-  },
-  "OUTPUT_VERSION": "CHAT06_HANDOFF_0.2.0",
-  "STATE": "DISCOVERED",
-  "FILES_CHANGED": [
-    "chat-handoffs/06-global-knowledge.json"
-  ],
-  "CONTRACTS_CHANGED": [
-    "CHAT06 handoff normalized to CRYPTOAID GLOBAL FACTORY CONTRACT minimum schema",
-    "CHAT06 ownership boundary reaffirmed",
-    "CHAT03 downstream need for versioned context-pack contract recorded"
-  ],
-  "SCHEMA_CHANGED": true,
-  "BUILT": [
-    "Persisted CHAT06 derived-knowledge authority boundary",
-    "Persisted source priority and semantic safety rules",
-    "Persisted release fields KNOWLEDGE_VERSION/SOURCE_DELTA/CLAIMS_DELTA/VERIFIED/CONTRADICTED/TO_VERIFY/AFFECTED_TWINS/AFFECTED_CASE_CONTEXT/BLOCKERS",
-    "Reused existing knowledge MASTER, global manifest, DAPPMAP Mirror registry, HyperZ, Recovery and Web3 surfaces"
-  ],
-  "TESTED": [
-    "Repository access",
-    "CHAT06 ownership lookup",
-    "critical dependency lookup",
-    "own handoff readback",
-    "CHAT03 upstream/downstream contract readback",
-    "main branch head observation"
-  ],
-  "TEST_PASS": [
-    "CHAT06 is registered owner of global_knowledge",
-    "No duplicate MASTER created",
-    "No duplicate Twin authority created",
-    "Existing knowledge surfaces are discoverable and reusable",
-    "CHAT03 explicitly waits for a CHAT06 versioned context-pack contract"
-  ],
-  "TEST_FAIL": [],
-  "NOT_TESTED": [
-    "Source/claim/evidence provenance schema runtime validation",
-    "Knowledge state compatibility mapping regression",
-    "Case Context Pack schema validation",
-    "DAPPMAP relationship release integration with CHAT03",
-    "Publishability/contradiction/impact-propagation automated tests",
-    "Golden Journey E2E"
-  ],
-  "FIXED": [
-    "Previous CHAT06 machine handoff lacked mandatory global handoff fields; normalized without changing another Factory surface"
-  ],
-  "BLOCKERS": [
-    "Repository-wide GO/NO-GO remains owned by CHAT05 and is NO_GO",
-    "Existing knowledge verification vocabulary requires non-destructive compatibility mapping before migration",
-    "CHAT03 cannot pin knowledge_version until CHAT06 publishes tested context-pack release contract"
-  ],
-  "DEPENDENCIES": {
-    "UPSTREAM": ["CHAT00 control contracts", "existing MASTER/knowledge registries", "public/on-chain/regulatory sources"],
-    "DOWNSTREAM": ["CHAT03 Twin/DAPPMAP", "CHAT01 Case Context", "CHAT07 verified support knowledge", "CHAT08 analytics", "CHAT09 publishable verified claims"]
-  },
-  "COLLISIONS": [
-    "HANDOFF_06.md naming is already occupied by CHAT05 QA; CHAT06 machine handoff remains chat-handoffs/06-global-knowledge.json",
-    "control/latest-state.json observed_head and latest_ci are stale relative to current main/QA state; FINDING must be consumed by CHAT00, not modified by CHAT06"
-  ],
-  "HUMAN_GATES": [],
-  "BACKLOG": {
-    "P1": ["World Explorer enrichment after P0 contracts/tests"],
-    "P2": ["Broader historical backfill after integration"],
-    "P3": ["Cosmetic explorer enhancements"]
-  },
-  "NEXT": [
-    "PLANNED: inventory canonical/global/hyperz/recovery/web3 schemas and calculate exact delta",
-    "PLANNED: define non-destructive verification-state compatibility mapping",
-    "PLANNED: implement source/claim/evidence/provenance contracts inside CHAT06-owned knowledge surface",
-    "PLANNED: implement Case Context Pack and versioned DAPPMAP relationship release contracts",
-    "PLANNED: add automated publishability, contradiction and impact-propagation tests",
-    "REQUEST CHAT00: reconcile stale control/latest-state head/CI fields",
-    "CONTRACT CHAT03: consume only tested versioned CHAT06 releases; never treat CHAT06 as Twin authority"
-  ],
-  "GO_NO_GO": "NO_GO"
+  "schema_version": "1.0",
+  "chat": "CHAT06_GLOBAL_KNOWLEDGE_WEB3_INTELLIGENCE",
+  "cycle": "20260902-1730",
+  "state": "TESTED_CONTEXT_CONTRACT_WITH_RUNTIME_SEARCH_CONSUMER",
+  "context_contract_version": "1.0.0",
+  "tested_source_head": "41978cefce2286fda5d2b6b2c8da14a45aadf116",
+  "fresh_main_observed": "b7f5345fdf4fa4de06fe9e1d601aa3d6aa1df843",
+  "authority": "DERIVED_CONTEXT_ONLY_NOT_FINANCIAL_CORE_OR_TWIN_AUTHORITY",
+  "promotion_rule": "CANDIDATE_UNVERIFIED_ANALYSIS_COMMUNITY_CONTRADICTED_DRAFT_UNRESOLVED_CONFLICT_NEVER_PROMOTE_TO_VERIFIED",
+  "private_evidence_rule": "PRIVATE_USER_EVIDENCE_NEVER_ENTERS_PUBLIC_CONTEXT_PACK",
+  "truth_mapping": {"verified_or_supported_context":"DERIVED","candidate_or_conflicted":"TO_VERIFY","obsolete_or_unknown":"UNKNOWN"},
+  "mirror_provenance": {"drive_file_id":"1o8tRvHPbe8w9BIBduyhTJv-xASNl6A2H","source_version":"mirror81-2026-08-20","sha256":"29440b1a758a2ef422df668661b090f8820f0ee91cd8f96c9ed5ca85791ade4e","records":17593,"mode":"READ_ONLY_SOURCE_CONTEXT","default_truth_label":"CACHED","rule":"MIRROR_PRESENCE_OR_PRUDENTIAL_STATUS_NEVER_IMPLIES_VERIFIED"},
+  "runtime_consumer": {"contract":"CHAT03 SearchReadFacade","version":"1.0.0","rule":"knowledge/source status is exposed as provenance context only and cannot elevate Twin status"},
+  "tested": {"contract_run":33649229601,"scoped":"49/49 PASS","ci_run":33649229404,"ci":"128/128 PASS","safety_run":33649229410,"safety":"PASS","pr_merge_with_fresh_main":"PASS"},
+  "deep_research_graph_expansion": "POST_MVP",
+  "ag_acceptance": "NONE_PERSISTED",
+  "go_no_go": "CONTEXT_AND_RUNTIME_SEARCH_CONTRACT_GO_LOCAL_BROWSER_RUNTIME_NO_GO"
 }
