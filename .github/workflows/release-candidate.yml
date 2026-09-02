@@ -1,0 +1,102 @@
+name: Release Candidate Package
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'frontend/public_html/**'
+      - 'scripts/mvp_release_candidate.py'
+      - '.github/workflows/release-candidate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate, package and restore-check PWA shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/cryptoaid-rc"
+          python scripts/mvp_release_candidate.py frontend/public_html \
+            --package "$RUNNER_TEMP/cryptoaid-rc/cryptoaid-pwa-shell.zip" \
+            --manifest "$RUNNER_TEMP/cryptoaid-rc/pwa-manifest.json" \
+            --restore-check \
+            | tee "$RUNNER_TEMP/cryptoaid-rc/verification.json"
+
+      - name: Build release metadata
+        shell: bash
+        env:
+          GIT_SHA: ${{ github.sha }}
+          GIT_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          root = Path(os.environ['RUNNER_TEMP']) / 'cryptoaid-rc'
+          package = root / 'cryptoaid-pwa-shell.zip'
+          manifest = root / 'pwa-manifest.json'
+          verification = json.loads((root / 'verification.json').read_text())
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with path.open('rb') as fh:
+                  for chunk in iter(lambda: fh.read(1024 * 1024), b''):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          payload = {
+              'schema_version': '1.0',
+              'release_type': 'STAGING_RELEASE_CANDIDATE',
+              'git_sha': os.environ['GIT_SHA'],
+              'git_ref': os.environ['GIT_REF'],
+              'github_run_id': os.environ['RUN_ID'],
+              'github_run_attempt': os.environ['RUN_ATTEMPT'],
+              'package_sha256': sha256(package),
+              'manifest_sha256': sha256(manifest),
+              'restore_verified': bool(verification.get('restore', {}).get('ok')),
+              'deploy_performed': False,
+              'human_gate_required_for_production': True,
+          }
+          if not payload['restore_verified']:
+              raise SystemExit('restore verification is not PASS')
+          (root / 'release-manifest.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload verified release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: cryptoaid-release-candidate-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/cryptoaid-rc/cryptoaid-pwa-shell.zip
+            ${{ runner.temp }}/cryptoaid-rc/pwa-manifest.json
+            ${{ runner.temp }}/cryptoaid-rc/verification.json
+            ${{ runner.temp }}/cryptoaid-rc/release-manifest.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Production remains human-gated
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'Release candidate packaged and restore-verified. No deployment performed.'
