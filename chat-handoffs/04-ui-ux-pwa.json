@@ -61,6 +61,15 @@
   ],
   "go_no_go": "NO_GO",
   "readback_required": true,
-  "github_pr": "PENDING_CREATE",
-  "ci": {"status": "PENDING_NEW_HEAD"}
+  "github_pr": 17,
+  "ci": {
+    "logic_head": "b5817d50e90bd93f5138397c93c564f9a3c47d0e",
+    "run_id": 33645275891,
+    "status": "SUCCESS",
+    "pytest": "88 passed",
+    "php_baseline": "PASS",
+    "staging_pwa_package_restore_smoke": "PASS",
+    "token_scan": "PASS",
+    "note": "This metadata update does not change runtime files; PR CI must still rerun on the metadata head."
+  }
 }

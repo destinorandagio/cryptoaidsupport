@@ -49,6 +49,15 @@ Navigation remains HOME | SEARCH | +CASE | RECOVERY | PROFILE. CONNECT WALLET re
 - Focus assertions: SIC-ID CTA precedes hero Search; request event/live-session/caller-identity/wallet-identity flags present; Twin 1.2 and Polygon137 behavior retained: PASS.
 - Real-origin exact-head browser/PWA: NOT_TESTED.
 
+## REPOSITORY CI
+
+- Logic/source head `b5817d50e90bd93f5138397c93c564f9a3c47d0e`: CI run `33645275891` SUCCESS.
+- `pytest -q`: 88 passed.
+- PHP baseline: PASS.
+- Staging PWA shell package + restore smoke: PASS.
+- Telegram token scan: PASS.
+- Metadata-only handoff update requires its own PR CI rerun; runtime files are unchanged by that metadata commit.
+
 ## AG COORDINATION
 
 The existing CHAT04 17-assertion Antigravity browser task is NOT promoted to this isolated UI source head. Global HANDOFF_01 currently holds Golden runtime on QA05-P0-016 and absence of one exact serial candidate. When CHAT00 publishes the serial Golden head, the AG browser plan must add explicit SIC-ID request assertions and execute on that exact head only.
