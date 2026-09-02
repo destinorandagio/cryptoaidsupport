@@ -1,102 +1,101 @@
 {
-  "schema_version": "1.1",
-  "chat": "CHAT03_DIGITAL_TWIN_SEARCH_WALLET_DAPPMAP",
-  "state": "REVIEW_BLOCKED_UPSTREAM_CI_AND_CHAT04_VERSION_SYNC",
-  "cycle": "20260902-1130",
-  "twin_schema_version": "1.1.0",
-  "wallet_matrix_version": "1.1.0",
-  "dappmap_contract_version": "1.1.0",
-  "core_consumer_contract_version": "0.3.13",
-  "handoff03_consumed": "control/evidence-payment/HANDOFF_03.md v0.6.7 SOURCE_PRESERVING_PARENT_CERT_READBACK_VERIFIED",
-  "runtime_stage04_authority": {
-    "handoff": "Drive 1lyxxemsDf0ONnxsFkVOXJ0VMhLiUbhUqc1VZlYC4i9Q v1.6.0 parent recert",
-    "exact_source": "v1.5.0",
-    "package_sha256": "5199a8c9f35a53d4e7d12d8cf744a415e64c1456b5a7b2d3b9d88cba6f53d894",
-    "source_bytes_exposed_to_current_runtime": false
+  "CHAT_ID": "CHAT03",
+  "DOMAIN": "DIGITAL_TWIN_SEARCH_WALLET_DAPPMAP",
+  "TIMESTAMP": "2026-09-02T12:03:31+02:00",
+  "VERSION": "1.1.1",
+  "PARENT_VERSION": "1.1.0",
+  "GIT_SHA": "2e2ca5d158b87f493cc8db83f13b69f42367ce27",
+  "INPUT_VERSIONS": {
+    "GLOBAL_CONTROL_STATE": "control/latest-state.json schema 1.0; observed stale vs newer owner handoffs",
+    "CORE": "0.3.13",
+    "EVIDENCE_PAYMENT": "0.6.7",
+    "CHAT03_PARENT": "1.1.0",
+    "CHAT04_UI": "1.7.0",
+    "CHAT04_TWIN_CONSUMER_PIN": "1.0.0",
+    "CHAT06_HANDOFF": "schema 1.0 ACTIVE_BOOTSTRAP; versioned context pack not yet released",
+    "KNOWLEDGE_MASTER_BLOB": "f6e45315782f42982e5a20aa31318ef6a3663542",
+    "CHAT10_RPC_CONTRACT": "NOT_DISCOVERED"
   },
-  "knowledge_version_consumed": {
-    "authority": "knowledge/cryptoaid_master.json",
-    "git_blob_sha": "f6e45315782f42982e5a20aa31318ef6a3663542",
-    "mode": "DERIVED_CONTEXT_ONLY",
-    "chat06_versioned_context_pack": "NOT_DISCOVERED",
-    "promotion_rule": "CANDIDATE_OR_UNVERIFIED_NEVER_PROMOTED_TO_VERIFIED"
+  "OUTPUT_VERSION": {
+    "TWIN_SCHEMA_VERSION": "1.1.0",
+    "WALLET_MATRIX_VERSION": "1.1.0",
+    "DAPPMAP_CONTRACT_VERSION": "1.1.0",
+    "HANDOFF_VERSION": "1.1.1"
   },
-  "chat10_runtime_contract": "NOT_DISCOVERED_RPC_HEALTH_REMAINS_TO_VERIFY",
-  "chat05_qa_consumed": "HANDOFF_06 Drive 1QsNr--zg5qsnxGJnxz7PgYvrjxE8LHawxdC5sdT0ns0 cycle 20260902-1050",
-  "chat04_consumer_versions": {
-    "source": "frontend/public_html/assets/app.js",
-    "core": "0.3.13",
-    "evidence_payment": "0.6.7",
-    "twin": "1.0.0",
-    "wallet_matrix": "1.0.0",
-    "dappmap": "1.0.0",
-    "ui": "1.7.0",
-    "sync_required_before_merge": true
-  },
-  "drive_persistence": {
-    "chat03_handoff_id": "1T7I1zDof4PeVxRESG4xTtSO54oRDHTMscpjRHxsihNI",
-    "handoff04_id": "1Mplkmv0nYpxkrrVVxirDeT5M8cI8OQgBkqkBMxjIrEU",
-    "workspace_folder_id": "11a3ZqAqywTf817hzylERwKB02E9MtTpP",
-    "readback": "VERIFIED"
-  },
-  "pr": 3,
-  "built": [
-    "Twin read contract now enforces VERIFIED provenance",
-    "numeric facts require source/date/confidence/cache/truth label/version",
-    "ticker/family/alias/chain/contract deterministic resolution",
-    "unknown project returns USER_SUBMITTED_TO_VERIFY and permits Case continuation",
-    "CHAT06 context-pack validator blocks CANDIDATE/UNVERIFIED promotion",
-    "Core v0.3.13 SIC-ID durable-principal/wallet-resource boundary pinned",
-    "EIP-6963 explicit provider selection and fail-closed lifecycle contract",
-    "MetaMask/TokenPocket/Reown target matrix with HUMAN_GATE real-device status",
-    "Polygon137 post-switch chain verification policy",
-    "readable personal_sign and persisted-intent eth_sendTransaction user-confirmation policy",
-    "CHAT10-owned RPC health contract; LIVE forbidden without request-time evidence",
-    "scoped CHAT03 CI workflow prepared",
-    "CHAT03 and HANDOFF_04 persisted to Drive and read back"
+  "STATE": "TESTING",
+  "FILES_CHANGED": [
+    ".github/workflows/chat03-twin-wallet-contract.yml",
+    "chat-handoffs/03-digital-twin-wallet.json"
   ],
-  "tested": [
-    "isolated deterministic CHAT03 harness: 15/15 PASS",
-    "EIP-1193/EIP-6963 official standards fresh-checked",
-    "plugin catalog search: no wallet-browser test plugin found; nothing installed",
-    "global PR CI reached collection but is blocked by pre-existing CHAT01 Core CaseError import regression",
-    "Drive readback verified for CHAT03 handoff and HANDOFF_04"
+  "CONTRACTS_CHANGED": [
+    "Scoped CHAT03 CI now explicitly installs pytest before deterministic contract tests"
   ],
-  "fixed": [
-    "EIP-6963 provider selection is explicit rather than first-provider implicit",
-    "LIVE label now requires FRESH cache/request-time evidence",
-    "wallet connect explicitly cannot substitute SIC-ID authentication",
-    "chain switch requires post-verification to 0x89",
-    "CHAT06 unverified context cannot elevate Twin status",
-    "CHAT03 secret-guard workflow false-positive pattern corrected before merge",
-    "CHAT04 consumer-version drift is explicitly gated"
+  "SCHEMA_CHANGED": false,
+  "BUILT": [
+    "Existing Twin/Search/Wallet/DAPPMAP 1.1.0 delta reused without duplicate authority",
+    "CI dependency guard added to scoped CHAT03 workflow"
   ],
-  "collisions": [
+  "TESTED": [
+    "Previous isolated deterministic CHAT03 harness: 15/15 PASS",
+    "PR #3 scoped compile step PASS",
+    "PR #3 failure root cause verified from Actions logs: pytest missing from runner"
+  ],
+  "TEST_PASS": 16,
+  "TEST_FAIL": 1,
+  "NOT_TESTED": [
+    "Fresh scoped CI after pytest-install fix is pending workflow observation",
+    "Repository-wide CI after upstream Core fix",
+    "MetaMask real device",
+    "TokenPocket real device/mobile",
+    "WalletConnect/Reown real device/QR/deeplink",
+    "real signature",
+    "real transaction",
+    "production deployment"
+  ],
+  "FIXED": [
+    "FAILURE: CHAT03 scoped CI deterministic tests could not start",
+    "ROOT_CAUSE: actions/setup-python does not install pytest and workflow omitted dependency installation",
+    "MINIMAL_FIX: install pytest in CHAT03 workflow before test step",
+    "PERMANENT_GUARD: scoped workflow owns its explicit test dependency instead of assuming runner state"
+  ],
+  "BLOCKERS": [
+    "CHAT04 consumer pins Twin/Wallet/DAPPMAP 1.0.0 while PR #3 proposes 1.1.0; coordinated compatibility/version sync required",
+    "Repository-wide CI has a CHAT01-owned CaseError import regression; CHAT03 will not patch Core",
+    "CHAT06 handoff now exists but no versioned context-pack release is yet published for CHAT03 consumption",
+    "CHAT10 Polygon137 RPC health/provider observability contract not discovered",
+    "Final Stage04/05/06 serial composition and exact-byte QA remain open"
+  ],
+  "DEPENDENCIES": [
+    "CHAT01 Core v0.3.13 public contract and CI health",
+    "CHAT04 UI consumer compatibility with CHAT03 1.1.0",
+    "CHAT06 versioned context pack with provenance/status/version",
+    "CHAT10 RPC health/provider observability contract",
+    "CHAT05 independent QA/release gate"
+  ],
+  "COLLISIONS": [
     "REJECT duplicate Digital Twin authority",
-    "REJECT wallet as durable identity; SIC-ID remains sole principal",
-    "REJECT CHAT03 writes to Core/Case/Evidence/payment/entitlement truth",
-    "REJECT cached RUN020 or derived knowledge relabeled LIVE",
-    "REJECT public_html merge without exact H04/H05 bytes and Stage06 composition",
-    "CHAT04 pins Twin/Wallet/DAPPMAP 1.0.0 while PR #3 proposes 1.1.0; owner compatibility/version sync required before merge"
+    "REJECT wallet as durable identity; SIC-ID remains CHAT01 authority",
+    "REJECT CHAT03 writes to Case/Evidence/payment/entitlement/MASTER/configuration authorities",
+    "CHAT04 current pin 1.0.0 conflicts with proposed CHAT03 1.1.0 until explicit sync"
   ],
-  "blocked": [
-    "main CI is red because core/__init__.py imports CaseError but core/case_engine.py does not expose CaseError; CHAT01-owned source, not patched by CHAT03",
-    "CHAT04 frontend consumer pins Twin/Wallet/DAPPMAP 1.0.0 while PR #3 proposes 1.1.0",
-    "no canonical CHAT06 versioned context-pack handoff discovered",
-    "no canonical CHAT10 RPC/runtime/observability handoff discovered",
-    "exact Stage04 v1.5 runtime package bytes are not exposed to this runtime",
-    "final H04/H05 serial composition and Stage06 exact-byte QA remain open",
-    "MetaMask/TokenPocket/Reown real-device, real signature, real transaction and deploy are HUMAN_GATE"
+  "HUMAN_GATES": [
+    "MetaMask/TokenPocket/Reown physical-device testing",
+    "Any real wallet signature",
+    "Any real transaction/payment",
+    "Production deploy/publication/cutover"
   ],
-  "next": [
-    "CHAT01 restores global CI contract or versions its public import contract",
-    "CHAT04 owner consumes 1.1.0 or publishes explicit backward-compatibility contract",
-    "rerun PR #3 full CI after upstream fixes",
-    "merge PR #3 only after green checks and version sync",
-    "CHAT06 publishes versioned context pack; consume after provenance/status/version validation",
-    "CHAT10 publishes Polygon137 RPC health/provider observability contract",
-    "Stage05/06 serial-compose exact runtime bytes before any public_html cutover"
+  "NEXT": [
+    "Observe fresh scoped CHAT03 CI",
+    "If failure: root-cause -> minimal fix -> test -> regression -> permanent guard",
+    "Consume CHAT06 only after a versioned context-pack release exists; never promote UNVERIFIED/CANDIDATE",
+    "Obtain CHAT10 RPC health contract",
+    "Coordinate CHAT04 1.1.0 consumer compatibility before merge",
+    "Merge PR #3 only after required checks and version sync are green"
   ],
-  "readback_status": "VERIFIED_GITHUB_AND_DRIVE",
-  "go_live": "NO_GO"
+  "GO_NO_GO": "NO_GO",
+  "BACKLOG": {
+    "P1": ["Interactive constellation/world explorer presentation after Golden Journey integration"],
+    "P2": ["Advanced transaction-path visualization"],
+    "P3": ["Cosmetic graph effects"]
+  }
 }
