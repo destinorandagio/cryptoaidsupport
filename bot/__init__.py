@@ -1,0 +1,1 @@
+"""CryptoAID bot package."""
