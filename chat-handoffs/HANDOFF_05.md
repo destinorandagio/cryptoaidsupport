@@ -1,39 +1,32 @@
-# HANDOFF_05 — CRYPTO AID UI/UX/PWA — v2.1.0
+# HANDOFF_05 — CRYPTO AID UI/UX/PWA — v2.1.1
 
-cycle=20260902-1712
+cycle=20260902-1741
 stage=05/06 UI_UX_PWA
 owner=CHAT04_UI_UX_PWA
 growth_owner=CHAT09_GROWTH_MARKETING_PARTNERSHIP
 status=HANDOFF_READY_ENGINEERING_CANDIDATE_NO_GO
 release_state=NO_GO_GLOBAL_AUTHORITY_SERIAL_RUNTIME_QA_GATES
 branch=feat/chat04-sicid-login-freshmain-1642
-parent_main_observed=fd952c591bb1f2c09576458c2a48c70af0c1b814
-runtime_logic_head=7213b4deb44d0be806a9268bfb45944c56511056
+parent_main_observed=b7f5345fdf4fa4de06fe9e1d601aa3d6aa1df843
+ui_version=2.1.0
+pwa_shell_version=2.1.0
+pwa_logic_test_head=fdd180d2244559651a724744325b5f90552972e0
 shared_production_public_html_mutated=NO
 production_MASTER_mutated=NO
 
-## P0 CLOSED IN THIS CYCLE
+## P0 CLOSED IN THIS CYCLE — PWA UPDATE COHERENCE
 
-UI v2.0.0 exposed an explicit SIC-ID LOGIN_OR_RESUME request, but Search and +CASE could still be entered when the runtime projection had no LIVE SIC-ID. That contradicted the Golden Path ordering Landing → SIC-ID/login → Search.
+The security-critical UI 2.1.0 LIVE SIC-ID gate was already CI-green, but `frontend/public_html/sw.js` still used cache namespace `caid-shell-v1.7.0`. An already-installed client could therefore remain on an old shell/app.js until the browser observed a changed service-worker script and completed the update lifecycle.
 
-UI v2.1.0 now consumes the CHAT01/CoreAPI projection fail-closed:
+The candidate now binds the shell cache to UI 2.1.0:
 
-- a usable identity projection requires non-empty `sicId` AND `identityDataState === LIVE`;
-- Search and Case routes are centrally protected;
-- hero Search does not execute a Twin query when the protected route rejects;
-- Case submit re-checks LIVE identity, covering identity/session expiry after entering the wizard;
-- CACHED/TO_VERIFY identity keeps the resume CTA enabled rather than pretending authentication succeeded;
-- when LIVE identity disappears during a state update, protected Search/Case views return to HOME;
-- the UI requests trusted Core `LOGIN_OR_RESUME`; it never creates, validates, refreshes or authenticates SIC-ID itself.
+- `SHELL_VERSION='2.1.0'` and cache `caid-shell-v2.1.0`;
+- install precaches the complete self-contained shell then calls `skipWaiting()`;
+- activate deletes old shell caches and calls `clients.claim()`;
+- `/api/`, `/evidence/` and `/payment` remain excluded from authoritative cache handling;
+- no network asset, tracker, framework or marketing runtime was added.
 
-The request contract remains:
-
-- event: `caid:sicid-login-request`
-- CoreAPI: `1.0.0`
-- action: `LOGIN_OR_RESUME`
-- `requiresLiveSession=true`
-- `callerMayProvideIdentity=false`
-- `walletIsIdentity=false`
+This follows the current Service Worker lifecycle pattern: a byte-changed worker installs as a new version, `skipWaiting()` can activate it immediately, and `clients.claim()` can take control of in-scope clients. Real-browser update behavior is still a factual runtime gate and is not promoted from static/CI evidence.
 
 ## GOLDEN PATH PRESENTATION
 
@@ -43,33 +36,41 @@ Navigation remains HOME | SEARCH | +CASE | RECOVERY | PROFILE. CONNECT WALLET re
 
 ## CONTRACT / SAFETY
 
-- Core 0.3.13; CoreAPI 1.0.0 consumed as request/projection contract only.
+- Core 0.3.13; CoreAPI 1.0.0 consumed only as request/projection authority.
+- Search/+CASE/Case-submit still require non-empty `sicId` + `identityDataState=LIVE`.
 - Twin/Wallet/DAPPMAP accepted migration set remains 1.0.0 / 1.1.0 / 1.2.0.
 - Knowledge Context accepted 1.0.0.
-- Unknown/unsupported/ambiguous project state stays TO_VERIFY; +CASE continuation requires LIVE SIC-ID.
+- Unknown/unsupported/ambiguous project state stays TO_VERIFY; no silent canonical promotion.
 - Evidence/payment remain fail-closed and upstream-authoritative.
-- Frontend tests reject local 50/450/500 POL literals and parallel 100/400/500 USDT Case semantics.
-- No generic signing, real transaction, recovery guarantee, ROI, fake urgency or fake scarcity.
+- No frontend economic truth, generic signing, real transaction, recovery guarantee, ROI, fake urgency or fake scarcity.
 
 ## ENGINEERING EVIDENCE
 
-- Runtime/test head `7213b4deb44d0be806a9268bfb45944c56511056`.
-- GitHub Actions CI run `33647671672`: SUCCESS.
-- PASS steps: checkout, Python setup/dependencies, compile, full pytest, PHP baseline, staging PWA shell package+restore smoke, token scan.
-- Added deterministic regression for LIVE SIC-ID protected routes, non-LIVE resume behavior, Search query suppression and Case submit re-check.
-- Real-origin exact-head browser/PWA: NOT_TESTED.
+- PWA logic/test head `fdd180d2244559651a724744325b5f90552972e0`.
+- GitHub Actions CI `33650534945`: SUCCESS on that exact code/test head.
+- Added deterministic regression for shell-version/UI coherence, prompt activation, old-cache cleanup, client claim, required shell assets and dynamic-truth cache exclusions.
+- Existing LIVE SIC-ID, Twin/TO_VERIFY, wallet, a11y and 390px static contracts remain covered by repository tests.
+- Real-origin exact serial browser/PWA install/update/offline/reconnect: NOT_TESTED.
 
 ## AG COORDINATION
 
-Do not credit stale isolated-head browser results. The shared CHAT04 Antigravity acceptance task must be updated with the UI 2.1.0 assertions, but broad real-origin execution remains HOLD until CHAT00 publishes one exact serial Golden candidate after the global payment-authority quarantine/reconciliation. On that exact serial head Antigravity must test 390x844 + desktop, direct #search/#case without LIVE SIC-ID, CACHED/TO_VERIFY identity, successful LIVE projection, session loss during Search/Case, keyboard/focus, reduced motion, Service Worker install/offline/reconnect and cache/network safety.
+Do not credit isolated PR17 as final release evidence. On the single exact serial Golden SHA published by CHAT00, Antigravity must execute all prior 23 assertions plus:
+
+24. PWA upgrade coherence: start from/seed a prior shell cache state representative of `caid-shell-v1.7.0`, load the new exact serial worker, record registration/install/activate/controller state, prove the old shell cache is removed, `caid-shell-v2.1.0` exists, current `app.js`/UI 2.1 controls the client, warm offline shell works, reconnect does not invent Case/payment/Twin state, and persist browser/OS/commands/cache keys/network-console/screenshots/hashes/timestamp.
+
+No real signing/payment/transaction/deploy is authorized.
+
+## GROWTH
+
+CHAT09 remains v0.4.0. Feature freeze is maintained: HELP_FIRST, EVIDENCE_FIRST, VALUE_BEFORE_CTA, NO_PURCHASE_NEEDED, OFFICIAL_FREE_PATH_FIRST, no fake urgency/scarcity/testimonials, no recovery guarantee, no ROI. No campaign/runtime expansion occurred in this cycle.
 
 ## GLOBAL BLOCKERS
 
-1. Global parallel Case-payment authority/economic collision remains release-blocking until CHAT00/CHAT02/CHAT05 quarantine/reconcile it.
-2. No one exact serial Golden candidate yet.
-3. Real-origin 390px/desktop/PWA install/offline/reconnect evidence absent on final serial head.
-4. CHAT05 full Golden Journey and final CHAT10 package/manifest/backup/restore/rollback absent.
+1. Global Case-payment authority/economic reconciliation remains outside CHAT04 and release-blocking until serial acceptance.
+2. One exact serial Golden candidate has not yet completed independent acceptance.
+3. Real-origin 390px/desktop/a11y/PWA install-update-offline-reconnect evidence is absent on final serial head.
+4. CHAT05 full Golden Journey and CHAT10 final package/manifest/backup/restore/rollback remain pending.
 5. Physical wallet/sign/payment/tx/deploy remain HUMAN_GATE/NOT_TESTED.
 
-GO_NO_GO: NO_GO
+GO_NO_GO: NO_GO_GLOBAL_SERIAL_RUNTIME_QA_GATES
 READBACK_REQUIRED: true
