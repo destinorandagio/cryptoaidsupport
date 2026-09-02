@@ -1,0 +1,33 @@
+{
+  "id": "CRYPTOAID-FORGEJO-001",
+  "owner": "10-devops-infra",
+  "status": "IMPLEMENTED_IN_BRANCH_NEEDS_RUNTIME_VERIFICATION",
+  "branch": "feat/forgejo-integration",
+  "mission": "Add Forgejo as the sovereign Git/control-plane mirror for CryptoAID without disrupting GitHub main during MVP closure.",
+  "architecture": {
+    "canonical_now": "GitHub main",
+    "forgejo_role_now": ["sovereign mirror", "local collaboration", "agent integration target", "future Actions runner control plane"],
+    "promotion_rule": "Forgejo may become canonical only after backup/restore, runner, authentication and branch-protection gates pass."
+  },
+  "runtime_tests_required": [
+    "docker compose config",
+    "docker compose up -d",
+    "Forgejo /api/healthz returns healthy",
+    "admin bootstrap succeeds without secrets committed",
+    "create cryptoaid/cryptoaidsupport target repository",
+    "mirror script transfers main, branches and tags",
+    "fresh clone from Forgejo matches GitHub main HEAD",
+    "backup Forgejo /data and perform restore drill",
+    "verify registration disabled and protected main"
+  ],
+  "security": [
+    "never commit Forgejo tokens or credentials",
+    "HTTPS before public exposure",
+    "2FA for administrators",
+    "least privilege tokens",
+    "firewall/reverse proxy restrictions",
+    "persistent backups and tested restore"
+  ],
+  "next_owner": "Antigravity",
+  "next_action": "Run the runtime tests on the developer host, return factual logs/results, then wire Forgejo Actions runner only after the base service is healthy."
+}
