@@ -5,6 +5,7 @@ Case workflow state but never payment/evidence/entitlement truth.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import uuid
@@ -12,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-VERSION = "1.2"
+VERSION = "1.3"
 SCHEMA_VERSION = "chat01-core-1"
 API_CONTRACT_VERSION = "v1"
 CASE_STATE_VERSION = "1.0"
@@ -110,15 +111,34 @@ class CaseEngine:
             )
 
     @staticmethod
+    def _request_fingerprint(operation: str, payload: dict[str, Any]) -> str:
+        """Hash the logical request, excluding transport-only request_id.
+
+        Fingerprints bind an idempotency key to the authenticated subject and all
+        security-relevant payload fields. Equivalent retries may use a new request_id,
+        but a changed subject, wallet, project or authorization fails closed.
+        """
+        canonical = json.dumps(
+            {"operation": operation, "payload": payload},
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
     def _request_replay(
-        conn: sqlite3.Connection, idempotency_key: str, operation: str
+        conn: sqlite3.Connection,
+        idempotency_key: str,
+        operation: str,
+        request_fingerprint: str,
     ) -> dict[str, Any] | None:
-        """Return the recorded response or fail closed on cross-operation key reuse.
+        """Replay only the same operation and exact logical request.
 
         Callers acquire ``BEGIN IMMEDIATE`` before invoking this helper. That makes
-        the read-and-side-effect sequence deterministic under concurrent retries:
-        the second writer observes the first committed request and replays it rather
-        than producing a duplicate side effect or a late UNIQUE-constraint error.
+        the read-and-side-effect sequence deterministic under concurrent retries.
+        Legacy request rows written before fingerprint binding are deliberately not
+        replayed: failing closed is safer than returning another subject's response.
         """
         row = conn.execute(
             "SELECT response_json,operation FROM core_requests WHERE idempotency_key=?",
@@ -132,7 +152,19 @@ class CaseEngine:
                 "idempotency key already used by another operation",
                 409,
             )
-        return json.loads(row["response_json"])
+        stored = json.loads(row["response_json"])
+        if (
+            not isinstance(stored, dict)
+            or stored.get("idempotency_version") != 1
+            or stored.get("request_fingerprint") != request_fingerprint
+            or not isinstance(stored.get("response"), dict)
+        ):
+            raise CoreError(
+                "IDEMPOTENCY_CONFLICT",
+                "idempotency key payload does not match the original request",
+                409,
+            )
+        return stored["response"]
 
     @staticmethod
     def _record_request(
@@ -141,12 +173,18 @@ class CaseEngine:
         idempotency_key: str,
         request_id: str,
         operation: str,
+        request_fingerprint: str,
         result: dict[str, Any],
         created_at: str,
     ) -> None:
+        stored = {
+            "idempotency_version": 1,
+            "request_fingerprint": request_fingerprint,
+            "response": result,
+        }
         conn.execute(
             "INSERT INTO core_requests VALUES(?,?,?,?,?)",
-            (idempotency_key, request_id, operation, json.dumps(result, sort_keys=True), created_at),
+            (idempotency_key, request_id, operation, json.dumps(stored, sort_keys=True), created_at),
         )
 
     def register_user(
@@ -158,9 +196,14 @@ class CaseEngine:
     ) -> dict:
         if not sic_id:
             raise CoreError("INVALID_SIC_ID", "sic_id required")
+        request_fingerprint = self._request_fingerprint(
+            "register_user", {"sic_id": sic_id, "profile": profile}
+        )
         with self.conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            replay = self._request_replay(conn, idempotency_key, "register_user")
+            replay = self._request_replay(
+                conn, idempotency_key, "register_user", request_fingerprint
+            )
             if replay is not None:
                 conn.execute("COMMIT")
                 return replay
@@ -180,6 +223,7 @@ class CaseEngine:
                 idempotency_key=idempotency_key,
                 request_id=request_id,
                 operation="register_user",
+                request_fingerprint=request_fingerprint,
                 result=result,
                 created_at=now(),
             )
@@ -196,9 +240,15 @@ class CaseEngine:
     ) -> dict:
         if ttl_seconds < 60 or ttl_seconds > 86400:
             raise CoreError("INVALID_SESSION_TTL", "session ttl out of range")
+        request_fingerprint = self._request_fingerprint(
+            "create_session",
+            {"user_id": user_id, "sic_id": sic_id, "ttl_seconds": int(ttl_seconds)},
+        )
         with self.conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            replay = self._request_replay(conn, idempotency_key, "create_session")
+            replay = self._request_replay(
+                conn, idempotency_key, "create_session", request_fingerprint
+            )
             if replay is not None:
                 conn.execute("COMMIT")
                 return replay
@@ -226,6 +276,7 @@ class CaseEngine:
                 idempotency_key=idempotency_key,
                 request_id=request_id,
                 operation="create_session",
+                request_fingerprint=request_fingerprint,
                 result=result,
                 created_at=created.isoformat(),
             )
@@ -277,9 +328,16 @@ class CaseEngine:
         request_id: str,
         idempotency_key: str,
     ) -> dict:
+        normalized_wallet = wallet.lower()
+        request_fingerprint = self._request_fingerprint(
+            "bind_wallet",
+            {"user_id": user_id, "sic_id": sic_id, "wallet": normalized_wallet},
+        )
         with self.conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            replay = self._request_replay(conn, idempotency_key, "bind_wallet")
+            replay = self._request_replay(
+                conn, idempotency_key, "bind_wallet", request_fingerprint
+            )
             if replay is not None:
                 conn.execute("COMMIT")
                 return replay
@@ -288,7 +346,6 @@ class CaseEngine:
                 raise CoreError("USER_NOT_FOUND", "user not found", 404)
             if user["sic_id"] != sic_id:
                 raise CoreError("SIC_ID_MISMATCH", "SIC-ID mismatch", 403)
-            normalized_wallet = wallet.lower()
             existing = conn.execute(
                 "SELECT * FROM core_wallet_bindings WHERE wallet=?",
                 (normalized_wallet,),
@@ -311,6 +368,7 @@ class CaseEngine:
                 idempotency_key=idempotency_key,
                 request_id=request_id,
                 operation="bind_wallet",
+                request_fingerprint=request_fingerprint,
                 result=result,
                 created_at=now(),
             )
@@ -328,16 +386,29 @@ class CaseEngine:
         request_id: str,
         idempotency_key: str,
     ) -> dict:
+        normalized_wallet = wallet.lower() if wallet else None
+        request_fingerprint = self._request_fingerprint(
+            "open_case",
+            {
+                "user_id": user_id,
+                "sic_id": sic_id,
+                "wallet": normalized_wallet,
+                "project_ref": project_ref,
+                "search_hit": bool(search_hit),
+                "actor": actor,
+            },
+        )
         with self.conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            replay = self._request_replay(conn, idempotency_key, "open_case")
+            replay = self._request_replay(
+                conn, idempotency_key, "open_case", request_fingerprint
+            )
             if replay is not None:
                 conn.execute("COMMIT")
                 return replay
             user = conn.execute("SELECT * FROM core_users WHERE user_id=?", (user_id,)).fetchone()
             if not user or user["sic_id"] != sic_id:
                 raise CoreError("UNAUTHORIZED_USER", "user/SIC-ID mismatch", 403)
-            normalized_wallet = wallet.lower() if wallet else None
             if normalized_wallet:
                 binding = conn.execute(
                     "SELECT * FROM core_wallet_bindings WHERE wallet=? AND user_id=? AND status='ACTIVE'",
@@ -395,6 +466,7 @@ class CaseEngine:
                 idempotency_key=idempotency_key,
                 request_id=request_id,
                 operation="open_case",
+                request_fingerprint=request_fingerprint,
                 result=result,
                 created_at=timestamp,
             )
@@ -449,9 +521,23 @@ class CaseEngine:
     ) -> dict:
         if new_state not in STATES:
             raise CoreError("INVALID_STATE", "unknown state")
+        request_fingerprint = self._request_fingerprint(
+            "transition",
+            {
+                "case_id": case_id,
+                "user_id": user_id,
+                "new_state": new_state,
+                "actor": actor,
+                "reason": reason,
+                "authorization": authorization,
+                "expected_version": int(expected_version),
+            },
+        )
         with self.conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            replay = self._request_replay(conn, idempotency_key, "transition")
+            replay = self._request_replay(
+                conn, idempotency_key, "transition", request_fingerprint
+            )
             if replay is not None:
                 conn.execute("COMMIT")
                 return replay
@@ -519,6 +605,7 @@ class CaseEngine:
                 idempotency_key=idempotency_key,
                 request_id=request_id,
                 operation="transition",
+                request_fingerprint=request_fingerprint,
                 result=result,
                 created_at=timestamp,
             )
