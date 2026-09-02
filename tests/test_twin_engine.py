@@ -1,6 +1,7 @@
 import pytest
 
 from twin.contracts import (
+    CHAT06_STATUS_MAP,
     CORE_BOUNDARY,
     CORE_CONSUMER_CONTRACT_VERSION,
     DAPPMAP_CONTRACT,
@@ -75,19 +76,51 @@ def test_live_requires_fresh_request_time_evidence():
         DigitalTwinEngine.provenance("rpc", 1.0, "v1", source_date="2026-09-02", cache_state="STALE", truth_label="LIVE")
 
 
+def _context(engine, status):
+    return engine.consume_context_pack("p1", {
+        "pack_id": f"kp-{status.lower()}",
+        "version": "0.1.0",
+        "status": status,
+        "generated_at": "2026-09-02T09:54:21Z",
+        "provenance": {"source": "CHAT06/HANDOFF_07", "source_date": "2026-09-02"},
+        "payload": {"summary": "derived context"},
+    })
+
+
 def test_chat06_candidate_context_cannot_promote_twin():
     engine = DigitalTwinEngine([TwinRecord("p1", "Alpha", status=TwinStatus.KNOWN)])
-    ctx = engine.consume_context_pack("p1", {
-        "pack_id": "kp-1",
-        "version": "1.2.3",
-        "status": "CANDIDATE",
-        "generated_at": "2026-09-02T09:00:00Z",
-        "provenance": {"source": "CHAT06", "source_date": "2026-09-02"},
-        "payload": {"summary": "candidate context"},
-    })
+    ctx = _context(engine, "CANDIDATE")
     assert ctx["status"] == "TO_VERIFY"
     assert ctx["truth_label"] == "TO_VERIFY"
     assert engine.resolve_one("Alpha").status == TwinStatus.KNOWN
+
+
+@pytest.mark.parametrize("source_status", [
+    "UNVERIFIED", "ANALYSIS", "COMMUNITY_REPORT", "CONTRADICTED",
+    "DRAFT", "UNRESOLVED", "CONFLICT",
+])
+def test_chat06_nonverified_or_conflicted_states_fail_closed(source_status):
+    engine = DigitalTwinEngine([TwinRecord("p1", "Alpha", status=TwinStatus.KNOWN)])
+    ctx = _context(engine, source_status)
+    assert ctx["source_status"] == source_status
+    assert ctx["status"] == "TO_VERIFY"
+    assert ctx["truth_label"] == "TO_VERIFY"
+    assert engine.resolve_one("Alpha").status == TwinStatus.KNOWN
+
+
+def test_chat06_verified_supported_context_remains_derived_not_twin_promotion():
+    engine = DigitalTwinEngine([TwinRecord("p1", "Alpha", status=TwinStatus.KNOWN)])
+    verified = _context(engine, "VERIFIED")
+    supported = _context(engine, "SUPPORTED")
+    assert verified["status"] == "VERIFIED" and verified["truth_label"] == "DERIVED"
+    assert supported["status"] == "SUPPORTED" and supported["truth_label"] == "DERIVED"
+    assert engine.resolve_one("Alpha").status == TwinStatus.KNOWN
+
+
+def test_legacy_manifest_verification_levels_are_compatibility_mapped():
+    assert CHAT06_STATUS_MAP["VERIFIED_PRIMARY_SOURCE"] == "VERIFIED"
+    assert CHAT06_STATUS_MAP["HIGH_CONFIDENCE"] == "SUPPORTED"
+    assert CHAT06_STATUS_MAP["OBSOLETE"] == "UNKNOWN"
 
 
 def test_chat06_pack_requires_version_status_and_provenance():
