@@ -1,0 +1,18 @@
+{
+  "version":"1.0",
+  "chat":"CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT",
+  "evidence_version":"1.0",
+  "payment_version":"1.0",
+  "entitlement_version":"1.0",
+  "treasury_config_version":"1.0",
+  "authority":"BLOCKCHAINPLUS-MASTER.sqlite runtime path; additive tables only",
+  "built":["evidence_payment/engine.py","private evidence storage guard","SHA-256 metadata and immutable version lineage","payment intent/state machine","two-provider agreement gate","tx uniqueness/replay guard","append-only entitlement ledger","versioned treasury config up to 100 IDs with multiple ACTIVE","tests/test_evidence_payment.py"],
+  "tested":["test suite committed; CI pending for current HEAD"],
+  "adversarial_tested":["wrong chain","provider disagreement","duplicate tx different Case","MIME mismatch","oversized evidence","unauthorized evidence","double settlement/idempotency"],
+  "fixed":[],
+  "manual_review":["verification mismatch","provider disagreement","duplicate/replayed tx","ambiguous payment"],
+  "blocked":["CHAT01 Case contract is being materialized concurrently and must be reconciled before E2E","CHAT08 admin treasury proposal contract not persisted yet","CHAT10 provider/runtime config not persisted yet","no real payment performed"],
+  "dependencies":["CHAT01 case authority","CHAT08 admin/config","CHAT10 provider runtime","CHAT05 adversarial release verification"],
+  "next":["run CI","reconcile Case activation contract with CHAT01","bind runtime provider adapters without embedding secrets","HANDOFF_03"],
+  "go_live":"NO_GO"
+}
