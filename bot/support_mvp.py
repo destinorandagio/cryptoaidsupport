@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -20,6 +21,11 @@ _SECRET_PATTERNS = (
     re.compile(r"\b(?:0x)?[0-9a-f]{64}\b", re.I),
 )
 _OFFICIAL_LINKS_PATH = Path(__file__).resolve().parents[1] / "knowledge" / "canonical" / "official_links.json"
+_SAFE_NOTIFICATION_COPY = {
+    "STATUS_CHANGED": "Your CryptoAID Case status changed. Open the official app to view the current status.",
+    "ACTION_REQUIRED": "Your CryptoAID Case has a new action. Open the official app to view the next action.",
+    "MANUAL_REVIEW": "Your CryptoAID Case is under human review. Open the official app for the current status.",
+}
 
 
 class SupportRejected(ValueError):
@@ -32,6 +38,22 @@ class SupportRequest:
     category: str
     summary: str
     escalate: bool
+
+
+@dataclass(frozen=True)
+class SafeCaseNotification:
+    """Minimized notification command for an owner-authorized transport adapter.
+
+    It intentionally carries no Evidence, SIC-ID, wallet, payment details or free-form
+    user text. ``idempotency_key`` is deterministic for the Case/event/version tuple so
+    a durable transport owner can deduplicate retries without creating a CHAT07 DB.
+    """
+
+    case_id: str
+    event_type: str
+    case_version: int
+    message: str
+    idempotency_key: str
 
 
 def contains_secret(text: str) -> bool:
@@ -124,6 +146,41 @@ def build_case_support_request(
     if contains_secret(summary):
         raise SupportRejected("secret_or_credential_detected")
     return SupportRequest(case_id=case_id, category=category, summary=summary, escalate=bool(escalate))
+
+
+def build_safe_case_notification(
+    *,
+    case_id: str,
+    event_type: str,
+    case_version: int,
+    requester_is_case_owner: bool,
+) -> SafeCaseNotification:
+    """Build a privacy-minimized, deterministic notification command.
+
+    CHAT07 never decides Case truth. ``event_type`` and ``case_version`` must come
+    from the authoritative Case adapter, and the adapter must provide an owner verdict.
+    The returned key is only a dedupe contract; durable delivery state belongs to the
+    transport/infrastructure owner, not to a second CHAT07 database.
+    """
+    if not requester_is_case_owner:
+        raise SupportRejected("unauthorized_case_notification")
+    case_id = (case_id or "").strip()
+    event_type = (event_type or "").strip().upper()
+    if not case_id or len(case_id) > 128:
+        raise SupportRejected("invalid_case_id")
+    if event_type not in _SAFE_NOTIFICATION_COPY:
+        raise SupportRejected("unsupported_notification_event")
+    if isinstance(case_version, bool) or not isinstance(case_version, int) or case_version < 1:
+        raise SupportRejected("invalid_case_version")
+    canonical = f"{case_id}|{event_type}|{case_version}".encode("utf-8")
+    idempotency_key = "support-notify-" + hashlib.sha256(canonical).hexdigest()
+    return SafeCaseNotification(
+        case_id=case_id,
+        event_type=event_type,
+        case_version=case_version,
+        message=_SAFE_NOTIFICATION_COPY[event_type],
+        idempotency_key=idempotency_key,
+    )
 
 
 class RateLimiter:
