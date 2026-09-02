@@ -6,6 +6,7 @@ from bot.support_mvp import (
     RateLimiter,
     SupportRejected,
     build_case_support_request,
+    build_safe_case_notification,
     contains_secret,
     load_official_links,
     render_official_links,
@@ -35,6 +36,45 @@ def test_case_support_is_ephemeral_minimized_command():
     assert request.escalate is True
     assert not hasattr(request, "evidence")
     assert not hasattr(request, "sic_id")
+
+
+def test_safe_case_notification_requires_owner_and_allowlisted_event():
+    with pytest.raises(SupportRejected, match="unauthorized_case_notification"):
+        build_safe_case_notification(
+            case_id="CASE-1", event_type="STATUS_CHANGED", case_version=2, requester_is_case_owner=False
+        )
+    with pytest.raises(SupportRejected, match="unsupported_notification_event"):
+        build_safe_case_notification(
+            case_id="CASE-1", event_type="EVIDENCE_CONTENT", case_version=2, requester_is_case_owner=True
+        )
+
+
+def test_safe_case_notification_is_minimized_and_deterministic():
+    first = build_safe_case_notification(
+        case_id="CASE-123", event_type="ACTION_REQUIRED", case_version=7, requester_is_case_owner=True
+    )
+    retry = build_safe_case_notification(
+        case_id="CASE-123", event_type="ACTION_REQUIRED", case_version=7, requester_is_case_owner=True
+    )
+    later = build_safe_case_notification(
+        case_id="CASE-123", event_type="ACTION_REQUIRED", case_version=8, requester_is_case_owner=True
+    )
+    assert retry == first
+    assert later.idempotency_key != first.idempotency_key
+    assert first.idempotency_key.startswith("support-notify-")
+    assert "official app" in first.message
+    assert not hasattr(first, "evidence")
+    assert not hasattr(first, "sic_id")
+    assert not hasattr(first, "wallet")
+    assert not hasattr(first, "payment")
+
+
+def test_safe_case_notification_rejects_invalid_version():
+    for version in (0, -1, True, "2"):
+        with pytest.raises(SupportRejected, match="invalid_case_version"):
+            build_safe_case_notification(
+                case_id="CASE-1", event_type="STATUS_CHANGED", case_version=version, requester_is_case_owner=True
+            )
 
 
 def test_rate_limiter_fails_closed_at_limit_and_recovers_after_window():
