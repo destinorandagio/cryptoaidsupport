@@ -1,17 +1,15 @@
-name: Community Bot
+name: Community Bot Smoke Test
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/10 * * * *'
 permissions:
   contents: read
 concurrency:
-  group: cryptoaid-community-bot
+  group: cryptoaid-community-bot-smoke
   cancel-in-progress: true
 jobs:
-  community:
+  smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,9 +17,9 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Serve Telegram updates safely for this window
+      - name: Start Telegram polling briefly for controlled diagnostics only
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_GROUP: '@cryptoAIDsupporter'
           TELEGRAM_CHANNEL: '@cryptoaidsup'
-        run: timeout 8m python bot/main.py || code=$?; if [ "${code:-0}" = "124" ]; then exit 0; else exit "${code:-0}"; fi
+        run: timeout 90s python bot/main.py || code=$?; if [ "${code:-0}" = "124" ]; then exit 0; else exit "${code:-0}"; fi

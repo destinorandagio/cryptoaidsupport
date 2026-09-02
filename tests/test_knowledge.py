@@ -10,7 +10,7 @@ def test_about_it():
     text, confidence, source = answer("Cos'è CryptoAID?", "it")
     assert "CryptoAID" in text
     assert confidence >= 0.28
-    assert source in {"master", "faq"}
+    assert source in {"canonical-master", "canonical-faq", "legacy-master", "legacy-faq"}
 
 
 def test_security_en():

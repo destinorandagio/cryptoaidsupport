@@ -1,27 +1,23 @@
-name: Telegram Publisher
+name: Telegram Community Engagement
 on:
   workflow_dispatch:
     inputs:
-      destination:
-        required: true
-        default: channel
+      language:
         type: choice
-        options: [channel, group]
+        options: [en, it]
+        default: en
       live:
-        required: true
-        default: false
         type: boolean
+        default: false
   schedule:
-    - cron: '15 7 * * *'
-    - cron: '15 11 * * *'
-    - cron: '15 18 * * *'
+    - cron: '20 15 * * *'
 permissions:
   contents: read
 concurrency:
-  group: cryptoaid-publisher
+  group: cryptoaid-community-engagement
   cancel-in-progress: false
 jobs:
-  publish:
+  poll:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -31,17 +27,20 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Select and publish
+      - name: Publish native community poll
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_GROUP: '@cryptoAIDsupporter'
-          TELEGRAM_CHANNEL: '@cryptoaidsup'
+        shell: bash
         run: |
-          DEST="channel"
-          LIVE=""
+          LANG=en
+          LIVE="--live"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            DEST="${{ inputs.destination }}"
+            LANG="${{ inputs.language }}"
+            LIVE=""
             if [ "${{ inputs.live }}" = "true" ]; then LIVE="--live"; fi
+          else
+            DOW=$(date -u +%u)
+            if [ $((DOW % 2)) -eq 0 ]; then LANG=it; fi
           fi
-          if [ "${{ github.event_name }}" = "schedule" ]; then LIVE="--live"; fi
-          python bot/content_engine.py --destination "$DEST" $LIVE
+          python -m bot.engagement_publisher --language "$LANG" $LIVE
