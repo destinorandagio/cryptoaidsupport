@@ -1,16 +1,21 @@
 {
-  "schema_version":"1.0",
+  "schema_version":"1.1",
+  "reconciled_at":"2026-09-02T12:12:00+02:00",
   "qa_cycle":"20260902-1150",
-  "source_head_under_test":"3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
+  "qa_source_head_under_test":"3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
+  "current_main_head_observed":"a42d288240d0dd49dacde339ddfdf99b44674306",
+  "current_main_ci_run":33617911438,
   "release_state":"NO_GO",
   "blockers":[
-    {"id":"QA05-P0-001","severity":"P0","owner":"CHAT01_CORE_CASE","state":"OPEN","evidence":"CI run 33616748051 fails pytest collection; core/__init__.py imports CaseError but core/case_engine.py defines CoreError only."},
-    {"id":"QA05-P0-002","severity":"P0","owner":"GLOBAL_SYNC","state":"OPEN_PARTIAL","evidence":"CHAT06 HANDOFF_07 v0.1.0 ACTIVE_BOOTSTRAP is now present; CHAT07/08/09/10 canonical release handoffs remain absent; CHAT06 has no concrete release delta certificate yet."},
-    {"id":"QA05-P0-003","severity":"P0","owner":"CHAT03_CHAT04","state":"OPEN","evidence":"PR #3 open/unmerged proposes Twin/Wallet/DAPPMAP 1.1.0; current main UI consumes 1.0.0."},
-    {"id":"QA05-P0-004","severity":"P0","owner":"CHAT00_CHAT10","state":"OPEN","evidence":"No final serial package SHA, all-file upload manifest SHA, rollback SHA, production restore certificate or final clean public_html certificate."},
-    {"id":"QA05-P0-005","severity":"P0","owner":"CROSS_DOMAIN","state":"OPEN","evidence":"Final first/returning-user Golden Journey, real-origin PWA, Evidence Pack, Admin and Telegram paths are NOT_TESTED."},
-    {"id":"QA05-P1-006","severity":"P1","owner":"CHAT10","state":"OPEN","evidence":"tests.yml runs Telegram token grep after pytest; run 158 skipped it. Regex does not cover full release secret/PII/private-Evidence/DB/dev-artifact policy."},
-    {"id":"QA05-P1-007","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","evidence":"main protected=false; required status checks disabled."},
-    {"id":"QA05-P1-008","severity":"P1","owner":"CHAT00","state":"OPEN","evidence":"control/latest-state.json and prior release-state.json reference obsolete successful CI head e365199... while current source head is red."}
+    {"id":"QA05-P0-001","severity":"P0","owner":"CHAT01_CORE_CASE","state":"OPEN","evidence":"Current main CI run 33617911438 fails pytest collection: core/__init__.py imports CaseError but core/case_engine.py does not export it. Compile passes; pytest fails before test execution; token/secret grep is skipped."},
+    {"id":"QA05-P0-002","severity":"P0","owner":"GLOBAL_SYNC","state":"OPEN_PARTIAL","evidence":"CHAT06 v0.2.0, CHAT07 v0.1.0 and CHAT08 v0.1 persisted after the :50 QA snapshot. CHAT09 and CHAT10 current machine handoffs remain absent. QA05's earlier CHAT07/08 absence statement is superseded only for those two verticals."},
+    {"id":"QA05-P0-003","severity":"P0","owner":"CHAT03_CHAT04","state":"OPEN","evidence":"PR #3 remains open/unmerged with proposed CHAT03 Twin/Wallet/DAPPMAP 1.1.0 while main/CHAT04 consumer lineage still pins 1.0.0. Isolated CHAT03 contract tests pass but repository CI is red; no serial compatibility certificate exists for the final consumer tuple."},
+    {"id":"QA05-P0-004","severity":"P0","owner":"CHAT00_CHAT10","state":"OPEN","evidence":"No final serial deploy package SHA, deterministic all-file upload manifest SHA, rollback SHA, production restore certificate or final clean public_html certificate. CHAT10 current machine handoff is absent."},
+    {"id":"QA05-P0-005","severity":"P0","owner":"CROSS_DOMAIN","state":"OPEN","evidence":"Final first/returning-user Golden Journey, real-origin PWA, private Evidence, payment-finality, Evidence Pack, Admin and release-impacting Telegram support paths are not proven end-to-end on one final composed runtime."},
+    {"id":"ORCH-P0-006","severity":"P0","owner":"CHAT00_CHAT02_CHAT03_CHAT04","state":"OPEN","evidence":"Version namespaces are not explicitly mapped for final composition: Drive factory Stage03 certificate v0.6.7 versus repo CHAT02 handoff/engine 1.0.x are distinct namespaces, while CHAT03 1.0/main vs 1.1/PR3 is a real consumer-version delta. No silent downgrade or cross-namespace substitution is allowed."},
+    {"id":"QA05-P1-006","severity":"P1","owner":"CHAT10","state":"OPEN","evidence":"tests.yml runs Telegram token grep only after pytest; current run 33617911438 skips it because pytest collection fails. Existing regex is not a complete release secret/PII/private-Evidence/DB/dev-artifact scan."},
+    {"id":"QA05-P1-007","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","evidence":"main branch protection/status-check policy remains unproven for release use."},
+    {"id":"QA05-P1-008","severity":"P1","owner":"CHAT00","state":"FIXED_BY_RECONCILIATION","evidence":"Control plane now records current red main head/CI instead of historical green CI. Future commits must continue CAS/readback reconciliation because factories commit concurrently."},
+    {"id":"ORCH-P1-009","severity":"P1","owner":"CHAT07_CHAT06","state":"OPEN_NONRELEASE","evidence":"Legacy chat-handoffs/HANDOFF_07.md contains CHAT06 content; machine JSON 07-telegram-community-support.json is the current CHAT07 input. Do not rename/delete historical file during release orchestration; machine handoff wins for current vertical sync."}
   ]
 }
