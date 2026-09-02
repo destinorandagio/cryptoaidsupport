@@ -21,8 +21,18 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -r requirements-dev.txt
-      - run: python -m compileall bot
-      - run: pytest -q
+      - name: Compile runtime Python
+        run: python -m compileall bot core twin evidence_payment runtime
+      - name: Run pytest with diagnostic artifact
+        run: pytest -q --junitxml="$RUNNER_TEMP/pytest-results.xml"
+      - name: Upload pytest failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-failure-${{ github.sha }}
+          path: ${{ runner.temp }}/pytest-results.xml
+          if-no-files-found: warn
+          retention-days: 2
       - name: Fail closed on parallel MVP Case-payment authority, manifest leakage and deployer bypass
         run: python scripts/check_mvp_authority.py web3/deploy/deployment-plan.json --manifest web3/deploy/polygon-mainnet-manifest.json --deployer web3/deploy/index.html --exporter web3/scripts/export-deploy-bundle.js
       - name: Verify GitHub runner MVP PHP baseline
