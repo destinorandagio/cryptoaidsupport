@@ -8,19 +8,22 @@ from telegram.ext import Application, CallbackQueryHandler, CommandHandler, Cont
 from moderation import classify_message
 from knowledge_engine import answer as knowledge_answer, detect_language
 from acquisition_engine import assess, next_step
-from support_mvp import RateLimiter, SupportRejected, contains_secret, render_official_links
-from ai_provider import AIUnavailable, synthesize
+from support_mvp import SupportRejected, contains_secret, render_official_links
+from telegram_private_support import TelegramPrivateSupportRejected, TelegramPrivateSupportRuntime
+from telegram_rate_policy import TelegramRateGate
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("cryptoaid")
 GROUP = os.getenv("TELEGRAM_GROUP", "@cryptoAIDsupporter")
 CHANNEL = os.getenv("TELEGRAM_CHANNEL", "@cryptoaidsup")
-SUPPORT_RATE_LIMITER = RateLimiter(limit=6, window_seconds=60)
+SUPPORT_RATE_GATE = TelegramRateGate(user_limit=6, chat_limit=18, minute_window_seconds=60, burst_limit=1, burst_window_seconds=1.0)
+_PRIVATE_SUPPORT_RUNTIME = None
+_PRIVATE_SUPPORT_INIT_ATTEMPTED = False
 
 TEXT = {
  "en": {
   "welcome": "👋 Welcome to CryptoAID Support.\n\n🛡 Never share seed phrases, private keys, passwords or 2FA codes.\n\nAsk about CryptoAID, Web3 safety, scams, wallets, blockchain, dead dApps/tokens or recovery. If you describe a real incident, I can help structure the public evidence needed for a CryptoAID Case.",
-  "help": "🆘 CryptoAID Support\n/about — What is CryptoAID?\n/services — Services\n/ask <question> — Ask CryptoAID\n/security — Security guide\n/scam — Scam safety\n/recovery — Recovery safety\n/case — Case pre-assessment\n/checklist — Scam emergency checklist\n/support — Get help\n/report — Report suspicious activity\n/links — Official links\n/language — Language",
+  "help": "🆘 CryptoAID Support\n/about — What is CryptoAID?\n/services — Services\n/ask <question> — Ask CryptoAID\n/security — Security guide\n/scam — Scam safety\n/recovery — Recovery safety\n/case — Case pre-assessment\n/link <code> — Link private Case support (DM only)\n/mycase <Case ID> — Private Case status (DM only)\n/checklist — Scam emergency checklist\n/support — Get help\n/report — Report suspicious activity\n/links — Official links\n/language — Language",
   "security": "🛡 SECURITY FIRST\n• Never share seed/private keys.\n• Verify domains and usernames.\n• Treat unsolicited DMs as suspicious.\n• Read wallet signature requests before approving.\n• No legitimate CryptoAID admin needs your wallet secret.",
   "support": "🧭 Tell us what you need without posting passwords, seed phrases, private keys or sensitive credentials. Case-linked private status is available only after authenticated Case-owner authorization; this bot does not expose private Evidence. If the knowledge base cannot answer safely, human review is recommended.",
   "report": "🚨 Report only public, non-secret evidence: username, public address/transaction hash, public URL and what happened. Never post credentials or seed phrases.",
@@ -29,7 +32,7 @@ TEXT = {
  },
  "it": {
   "welcome": "👋 Benvenuto in CryptoAID Support.\n\n🛡 Non condividere mai seed phrase, chiavi private, password o codici 2FA.\n\nChiedimi di CryptoAID, sicurezza Web3, scam, wallet, blockchain, dApp/token morti o recovery. Se descrivi un incidente reale, posso aiutarti a strutturare le evidenze pubbliche necessarie per un Case CryptoAID.",
-  "help": "🆘 Supporto CryptoAID\n/about — Cos'è CryptoAID?\n/services — Servizi\n/ask <domanda> — Chiedi a CryptoAID\n/security — Guida sicurezza\n/scam — Sicurezza scam\n/recovery — Recovery sicuro\n/case — Pre-assessment Case\n/checklist — Checklist emergenza scam\n/support — Assistenza\n/report — Segnala attività sospetta\n/links — Link ufficiali\n/language — Lingua",
+  "help": "🆘 Supporto CryptoAID\n/about — Cos'è CryptoAID?\n/services — Servizi\n/ask <domanda> — Chiedi a CryptoAID\n/security — Guida sicurezza\n/scam — Sicurezza scam\n/recovery — Recovery sicuro\n/case — Pre-assessment Case\n/link <codice> — Collega supporto Case privato (solo DM)\n/mycase <Case ID> — Stato Case privato (solo DM)\n/checklist — Checklist emergenza scam\n/support — Assistenza\n/report — Segnala attività sospetta\n/links — Link ufficiali\n/language — Lingua",
   "security": "🛡 SECURITY FIRST\n• Non condividere seed/chiavi private.\n• Verifica domini e username.\n• Considera sospetti i DM non richiesti.\n• Leggi le richieste di firma del wallet prima di approvarle.\n• Nessun admin CryptoAID legittimo necessita dei segreti del tuo wallet.",
   "support": "🧭 Scrivi cosa ti serve senza pubblicare password, seed phrase, chiavi private o credenziali sensibili. Lo stato privato collegato a un Case è disponibile solo dopo autorizzazione autenticata del proprietario del Case; il bot non espone Evidence privata. Se la knowledge non può rispondere in sicurezza, è raccomandata la revisione umana.",
   "report": "🚨 Segnala solo prove pubbliche e non segrete: username, address/transaction hash pubblico, URL pubblico e descrizione. Mai credenziali o seed phrase.",
@@ -38,9 +41,11 @@ TEXT = {
  }
 }
 
+
 def user_lang(update: Update) -> str:
     code = (update.effective_user.language_code or "en").lower() if update.effective_user else "en"
     return "it" if code.startswith("it") else "en"
+
 
 def keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
@@ -49,105 +54,212 @@ def keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🇮🇹 Italiano", callback_data="lang_it"), InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
     ])
 
+
+def private_support_runtime():
+    global _PRIVATE_SUPPORT_RUNTIME, _PRIVATE_SUPPORT_INIT_ATTEMPTED
+    if _PRIVATE_SUPPORT_INIT_ATTEMPTED:
+        return _PRIVATE_SUPPORT_RUNTIME
+    _PRIVATE_SUPPORT_INIT_ATTEMPTED = True
+    try:
+        _PRIVATE_SUPPORT_RUNTIME = TelegramPrivateSupportRuntime.from_env()
+    except TelegramPrivateSupportRejected:
+        _PRIVATE_SUPPORT_RUNTIME = None
+        log.warning("private_case_support_unavailable")
+    return _PRIVATE_SUPPORT_RUNTIME
+
+
+def telegram_principal(update: Update) -> str:
+    if not update.effective_user:
+        raise TelegramPrivateSupportRejected("private_support_failed")
+    return f"telegram:{update.effective_user.id}"
+
+
 async def rate_guard(update: Update) -> bool:
     user_id = update.effective_user.id if update.effective_user else "anon"
     chat_id = update.effective_chat.id if update.effective_chat else "nochat"
-    if SUPPORT_RATE_LIMITER.allow(f"{chat_id}:{user_id}"):
-        return True
-    await update.effective_message.reply_text("⏳ Too many requests. Try again shortly. / Troppe richieste. Riprova tra poco.")
-    return False
+    allowed = SUPPORT_RATE_GATE.allow(chat_id=chat_id, user_id=user_id)
+    if not allowed:
+        log.warning("telegram_rate_limit chat=%s user=%s", chat_id, user_id)
+    return allowed
 
-async def send_key(update: Update, key: str, forced_lang=None):
+
+async def send_key(update: Update, key: str, forced_lang=None, *, rate_checked: bool = False):
+    if not rate_checked and not await rate_guard(update):
+        return
     language = forced_lang or user_lang(update)
     await update.effective_message.reply_text(TEXT[language].get(key, TEXT[language]["help"]), reply_markup=keyboard() if key in {"welcome", "help"} else None)
+
 
 async def start(update, context): await send_key(update, "welcome")
 async def help_cmd(update, context): await send_key(update, "help")
 async def security(update, context): await send_key(update, "security")
 async def scam(update, context): await send_key(update, "security")
-async def support(update, context):
-    if await rate_guard(update): await send_key(update, "support")
-async def report(update, context):
-    if await rate_guard(update): await send_key(update, "report")
+async def support(update, context): await send_key(update, "support")
+async def report(update, context): await send_key(update, "report")
 async def checklist(update, context): await send_key(update, "checklist")
-async def case_cmd(update, context):
-    if await rate_guard(update): await send_key(update, "case")
+async def case_cmd(update, context): await send_key(update, "case")
 
-async def ask_text(update: Update, question: str):
+
+async def link_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await rate_guard(update):
+        return
+    if not update.effective_chat or update.effective_chat.type != "private":
+        await update.effective_message.reply_text("Private Case linking is available only in a direct chat with this bot. / Il collegamento Case privato è disponibile solo in chat diretta con il bot.")
+        return
+    if len(context.args) != 1:
+        await update.effective_message.reply_text("Use /link <code> in this private chat. / Usa /link <codice> in questa chat privata.")
+        return
+    runtime = private_support_runtime()
+    if runtime is None:
+        await update.effective_message.reply_text("Private Case support is temporarily unavailable. Public help remains available. / Il supporto Case privato è temporaneamente non disponibile; l'assistenza pubblica resta attiva.")
+        return
+    try:
+        token = runtime.bind(
+            telegram_principal=telegram_principal(update),
+            link_code=context.args[0],
+        )
+    except TelegramPrivateSupportRejected:
+        await update.effective_message.reply_text("Private Case authorization failed. Create a new link from the CryptoAID DApp and try again. / Autorizzazione Case privata non riuscita: crea un nuovo link dalla DApp CryptoAID.")
+        return
+    context.user_data["support_session_id"] = token
+    await update.effective_message.reply_text("✅ Private Case support linked for this bot session. Use /mycase <Case ID>. / Supporto Case privato collegato per questa sessione bot: usa /mycase <Case ID>.")
+
+
+async def mycase(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await rate_guard(update):
+        return
+    if not update.effective_chat or update.effective_chat.type != "private":
+        await update.effective_message.reply_text("Private Case status is available only in a direct chat with this bot. / Lo stato Case privato è disponibile solo in chat diretta con il bot.")
+        return
+    if len(context.args) != 1:
+        await update.effective_message.reply_text("Use /mycase <Case ID>. / Usa /mycase <Case ID>.")
+        return
+    token = context.user_data.get("support_session_id")
+    runtime = private_support_runtime()
+    if not isinstance(token, str) or not token or runtime is None:
+        await update.effective_message.reply_text("Private Case authorization is not active. Create a fresh DApp support link first. / Autorizzazione Case privata non attiva: crea prima un nuovo link supporto dalla DApp.")
+        return
+    try:
+        verdict = runtime.case_status(
+            telegram_principal=telegram_principal(update),
+            support_session_id=token,
+            case_id=context.args[0],
+        )
+    except TelegramPrivateSupportRejected:
+        context.user_data.pop("support_session_id", None)
+        await update.effective_message.reply_text("Private Case authorization failed or expired. Re-link from the CryptoAID DApp. / Autorizzazione Case privata non riuscita o scaduta: ricollega dalla DApp CryptoAID.")
+        return
+    await update.effective_message.reply_text(
+        f"🔐 Case owner verified. State: {verdict['case_state']} · Version: {verdict['case_version']}. No private Evidence is sent to Telegram."
+    )
+
+
+async def ask_text(update: Update, question: str, *, rate_checked: bool = False):
+    if not rate_checked and not await rate_guard(update):
+        return
     if not question.strip():
-        await update.effective_message.reply_text("Ask a question after /ask. / Scrivi una domanda dopo /ask."); return
+        await update.effective_message.reply_text("Ask a question after /ask. / Scrivi una domanda dopo /ask.")
+        return
     if contains_secret(question):
-        await update.effective_message.reply_text("🚫 Secret or credential-like material detected. Do not send seed phrases, private keys, passwords or 2FA/OTP codes. / Rilevato materiale segreto o credenziali: non inviarlo."); return
-    if not await rate_guard(update): return
+        await update.effective_message.reply_text("🚫 Secret or credential-like material detected. Do not send seed phrases, private keys, passwords or 2FA/OTP codes. / Rilevato materiale segreto o credenziali: non inviarlo.")
+        return
     language = detect_language(question)
     intent = assess(question, ["dm_reply"] if update.effective_chat.type == "private" else [])
     if intent.safety_risk:
-        await update.effective_message.reply_text(next_step(intent, language)); return
-    text, confidence, source = knowledge_answer(question, language)
-    if source != "escalation" and confidence > 0:
-        try:
-            ai = await synthesize(verified_context=text, user_message=question, language=language)
-            text = ai.text
-            log.info("ai_synthesis provider=%s model=%s", ai.provider, ai.model)
-        except AIUnavailable as exc:
-            log.info("ai_fallback reason=%s", exc)
-    await update.effective_message.reply_text(text)
-    if intent.case_intent:
         await update.effective_message.reply_text(next_step(intent, language))
+        return
+    text, confidence, source = knowledge_answer(question, language)
+    if intent.case_intent:
+        text = f"{text}\n\n{next_step(intent, language)}"
+    await update.effective_message.reply_text(text)
     log.info("knowledge_answer source=%s confidence=%.2f stage=%s score=%d", source, confidence, intent.stage, intent.score)
+
 
 async def ask_cmd(update, context): await ask_text(update, " ".join(context.args))
 async def about(update, context): await ask_text(update, "Cos'è CryptoAID?" if user_lang(update)=="it" else "What is CryptoAID?")
 async def services(update, context): await ask_text(update, "Quali servizi offre CryptoAID?" if user_lang(update)=="it" else "What services does CryptoAID provide?")
 async def recovery(update, context): await ask_text(update, "Come funziona il recovery CryptoAID?" if user_lang(update)=="it" else "How does CryptoAID recovery work?")
+
+
 async def links(update, context):
+    if not await rate_guard(update):
+        return
     try:
         body = render_official_links(user_lang(update))
     except SupportRejected as exc:
         log.error("official_links rejected reason=%s", exc)
         body = "Official links are temporarily unavailable; do not trust unverified links. / Link ufficiali temporaneamente non disponibili: non fidarti di link non verificati."
     await update.effective_message.reply_text(body, disable_web_page_preview=True)
-async def language(update, context): await update.effective_message.reply_text("Choose language / Scegli lingua", reply_markup=keyboard())
+
+
+async def language(update, context):
+    if await rate_guard(update):
+        await update.effective_message.reply_text("Choose language / Scegli lingua", reply_markup=keyboard())
+
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    q=update.callback_query; await q.answer(); lang=user_lang(update)
-    if q.data=="lang_it": await q.message.reply_text(TEXT["it"]["welcome"], reply_markup=keyboard())
-    elif q.data=="lang_en": await q.message.reply_text(TEXT["en"]["welcome"], reply_markup=keyboard())
-    elif q.data in ("security","support","checklist","case"): await q.message.reply_text(TEXT[lang][q.data])
+    q = update.callback_query
+    await q.answer()
+    if not await rate_guard(update):
+        return
+    lang = user_lang(update)
+    if q.data == "lang_it":
+        await q.message.reply_text(TEXT["it"]["welcome"], reply_markup=keyboard())
+    elif q.data == "lang_en":
+        await q.message.reply_text(TEXT["en"]["welcome"], reply_markup=keyboard())
+    elif q.data in ("security", "support", "checklist", "case"):
+        await q.message.reply_text(TEXT[lang][q.data])
+
 
 async def new_members(update, context):
-    for member in update.message.new_chat_members:
-        if not member.is_bot: await update.message.reply_text(TEXT[user_lang(update)]["welcome"], reply_markup=keyboard())
+    if not update.message or not any(not member.is_bot for member in update.message.new_chat_members):
+        return
+    if await rate_guard(update):
+        await update.message.reply_text(TEXT[user_lang(update)]["welcome"], reply_markup=keyboard())
+
 
 async def conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text or not update.effective_user: return
-    text=update.message.text
+    if not update.message or not update.message.text or not update.effective_user:
+        return
+    if not await rate_guard(update):
+        return
+    text = update.message.text
     if contains_secret(text):
-        await update.message.reply_text("🚫 Do not post seed phrases, private keys, passwords or 2FA/OTP codes. / Non pubblicare seed phrase, chiavi private, password o codici 2FA/OTP."); return
-    result=classify_message(text)
-    member=await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
-    is_admin=member.status in {ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}
+        await update.message.reply_text("🚫 Do not post seed phrases, private keys, passwords or 2FA/OTP codes. / Non pubblicare seed phrase, chiavi private, password o codici 2FA/OTP.")
+        return
+    result = classify_message(text)
+    member = await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
+    is_admin = member.status in {ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}
     if not is_admin and result["level"] >= 2:
-        await update.message.reply_text("🚨 Suspicious content detected / Contenuto sospetto rilevato. Human admin review recommended. Never share wallet secrets." if result["level"]>=4 else "⚠️ Security warning / Avviso sicurezza: avoid suspicious promotions, secret requests and unsolicited links."); return
-    intent=assess(text, ["dm_reply"] if update.effective_chat.type=="private" else [])
+        await update.message.reply_text("🚨 Suspicious content detected / Contenuto sospetto rilevato. Human admin review recommended. Never share wallet secrets." if result["level"] >= 4 else "⚠️ Security warning / Avviso sicurezza: avoid suspicious promotions, secret requests and unsolicited links.")
+        return
+    intent = assess(text, ["dm_reply"] if update.effective_chat.type == "private" else [])
     if intent.safety_risk:
-        await update.message.reply_text(next_step(intent, detect_language(text))); return
-    bot_username=(context.bot.username or "CryptoAIDsupportBOT").lower()
-    mentioned=f"@{bot_username}" in text.lower()
-    replied=bool(update.message.reply_to_message and update.message.reply_to_message.from_user and update.message.reply_to_message.from_user.id==context.bot.id)
-    question="?" in text or text.lower().startswith(("cos","come","cosa","quali","perché","perche","what","how","why","where","which","can "))
-    if update.effective_chat.type=="private" or mentioned or replied or question or intent.case_intent:
-        cleaned=text.replace(f"@{context.bot.username}","").strip() if context.bot.username else text
-        await ask_text(update, cleaned)
+        await update.message.reply_text(next_step(intent, detect_language(text)))
+        return
+    bot_username = (context.bot.username or "CryptoAIDsupportBOT").lower()
+    mentioned = f"@{bot_username}" in text.lower()
+    replied = bool(update.message.reply_to_message and update.message.reply_to_message.from_user and update.message.reply_to_message.from_user.id == context.bot.id)
+    question = "?" in text or text.lower().startswith(("cos", "come", "cosa", "quali", "perché", "perche", "what", "how", "why", "where", "which", "can "))
+    if update.effective_chat.type == "private" or mentioned or replied or question or intent.case_intent:
+        cleaned = text.replace(f"@{context.bot.username}", "").strip() if context.bot.username else text
+        await ask_text(update, cleaned, rate_checked=True)
+
 
 def build_app():
-    token=os.environ.get("TELEGRAM_BOT_TOKEN")
-    if not token: raise RuntimeError("TELEGRAM_BOT_TOKEN missing")
-    app=Application.builder().token(token).build()
-    commands={"start":start,"help":help_cmd,"about":about,"services":services,"ask":ask_cmd,"security":security,"scam":scam,"recovery":recovery,"case":case_cmd,"checklist":checklist,"support":support,"report":report,"links":links,"language":language,"rules":security,"status":help_cmd}
-    for name,handler in commands.items(): app.add_handler(CommandHandler(name,handler))
-    app.add_handler(CallbackQueryHandler(button)); app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS,new_members)); app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,conversation)); return app
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN missing")
+    app = Application.builder().token(token).build()
+    commands = {"start":start,"help":help_cmd,"about":about,"services":services,"ask":ask_cmd,"security":security,"scam":scam,"recovery":recovery,"case":case_cmd,"link":link_support,"mycase":mycase,"checklist":checklist,"support":support,"report":report,"links":links,"language":language,"rules":security,"status":help_cmd}
+    for name, handler in commands.items():
+        app.add_handler(CommandHandler(name, handler))
+    app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_members))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, conversation))
+    return app
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     log.info("Starting CryptoAID Support + Social Acquisition bot")
     build_app().run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=False)

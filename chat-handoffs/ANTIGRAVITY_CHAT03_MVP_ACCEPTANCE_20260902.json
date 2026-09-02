@@ -1,0 +1,18 @@
+{
+  "task_id": "AG-CHAT03-MVP-ACCEPT-20260902-01",
+  "cycle_refresh": "20260902-1830",
+  "state": "READY_FOR_LOCAL_EXECUTION_RUNTIME_SEARCH_FULL_MIRROR_INDEX",
+  "repository": "destinorandagio/cryptoaidsupport",
+  "branch": "feat/chat03-mvp-kickoff-v1-2",
+  "target_source_head": "c89ab29414294a94bc25e76fd017926edf021368",
+  "fresh_main_observed": "8a5666ced267acac8f4c638d204e40908d2e1e0b",
+  "contracts": {"core":"0.3.13","twin":"1.2.0","mirror_registry_index":"1.0.0","search_runtime":"1.0.0","wallet":"1.2.0","dappmap":"1.2.0","knowledge":"1.0.0","polygon_chain_id":137},
+  "mirror_source": {"drive_file_id":"1o8tRvHPbe8w9BIBduyhTJv-xASNl6A2H","sha256":"29440b1a758a2ef422df668661b090f8820f0ee91cd8f96c9ed5ca85791ade4e","expected_records":17593,"mode":"READ_ONLY_CANONICAL_SOURCE"},
+  "github_evidence": {"scoped_run":33655905137,"scoped_result":"49/49 PASS","ci_run":33655904859,"ci_result":"138 PASS / 1 SKIPPED unrelated async AI test","safety_run":33655905131,"safety_result":"PASS","fresh_main_merge_commit":"2fbbe90629e30f75ea2167037f1fdc5120ed0dcd"},
+  "precondition": "Fresh-read canonical Drive ownership ledger; register AG_ACTIVE before local runtime writes; use SAME canonical Drive root; do not touch surfaces owned by active tasks; no real sign/tx/payment/deploy.",
+  "commands_minimum": ["git fetch --all --prune", "git checkout feat/chat03-mvp-kickoff-v1-2", "git reset --hard c89ab29414294a94bc25e76fd017926edf021368", "python -m compileall twin knowledge/context_contract.py", "python -m pytest -q tests/test_twin_engine.py tests/test_wallet_read_model.py tests/test_chat06_context.py tests/test_mirror_adapter.py tests/test_mirror_registry.py tests/test_twin_runtime_search.py", "Resolve canonical shared-Drive MIRROR81 workbook locally without copying it into repo", "Run MirrorRegistryIndex.from_xlsx with pinned SHA256 and assert records=17593", "Instantiate SearchReadFacade and exercise known/alias/ticker/contract, unknown TO_VERIFY and ambiguous 1inch", "Exercise browser provider discovery/selection with no signing or transaction"],
+  "checks": ["AG03-00 exact branch parses canonical MIRROR source with pinned SHA and 17593 records", "AG03-01 0x and 0x Protocol resolve to MATCH M81-DAPP-000005", "AG03-02 unknown->TO_VERIFY and Case available", "AG03-03 no duplicate SIC-ID/Twin authority", "AG03-04 ambiguity never auto-picks", "AG03-05 JSON serializable source/date/confidence/status", "AG03-06 explicit multi-provider chooser/no auto-pick", "AG03-07 connect != authentication", "AG03-08 Polygon137 request-time validation", "AG03-09 wrong chain fail closed", "AG03-10 accountsChanged invalidates", "AG03-11 disconnect invalidates", "AG03-12 fresh successful Polygon RPC may be LIVE/FRESH only with factual evidence", "AG03-13 stale/failed/wrong-chain RPC never LIVE", "AG03-14 CHAT04 consumer 390px path when available"],
+  "evidence_required": ["OS/runtime/browser/provider versions", "exact commands", "PASS/FAIL/NOT_TESTED per check", "timestamp", "commit/file hashes", "canonical MIRROR path + SHA only, no copied registry", "non-sensitive screenshots only if useful"],
+  "human_gate": ["real MetaMask signing", "TokenPocket signing", "WalletConnect/Reown signing", "real transaction/payment/deploy"],
+  "accepted_completion": "NONE_PERSISTED"
+}
