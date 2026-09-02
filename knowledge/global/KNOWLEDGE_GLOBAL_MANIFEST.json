@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "service": "CryptoAID Global Knowledge Service",
+  "purpose": "Single source-of-truth registry consumed by the CryptoAID dApp, Telegram assistant and tools/services.",
+  "default_languages": ["en", "it"],
+  "principles": ["HELP_FIRST", "SECURITY_FIRST", "EVIDENCE_FIRST", "NO_HALLUCINATED_FACTS"],
+  "domains": [
+    {"id":"cryptoaid_core","path":"knowledge/cryptoaid_master.json","priority":100},
+    {"id":"cryptoaid_services","path":"knowledge/canonical/services.json","priority":100},
+    {"id":"official_links","path":"knowledge/canonical/official_links.json","priority":100},
+    {"id":"faq_core","path":"knowledge/faq/faq_core.json","priority":95},
+    {"id":"dappmap_mirror","path":"knowledge/global/DAPPMAP_MIRROR_REGISTRY.json","priority":95},
+    {"id":"hyperz_family","path":"knowledge/hyperz/HYPER_FAMILY_CANONICAL.json","priority":95},
+    {"id":"hyperz_graph","path":"knowledge/hyperz/HYPERZ_GRAPH_SCOPE.json","priority":90},
+    {"id":"security","path":"knowledge/security/SECURITY_POLICY.md","priority":100},
+    {"id":"recovery","path":"knowledge/recovery/RECOVERY_PLAYBOOK.md","priority":100},
+    {"id":"web3_glossary","path":"knowledge/web3/GLOSSARY.md","priority":70}
+  ],
+  "verification_levels": ["VERIFIED_PRIMARY_SOURCE", "VERIFIED", "HIGH_CONFIDENCE", "ANALYSIS", "DRAFT", "UNRESOLVED", "CONFLICT", "OBSOLETE"],
+  "public_answer_allow": ["VERIFIED_PRIMARY_SOURCE", "VERIFIED", "HIGH_CONFIDENCE"],
+  "public_answer_with_label": ["ANALYSIS"],
+  "public_answer_deny": ["DRAFT", "UNRESOLVED", "CONFLICT", "OBSOLETE"],
+  "private_evidence_policy": "Never expose user-owned/private evidence through public tools or community answers.",
+  "api_contract": {
+    "query": "GET/POST /knowledge/query",
+    "entity": "GET /knowledge/entity/{id}",
+    "search": "GET /knowledge/search?q=...",
+    "domains": "GET /knowledge/domains",
+    "health": "GET /knowledge/health"
+  }
+}
