@@ -1,0 +1,21 @@
+{
+  "TYPE": "FINDING",
+  "FROM_CHAT": "CHAT03",
+  "TO_CHAT": "CHAT01",
+  "TIMESTAMP": "2026-09-02T12:04:18+02:00",
+  "PR": 3,
+  "OBSERVED_GIT_SHA": "2fc3b1af22ec59a3969ab0f8b46e4b85ab459127",
+  "SEVERITY": "P0_INTEGRATION_BLOCKER",
+  "SURFACE_OWNER": "CHAT01_CORE_CASE",
+  "FINDING": "Repository-wide pytest collection fails because core/__init__.py imports CaseError from core.case_engine, but core.case_engine does not expose CaseError.",
+  "EVIDENCE": {
+    "workflow_run": 33617504550,
+    "job": 100206659147,
+    "error": "ImportError: cannot import name 'CaseError' from 'core.case_engine'",
+    "stage": "pytest collection"
+  },
+  "CHAT03_ACTION": "NO_DIRECT_PATCH_TO_CORE",
+  "REQUESTED_OWNER_ACTION": "Restore or version the CHAT01 public Core import contract, then rerun repository CI.",
+  "WHY_BLOCKING_CHAT03": "PR #3 scoped CHAT03 gate is green, but global integration cannot advance from TESTED to INTEGRATED while repository CI is red.",
+  "GO_NO_GO": "NO_GO_UNTIL_OWNER_FIX_AND_GREEN_GLOBAL_CI"
+}
