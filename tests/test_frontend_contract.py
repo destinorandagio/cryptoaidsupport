@@ -80,7 +80,7 @@ def test_service_worker_excludes_dynamic_truth():
     assert "req.mode==='navigate'" in SW
 
 def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
-    assert "const SHELL_VERSION='2.1.2'" in SW
+    assert "const SHELL_VERSION='2.1.3'" in SW
     assert "const CACHE_PREFIX='caid-shell-v'" in SW
     assert '${CACHE_PREFIX}${SHELL_VERSION}' in SW
     assert 'self.skipWaiting()' in SW
@@ -89,6 +89,12 @@ def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
     assert 'self.clients.claim()' in SW
     for path in ['./index.html','./offline.html','./manifest.webmanifest','./assets/app.css','./assets/app.js','./assets/shield.svg']:
         assert path in SW
+
+def test_service_worker_reads_only_current_cryptoaid_shell_cache():
+    assert "caches.open(CACHE).then(cache=>cache.match(req)" in SW
+    assert "caches.open(CACHE).then(cache=>cache.match('./offline.html'))" in SW
+    assert 'caches.match(req)' not in SW
+    assert "caches.match('./offline.html')" not in SW
 
 def test_manifest_valid():
     data=json.loads((ROOT/'manifest.webmanifest').read_text())
