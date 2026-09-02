@@ -41,18 +41,63 @@ def _now() -> float:
     return time.time()
 
 
-def _is_link_or_reparse(path: Path) -> bool:
-    """Detect POSIX symlinks and Windows reparse points without following them."""
+def _lstat(path: Path):
     try:
-        metadata = path.lstat()
+        return path.lstat()
     except FileNotFoundError:
-        return False
+        return None
     except OSError as exc:
         raise SupportTransportRejected("support_transport_unavailable") from exc
+
+
+def _is_link_or_reparse(path: Path) -> bool:
+    """Detect POSIX symlinks and Windows reparse points without following them."""
+    metadata = _lstat(path)
+    if metadata is None:
+        return False
     if stat.S_ISLNK(metadata.st_mode):
         return True
     attributes = getattr(metadata, "st_file_attributes", 0)
     return bool(attributes & _FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+def _assert_regular_private_file(path: Path) -> None:
+    metadata = _lstat(path)
+    if metadata is None:
+        raise SupportTransportRejected("support_transport_unavailable")
+    if stat.S_ISLNK(metadata.st_mode) or bool(getattr(metadata, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT):
+        raise SupportTransportRejected("support_transport_symlink_storage_forbidden")
+    if not stat.S_ISREG(metadata.st_mode):
+        raise SupportTransportRejected("support_transport_unavailable")
+
+
+def _secure_create_if_missing(path: Path) -> None:
+    """Atomically create a regular 0600 DB file without following final links."""
+    if _lstat(path) is not None:
+        _assert_regular_private_file(path)
+        return
+    flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags, 0o600)
+    except FileExistsError:
+        # A competing creator (including a symlink) won after our lstat. Accept
+        # only a regular non-reparse file; otherwise fail closed before SQLite.
+        _assert_regular_private_file(path)
+        return
+    except OSError as exc:
+        raise SupportTransportRejected("support_transport_unavailable") from exc
+    try:
+        os.fchmod(fd, 0o600)
+        os.fsync(fd)
+    except OSError:
+        # Permission/fsync support varies; the descriptor was still created with
+        # mode 0600 and O_EXCL/O_NOFOLLOW where available.
+        pass
+    finally:
+        os.close(fd)
+    _assert_regular_private_file(path)
 
 
 def _private_db_path(value: str | Path) -> Path:
@@ -74,15 +119,14 @@ def _private_db_path(value: str | Path) -> Path:
         parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise SupportTransportRejected("support_transport_unavailable") from exc
-    final_path = parent / raw.name
-    # SQLite follows a pre-existing final symlink/reparse point. Reject it before
-    # opening the database so an attacker cannot redirect private support state.
-    if _is_link_or_reparse(final_path):
+    if _is_link_or_reparse(parent):
         raise SupportTransportRejected("support_transport_symlink_storage_forbidden")
-    if final_path.exists() and not final_path.is_file():
-        raise SupportTransportRejected("support_transport_unavailable")
+    final_path = parent / raw.name
+    # SQLite follows final symlinks/reparse points. Securely create an absent
+    # file and reject any pre-existing redirected/non-regular final component.
+    _secure_create_if_missing(final_path)
     try:
-        resolved = final_path.resolve(strict=False)
+        resolved = final_path.resolve(strict=True)
         resolved.relative_to(parent)
     except (OSError, ValueError) as exc:
         raise SupportTransportRejected("support_transport_unavailable") from exc
@@ -123,10 +167,15 @@ class SupportTransportStore:
             pass
 
     def _connect(self) -> sqlite3.Connection:
-        # Re-check the final component on every open: a previously valid DB must
-        # not become a symlink/reparse redirect between store construction and use.
-        if _is_link_or_reparse(self.db_path):
-            raise SupportTransportRejected("support_transport_symlink_storage_forbidden")
+        # Re-check every open so a previously valid DB cannot later become a
+        # symlink/reparse redirect. The private runtime directory must itself be
+        # access-controlled; no public package may contain this file.
+        _assert_regular_private_file(self.db_path)
+        try:
+            resolved = self.db_path.resolve(strict=True)
+            resolved.relative_to(self.db_path.parent.resolve(strict=True))
+        except (OSError, ValueError) as exc:
+            raise SupportTransportRejected("support_transport_unavailable") from exc
         connection = sqlite3.connect(self.db_path, timeout=30, isolation_level=None)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
