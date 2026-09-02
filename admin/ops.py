@@ -14,7 +14,7 @@ from typing import Iterable
 
 from core.case_engine import CaseEngine, CoreError
 
-ADMIN_VERSION = "0.1.0"
+ADMIN_VERSION = "0.3.0"
 ADMIN_ROLE = "ADMIN_CASE_REVIEWER"
 
 
@@ -82,6 +82,59 @@ class AdminOps:
         result = dict(case)
         result.update({"event_count": int(event_count), "open_tasks": int(open_tasks)})
         return result
+
+    def user_lookup(self, *, roles: Iterable[str], sic_id: str | None = None, case_id: str | None = None) -> dict:
+        """Lookup a user for support operations without exposing profile JSON or wallet data."""
+        self._require_role(roles)
+        if bool(sic_id) == bool(case_id):
+            raise AdminError("LOOKUP_SELECTOR_REQUIRED", "Provide exactly one of sic_id or case_id", 400)
+        with self._connect() as conn:
+            if case_id:
+                user = conn.execute(
+                    "SELECT u.user_id,u.sic_id FROM core_users u JOIN core_cases c ON c.user_id=u.user_id WHERE c.case_id=?",
+                    (case_id,),
+                ).fetchone()
+            else:
+                user = conn.execute("SELECT user_id,sic_id FROM core_users WHERE sic_id=?", (sic_id,)).fetchone()
+            if not user:
+                raise AdminError("USER_NOT_FOUND", "User not found", 404)
+            stats = conn.execute(
+                "SELECT COUNT(*) AS case_count,MAX(updated_at) AS last_case_at FROM core_cases WHERE user_id=?",
+                (user["user_id"],),
+            ).fetchone()
+            active_sessions = conn.execute(
+                "SELECT COUNT(*) FROM core_sessions WHERE user_id=? AND status='ACTIVE'",
+                (user["user_id"],),
+            ).fetchone()[0]
+        return {
+            "user_id": user["user_id"],
+            "sic_id": user["sic_id"],
+            "case_count": int(stats["case_count"]),
+            "last_case_at": stats["last_case_at"],
+            "active_sessions": int(active_sessions),
+        }
+
+    def crm_timeline(self, *, roles: Iterable[str], sic_id: str, limit: int = 100) -> list[dict]:
+        """Return the audited Case-event timeline for one SIC-ID, newest first."""
+        self._require_role(roles)
+        limit = max(1, min(int(limit), 500))
+        with self._connect() as conn:
+            user = conn.execute("SELECT user_id FROM core_users WHERE sic_id=?", (sic_id,)).fetchone()
+            if not user:
+                raise AdminError("USER_NOT_FOUND", "User not found", 404)
+            rows = conn.execute(
+                """
+                SELECT e.event_id,e.case_id,e.actor,e.previous_state,e.new_state,e.reason,e.timestamp,
+                       e.authorization,e.audit_event,e.case_version
+                FROM core_case_events e
+                JOIN core_cases c ON c.case_id=e.case_id
+                WHERE c.user_id=?
+                ORDER BY e.timestamp DESC,e.event_id DESC
+                LIMIT ?
+                """,
+                (user["user_id"], limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def manual_review_queue(self, *, roles: Iterable[str], limit: int = 100) -> list[dict]:
         """Expose CHAT02 MANUAL_REVIEW intents read-only, if the table exists."""
