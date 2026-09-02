@@ -80,7 +80,7 @@ def test_payment_intent_consumer_uses_upstream_quote_status_and_no_browser_settl
         "'/payment/activation-intents'",
         "['FIRST_CASE','SUBSEQUENT_CASE'].includes(quote.stage)",
         "'/payment/case-intents'",
-        "'/payment/status?intentId=",
+        "/payment/status?intentId=",
     ]:
         assert required in payment
     for forbidden in ["expectedValue", "treasury", "providerIds", "receiptStatus", "settlement", "txHash"]:
