@@ -1,9 +1,12 @@
 {
-  "schema": "cryptoaid.polygon-mainnet-manifest.v1",
+  "schema": "cryptoaid.polygon-mainnet-manifest.v2-mvp-inventory",
   "project": "CryptoAID.support",
   "network": "Polygon PoS Mainnet",
   "chainId": 137,
-  "paymentAsset": "USDT0",
+  "manifestPurpose": "FACTUAL_DEPLOYMENT_INVENTORY_ONLY",
+  "mvpCaseSettlement": "SANDBOX_ONLY_NO_CONTRACT_DEPLOY",
+  "casePaymentAuthority": "CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT",
+  "mvpReleaseExclusions": ["CryptoAIDCasePayment"],
   "gasAsset": "POL",
   "authority": "0x3C320B3a0917fF44BF6551CDdee44402AFcF250C",
   "externalTokens": {
@@ -38,6 +41,8 @@
     "The stale staking address MUST NOT be used by the dApp or integrations.",
     "Canonical staking constructor: authority, DUX, DRX.",
     "Case treasury and current authority are the same configured address by explicit project decision.",
-    "Guardian and governance are centralized on the configured authority by explicit project decision."
+    "Guardian and governance are centralized on the configured authority by explicit project decision.",
+    "CryptoAIDCasePayment is retained here only as factual deployed-address inventory and is excluded from the 48H MVP Case settlement path.",
+    "This manifest MUST NOT define MVP Case pricing, payment asset, settlement, idempotency or entitlement truth; CHAT02 owns those semantics."
   ]
 }

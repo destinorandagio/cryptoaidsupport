@@ -1,132 +1,81 @@
 {
   "CHAT_ID": "02",
   "DOMAIN": "EVIDENCE_PAYMENT_ENTITLEMENT_TREASURY",
-  "TIMESTAMP": "2026-09-02T12:28:00+02:00",
-  "VERSION": "1.1.1",
-  "PARENT_VERSION": "1.1.0",
-  "GIT_SHA": "8611f17c3f0eb070d64cb1adf6fa61968a57d77a",
-  "SOURCE_BLOB_SHA": "6c12b52548dda036eeb907da91d848c983657cdf",
+  "TIMESTAMP": "2026-09-02T12:41:00+02:00",
+  "VERSION": "1.2.0-candidate",
+  "PARENT_VERSION": "1.1.1",
+  "STATE": "CANDIDATE_GREEN_PENDING_ANTIGRAVITY_AND_CHAT05",
+  "GO_NO_GO": "NO_GO",
+  "PR": 4,
+  "BRANCH": "feat/chat02-settlement-certificate-mvp",
+  "HEAD_SHA": "1000e991af793264eb37dad094f77733c37534f9",
+  "ENGINE_BLOB_SHA": "9dbc6c0ed03bd2cd94efb78b7a6cd157b548c3bf",
+  "TESTS_BLOB_SHA": "628d0b81d897d71726a7121927adc3edb717ecc0",
   "INPUT_VERSIONS": {
-    "HANDOFF_02_REPO": "1.2.0 / Core source 138f5154aabf2f79b296bf40dcf59e9c36a576ab",
-    "HANDOFF_02_DRIVE_FACTORY_CORE": "v0.3.13",
-    "CONTROL_LATEST_STATE": "0.4.2 / D0A_FIXED_D0B_OPEN; owner state lags observed green main and requires CHAT00 reconciliation",
-    "CHAT02_PREVIOUS": "1.1.0",
-    "CHAT02_DRIVE_STAGE03": "0.6.7 source-preserving factory certificate",
-    "CHAT05_QA_SECURITY": "0.2.0 / cycle 20260902-1150; pre-D0B snapshot",
-    "CHAT08_SUPER_ADMIN": "0.1.0 DISCOVERED",
-    "CHAT10_DEVOPS": "NOT_PERSISTED_AT_READ_TIME",
-    "OBSERVED_SOURCE_FIX_CI": "run 33619108328 / #199 / SUCCESS",
-    "OBSERVED_LATEST_MAIN_CI": "run 33619511466 / #209 / head 4982baf7978771fb8023fe31d1215de2775d9031 / SUCCESS"
+    "HANDOFF_02": "repo v1.2.1 / Core source 138f5154aabf2f79b296bf40dcf59e9c36a576ab",
+    "CHAT02_PREVIOUS": "1.1.1 / source 8611f17c3f0eb070d64cb1adf6fa61968a57d77a",
+    "ANTIGRAVITY_EXECUTION_CONTRACT": "1.0.0",
+    "FACTORY_STAGE03": "0.6.7 separate unchanged namespace"
   },
-  "OUTPUT_VERSION": "1.1.1",
   "EVIDENCE_VERSION": "1.0",
-  "PAYMENT_VERSION": "1.0",
-  "ENTITLEMENT_VERSION": "1.0",
+  "PAYMENT_VERSION": "1.1-candidate",
+  "ENTITLEMENT_VERSION": "1.1-candidate",
   "TREASURY_CONFIG_VERSION": "1.0",
-  "FACTORY_STAGE03_VERSION": "0.6.7_UNCHANGED",
-  "CONFIG_LABEL": "CHAT02_ECON_CONFIG_FROZEN_H01_1100_CORE_v0.3.13",
   "CONFIG_FINGERPRINT_SHA256": "f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec",
-  "PERSISTENCE": {
-    "CHAT02_DRIVE_ID": "1Qc1OJzwcwMxqyWuBq-9idP81BlSlRj-QJdZwFZUjvQ4",
-    "HANDOFF_03_DRIVE_ID": "1GP2pHwstUX6xv2NN3Q7VTeapzN7zucIwxeIPIhjLvoI",
-    "CHAT02_GITHUB_MIRROR_COMMIT": "f055deee63e5eaa1b22ce993dc53f6faf487aa83",
-    "HANDOFF_03_GITHUB_COMMIT": "869597b286266df67c9cf56770bce26bfe773662",
-    "HANDOFF_03_CONTROL_MIRROR_COMMIT": "d8999c6d7eb2f1510e35436dce5dd9d7a052d79f",
-    "DRIVE_READBACK": "PASS",
-    "GITHUB_READBACK": "PASS"
-  },
-  "FILES_CHANGED": [
-    "evidence_payment/engine.py",
-    "chat-handoffs/02-evidence-payment.json",
-    "chat-handoffs/HANDOFF_03.md",
-    "control/evidence-payment/CHAT02_HANDOFF.md",
-    "control/evidence-payment/HANDOFF_03.md"
-  ],
-  "CONTRACTS_CHANGED": [],
-  "SCHEMA_CHANGED": [],
+  "P0_SELECTED": "durable settlement certificate and independent exact provider quorum before entitlement grant",
   "BUILT": [
-    "D0B owner-side SQL binding repair: evidence_records INSERT matches 17-column schema",
-    "D0B owner-side SQL binding repair: entitlement_ledger INSERT matches 8-column schema",
-    "CHAT02 and HANDOFF_03 repo/Drive persistence with explicit repo-vs-Factory namespace mapping"
+    "additive settlement_certificates table",
+    "certificate binds intent/case/entitlement/tx/chain/asset/value/treasury/provider IDs/fingerprint/observation SHA256",
+    "entitlement lineage includes settlement_certificate_id",
+    "provider quorum requires at least two distinct non-empty provider IDs",
+    "provider observations must exactly match primary tx_hash/block_hash/receipt_status",
+    "tx uniqueness race fails closed to MANUAL_REVIEW",
+    "idempotent replay returns same certificate without duplicate entitlement effect"
   ],
   "TESTED": [
-    "fresh HANDOFF_02 v1.2.0 and ownership/contracts/global-control readback",
-    "CHAT08 readback and CHAT10 absence check",
-    "Drive Factory Stage03 v0.6.7 readback",
-    "GitHub Actions CI #199 on exact D0B source commit 8611f17c3f0eb070d64cb1adf6fa61968a57d77a",
-    "latest observed main CI #209 on head 4982baf7978771fb8023fe31d1215de2775d9031",
-    "Drive CHAT02 and HANDOFF_03 readback",
-    "GitHub CHAT02 and HANDOFF_03 readback"
+    "GitHub Actions CI run 33621006419 / #223 on exact head 1000e991af793264eb37dad094f77733c37534f9"
   ],
   "TEST_PASS": [
-    "CI #199 source-fix conclusion SUCCESS",
-    "latest observed main CI #209 conclusion SUCCESS",
-    "compile PASS",
+    "CI #223 SUCCESS",
+    "python setup/dependencies PASS",
+    "compile bot PASS",
     "pytest -q PASS",
-    "configured post-test obvious Telegram token scan PASS",
-    "CHAT02 D0B three previously failing Evidence/payment tests are closed",
-    "no parallel Evidence/payment/entitlement authority created",
-    "no real payment, transaction, deploy, MASTER or public_html mutation"
+    "Telegram token scan PASS"
   ],
-  "TEST_FAIL": [],
   "NOT_TESTED": [
-    "live RPC/provider quorum and Polygon reorg/finality against approved independent providers",
-    "production private Evidence filesystem/KMS/scanner/DLP/backup",
-    "fresh final-composition MASTER migration/race suite in this repo cycle",
-    "CHAT08 treasury proposal command integration",
-    "CHAT10 runtime/provider adapter integration",
-    "Golden Journey E2E and production verification"
+    "Antigravity local compile evidence_payment and targeted/full pytest",
+    "disposable SQLite settlement schema/integrity/FK runtime",
+    "synthetic local settlement/replay and negative finality/quorum runtime",
+    "production private Evidence FS/KMS/scanner/DLP/backup",
+    "approved production independent Polygon providers",
+    "Golden E2E"
   ],
-  "FIXED": [
-    "ORCH-P0-011 evidence_records arity mismatch: 18 placeholders vs 17 columns",
-    "ORCH-P0-011 entitlement_ledger arity mismatch: 7 placeholders vs 8 columns",
-    "D0C configured repository CI passes on exact D0B source and remains green on latest observed main",
-    "CHAT02/HANDOFF_03 persistence/readback completed in both GitHub and Drive"
-  ],
-  "BLOCKERS": [
-    "CHAT00 control/latest-state 0.4.2 still labels D0B open despite newer green main evidence; only CHAT00 may reconcile it",
-    "CHAT10 current machine handoff not persisted at read time",
-    "CHAT03/CHAT04 exact consumer tuple remains to be certified",
-    "final serial package/Master-clone/runtime/Golden E2E and independent CHAT05 final QA remain open",
-    "production provider/runtime/private-Evidence infrastructure is not proven",
-    "HUMAN_GATE remains for real wallet/sign/payment/tx/deploy/cutover"
-  ],
-  "DEPENDENCIES": [
-    "CHAT01 Case authority consumes ENTITLEMENT_GRANTED only",
-    "CHAT08 may submit versioned authorized treasury/config proposals only",
-    "CHAT10 may supply runtime/provider plumbing only and may not mutate economics",
-    "CHAT05 independently verifies integration/security/release",
-    "CHAT00 reconciles canonical global control plane"
-  ],
+  "ANTIGRAVITY_TASK_DRIVE_ID": "1rQuudYg4ApBz6TU5DqAaYiy3FRegRY0H-RlHZSpoSzo",
+  "DRIVE_CHAT02_HANDOFF_ID": "1uZO9lUqtETjGvTtGz_NCTRkPG4ufUsl5wESneDAqARk",
+  "DRIVE_HANDOFF_03_ID": "1X2rZObH69IF-vXF4j8Imjh78B1NkJvQcYO8Jcr9-PNM",
+  "OWNERSHIP_LOCK": "CAID-LK-0090 HANDOFF_READY_REVIEW_ONLY",
   "COLLISIONS": [
-    "ACCEPT separate namespaces: repo CHAT02 1.1.x and Drive Factory Stage03 0.6.7; no silent downgrade or overwrite",
-    "ACCEPT CHAT01 1.2.0 owner repair and CHAT02 boundary",
-    "REJECT any parallel ledger/verifier/Evidence authority or consumer direct truth mutation",
-    "REJECT unversioned treasury/economic mutation and exact-500-only legacy economics",
-    "DEFER CHAT10 integration because no current persisted machine handoff was found",
-    "REPORT_ONLY: CHAT00 global state 0.4.2 is stale versus newer successful main CI; CHAT02 does not steal control-plane ownership"
-  ],
-  "HUMAN_GATES": [
-    "real payment",
-    "real blockchain transaction or wallet signature",
-    "production deploy or public upload",
-    "production secrets",
-    "irreversible treasury/configuration change"
+    "no AG_ACTIVE lock found on engine/tests at start",
+    "branch files are review-only pending Antigravity/CHAT05 findings",
+    "no MASTER/public_html/.htaccess/economic truth mutation"
   ],
   "MANUAL_REVIEW": [
-    "wrong chain/from/to/value/receipt/Case/entitlement",
-    "provider or block disagreement",
-    "duplicate/replayed transaction",
-    "ambiguous or insufficient finality",
-    "unresolved Evidence authorization/privacy/scanner result"
+    "wrong chain/from/to/value/asset/receipt/Case/entitlement",
+    "duplicate or replayed tx",
+    "provider identity duplication or tuple disagreement",
+    "insufficient finality",
+    "unresolved Evidence authorization/privacy/scanner status"
   ],
-  "STATE": "CODED_CI_GREEN_PERSISTED_READBACK_NO_GO",
-  "SYNC_INPUTS": "VERIFIED_WITH_CHAT10_ABSENT",
+  "HUMAN_GATES": [
+    "real payment/signature/transaction",
+    "production deploy/cutover",
+    "production secrets",
+    "irreversible treasury change"
+  ],
   "NEXT": [
-    "CHAT00 reconcile global control state to current green D0B evidence",
-    "CHAT05 independently verify exact source commit 8611f17c3f0eb070d64cb1adf6fa61968a57d77a and final composed candidate when available",
-    "consume CHAT10 only when a versioned persisted runtime/provider handoff exists",
-    "preserve repo-vs-Factory namespace mapping, frozen economics, one MASTER and CHAT02 sole truth ownership"
-  ],
-  "GO_NO_GO": "NO_GO"
+    "Antigravity executes exact Drive task pack and persists factual local result",
+    "CHAT05 independently validates PR #4 and Antigravity evidence",
+    "if green, merge PR #4 and promote PAYMENT/ENTITLEMENT 1.1 from candidate",
+    "Golden E2E consumes durable settlement_certificate_id at Core authorization boundary"
+  ]
 }

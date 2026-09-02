@@ -1,39 +1,31 @@
 {
   "schema_version": "1.0",
   "chat": "CHAT03_DIGITAL_TWIN_SEARCH_WALLET_DAPPMAP",
-  "state": "FOUNDATION_BUILT",
-  "twin_schema_version": "1.0.0",
-  "knowledge_version_consumed": "UNPINNED_EXISTING_MASTER",
-  "wallet_matrix_version": "1.0.0",
-  "dappmap_contract_version": "1.0.0",
-  "built": [
-    "twin/engine.py deterministic entity resolution read model",
-    "TO_VERIFY search-miss contract with +CASE availability",
-    "provenance/freshness/confidence/version model",
-    "Polygon non-custodial wallet capability matrix",
-    "DAPPMAP node/edge/epistemic data contract",
-    "tests/test_twin_engine.py"
-  ],
-  "tested": [
-    "alias/old-name resolution specified in pytest",
-    "same-name cross-chain ambiguity specified in pytest",
-    "contract normalization specified in pytest",
-    "TO_VERIFY non-promotion specified in pytest",
-    "wallet custody/signing invariants specified in pytest",
-    "DAPPMAP epistemic metadata specified in pytest"
-  ],
-  "fixed": [],
-  "blocked": [
-    "No frontend wallet runtime owned by CHAT04 yet, so EIP-6963/MetaMask/TokenPocket/WalletConnect live flows are not runtime-tested",
-    "No CHAT06 versioned context-pack contract observed, so knowledge version cannot yet be pinned",
-    "RPC health provider/configuration is a CHAT10 integration dependency",
-    "CI result for this commit must be observed before TESTED status can be promoted"
-  ],
-  "next": [
-    "Observe CI and fix failures",
-    "Integrate CHAT06 versioned context packs without creating knowledge authority",
-    "Expose read-model/search contract to CHAT04",
-    "Integrate RPC health contract from CHAT10",
-    "Run browser/mobile wallet matrix tests when frontend surface exists"
-  ]
+  "cycle": "20260902-1830",
+  "state": "TESTED_RUNTIME_SEARCH_CONTRACT_FRESH_MAIN_BROWSER_PARTIAL",
+  "repository": "destinorandagio/cryptoaidsupport",
+  "branch": "feat/chat03-mvp-kickoff-v1-2",
+  "fresh_main_observed": "8a5666ced267acac8f4c638d204e40908d2e1e0b",
+  "tested_source_head": "c89ab29414294a94bc25e76fd017926edf021368",
+  "pr_merge_test_commit": "2fbbe90629e30f75ea2167037f1fdc5120ed0dcd",
+  "twin_schema_version": "1.2.0",
+  "mirror_registry_index_version": "1.0.0",
+  "search_runtime_contract_version": "1.0.0",
+  "knowledge_context_version_consumed": "1.0.0",
+  "wallet_matrix_version": "1.2.0",
+  "dappmap_contract_version": "1.2.0",
+  "core_consumer_contract_version": "0.3.13",
+  "polygon_chain_id": 137,
+  "authority": "CHAT03_READ_MODEL_ONLY_SIC_ID_REMAINS_DURABLE_PRINCIPAL",
+  "search_p0": ["known canonical project", "alias/ticker/contract resolution", "unknown->TO_VERIFY with Case available", "duplicate twin_id rejected", "ambiguous alias/ticker/contract never first-picked", "JSON-serializable runtime facade for CHAT04/CHAT07 consumers"],
+  "runtime_search_contract": {"version":"1.0.0","states":["MATCH","AMBIGUOUS","TO_VERIFY"],"authority":"READ_ONLY_MIRROR_DERIVED_TWIN_VIEW","rules":["blank query fails closed","single match returns minimal trustworthy Twin card","ambiguous result never exposes a selected result","unknown candidate remains TO_VERIFY and Case-capable","source status cannot promote Twin to VERIFIED"]},
+  "mirror_source_validation": {"drive_file_id":"1o8tRvHPbe8w9BIBduyhTJv-xASNl6A2H","source_version":"mirror81-2026-08-20","sha256":"29440b1a758a2ef422df668661b090f8820f0ee91cd8f96c9ed5ca85791ade4e","records":17593,"unique_ids":17593,"duplicate_ids":0,"term_keys":21161,"ambiguous_term_keys":1020,"contract_keys":2964,"ambiguous_contract_keys":126,"truth_label":"CACHED","authority_mode":"READ_ONLY_NO_COPIED_REGISTRY"},
+  "wallet_p0": ["explicit EIP6963 provider chooser", "connect is not authentication", "Polygon137", "wrong chain/account change/disconnect fail closed", "stale/failed/wrong-chain RPC never LIVE"],
+  "tested": {"contract_run":33655905137,"scoped":"49/49 PASS","ci_run":33655904859,"ci":"138 PASS / 1 SKIPPED unrelated async AI test","safety_run":33655905131,"safety":"PASS","compile":"PASS","wallet_secret_scan":"PASS","pr_merge_with_fresh_main":"PASS"},
+  "fresh_main_replay": {"old_pr_base":"46a8e76ac4b6b21284b0b258ed111f72c039f7bd","fresh_main":"8a5666ced267acac8f4c638d204e40908d2e1e0b","intervening_commits":39,"overlap_with_chat03_06":0,"pr6_mergeable":true},
+  "qa05_latest_consumed": "v0.9.0_CHAT03_CANDIDATE_GREEN_GLOBAL_RELEASE_NO_GO",
+  "chat10_latest_consumed": "v0.5.0_PRODUCTION_RPC_AND_RELEASE_AUTHORITY_REMAINS_OWNER_GATE",
+  "ag_acceptance": "NONE_PERSISTED",
+  "not_tested": ["exact branch loader against canonical workbook in Antigravity local runtime", "real MetaMask/TokenPocket/Reown browser-device paths", "production RPC authority/finality", "CHAT04 real-origin Golden E2E", "real signing/transaction/payment/deploy"],
+  "go_no_go": "SEARCH_RUNTIME_CONTRACT_GO_LOCAL_BROWSER_RUNTIME_NO_GO"
 }
