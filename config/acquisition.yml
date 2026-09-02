@@ -1,0 +1,39 @@
+version: 1
+name: CRYPTOAID_SOCIAL_ACQUISITION_OS
+channels:
+  telegram: true
+  linkedin: true
+funnel:
+  - cold
+  - aware
+  - engaged
+  - problem_aware
+  - case_ready
+  - customer
+content_pillars:
+  - social_proof
+  - web3_intelligence
+  - educational
+  - founder
+lead_magnets:
+  - crypto_scam_emergency_checklist
+  - dead_token_survival_guide
+  - rug_pull_evidence_checklist
+  - web3_recovery_first_24_hours
+  - dead_dapp_atlas
+  - wallet_exposure_checklist
+  - cryptoaid_case_pre_assessment
+rules:
+  no_recovery_guarantees: true
+  never_request_wallet_secrets: true
+  human_review_for_uncertain_or_high_risk: true
+  linkedin_automation: official_or_manual_only
+  minimize_personal_data: true
+kpis:
+  - qualified_engagement
+  - lead_magnet_requests
+  - qualified_leads
+  - dm_response_rate
+  - case_start_rate
+  - paid_conversion_rate
+  - revenue_per_qualified_case
