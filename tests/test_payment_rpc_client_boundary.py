@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from evidence_payment import EvidencePaymentEngine, TrustedPolygonRPCAdapter
+from evidence_payment import EvidencePaymentEngine, EvidencePaymentError, TrustedPolygonRPCAdapter
 
 
 def engine():
@@ -41,26 +41,16 @@ def test_client_authored_economic_payload_cannot_enter_rpc_settlement_api():
     assert e.get_intent(intent["intent_id"])["state"] == "INTENT_CREATED"
 
 
-def test_non_native_asset_fails_closed_before_rpc_economic_truth():
+def test_non_native_asset_is_rejected_by_frozen_treasury_model_before_rpc():
     e = engine()
-    intent = e.create_payment_intent(
-        case_id="case-usdt",
-        entitlement_ref="case_active:case-usdt",
-        payer="0xsender",
-        asset="USDT",
-        expected_value="450",
-        request_id="req-usdt",
-        idempotency_key="idem-usdt",
-    )
-    called = []
-
-    def no_rpc(*args):
-        called.append(args)
-        return None
-
-    result = TrustedPolygonRPCAdapter(e, no_rpc).settle_from_tx_hash(
-        intent_id=intent["intent_id"], tx_hash="0xabc", provider_ids=["rpc_a", "rpc_b"]
-    )
-    assert result["verdict"] == "MANUAL_REVIEW"
-    assert result["entitlement_granted"] is False
-    assert called == []
+    with pytest.raises(EvidencePaymentError) as exc:
+        e.create_payment_intent(
+            case_id="case-usdt",
+            entitlement_ref="case_active:case-usdt",
+            payer="0xsender",
+            asset="USDT",
+            expected_value="450",
+            request_id="req-usdt",
+            idempotency_key="idem-usdt",
+        )
+    assert exc.value.code == "NO_TREASURY"
