@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "domain": "HYPERZ_HYPER_FAMILY",
+  "knowledge_role": "forensic and historical knowledge for CryptoAID support",
+  "privacy": "PUBLIC_VERIFIED_ONLY_FOR_BOT_ANSWERS",
+  "identity_chain": {
+    "status": "AUTHORITATIVE_RESEARCH_CHAIN",
+    "sequence": ["HyperTech", "HyperCapital", "HyperFund", "HyperVerse", "HyperNation"]
+  },
+  "associated_names": [
+    "HyperCommunity", "HyperGlobal", "HyperMining", "HYPERPASS", "HyperDrive",
+    "HyperNation Citizenship", "H5", "HyperLab", "HyperBC", "HBC"
+  ],
+  "units_and_tokens_requiring_versioned_records": ["HU", "MOF", "HDAO", "HBT", "HB", "GNX", "HyperBC", "HBC"],
+  "bot_answer_policy": {
+    "public_primary_sources_first": true,
+    "private_user_evidence_never_publish_as_public_fact": true,
+    "unresolved_items_must_be_labeled_unresolved": true,
+    "no_shared_ownership_inference_across_projects_without_evidence": true,
+    "no_person_attribution_without_public_verifiable_evidence": true
+  },
+  "verified_public_findings": [
+    {
+      "subject": "HyperFund",
+      "claim": "A registered primary-source research record states that the U.S. SEC described HyperFund as operating from June 2020 through early 2022 and raising more than USD 1.7 billion.",
+      "classification": "VERIFIED_PRIMARY_SOURCE",
+      "source_family": "SEC"
+    },
+    {
+      "subject": "HyperFund / HyperVerse / HyperNation / HyperCommunity",
+      "claim": "A registered FCA primary-source record associates these names in its warning record.",
+      "classification": "VERIFIED_PRIMARY_SOURCE",
+      "source_family": "FCA"
+    }
+  ],
+  "unresolved": [
+    "canonical contract addresses for MOF, HDAO, HBT, HB, GNX and HBC across all versions/chains",
+    "deployers and deployment transactions",
+    "complete mint/burn history",
+    "complete exchange deposit/withdrawal paths",
+    "HyperLab and HyperBC technical relationships",
+    "complete HyperFund/HyperVerse user and referral graph",
+    "migration mechanics from HyperVerse to HyperNation/H5"
+  ],
+  "separate_homonym_rule": "Hyperliquid/HyperEVM must be treated as a separate homonym branch unless evidence establishes a link."
+}
