@@ -2,6 +2,7 @@
 'use strict';
 const API='/api/mvp';
 const sameOrigin=(value)=>new URL(value,location.href).origin===location.origin;
+const requestToken=(prefix)=>`${prefix}_${typeof crypto.randomUUID==='function'?crypto.randomUUID():[...crypto.getRandomValues(new Uint8Array(16))].map(v=>v.toString(16).padStart(2,'0')).join('')}`;
 async function request(path,options={}){
   if(location.protocol==='file:'||!sameOrigin(path))throw new Error('bridge_origin_rejected');
   const response=await fetch(`${API}${path}`,{credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json','Content-Type':'application/json',...(options.headers||{})},...options});
@@ -27,7 +28,7 @@ window.addEventListener('caid:sicid-login-request',event=>{
 window.addEventListener('caid:case-request',event=>{
   if(!event||!event.detail)return;
   event.preventDefault();
-  const body={caseType:String(event.detail.caseType||'UNKNOWN').slice(0,80),projectQuery:String(event.detail.projectQuery||'').slice(0,500),description:String(event.detail.description||'').slice(0,4000)};
+  const body={caseType:String(event.detail.caseType||'UNKNOWN').slice(0,80),projectQuery:String(event.detail.projectQuery||'').slice(0,500),description:String(event.detail.description||'').slice(0,4000),requestId:requestToken('ui_req'),idempotencyKey:requestToken('ui_idem')};
   request('/cases',{method:'POST',body:JSON.stringify(body)}).then(payload=>{if(publishCanonicalState(payload)&&payload.caseId)location.hash='recovery'}).catch(()=>{});
 });
 window.CryptoAIDTwin=Object.freeze({contractVersion:'1.0.0',search(query){return request(`/search?q=${encodeURIComponent(String(query||'').slice(0,500))}`)}});
