@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "timezone": "Europe/Rome",
+  "publications_per_day": 5,
+  "principles": ["HELP_FIRST", "SECURITY_FIRST", "EVIDENCE_FIRST", "NO_HALLUCINATED_FACTS"],
+  "slots": [
+    {"id":"morning_mission","local_time":"08:30","destination":"channel","format":"post","pillar":"cryptoaid","goal":"welcome_orientation"},
+    {"id":"late_morning_security","local_time":"11:30","destination":"channel","format":"post","pillar":"security","goal":"education_trust"},
+    {"id":"afternoon_learn","local_time":"14:30","destination":"channel","format":"post","pillar":"education_recovery","goal":"usefulness_discovery"},
+    {"id":"community_poll","local_time":"17:30","destination":"group","format":"poll","pillar":"community","goal":"engagement_research"},
+    {"id":"evening_action","local_time":"20:30","destination":"group","format":"post","pillar":"community_support","goal":"conversation_retention"}
+  ],
+  "weekly_rotation": {
+    "monday": ["mission", "wallet_safety", "signatures", "risk_poll", "ask_cryptoaid"],
+    "tuesday": ["how_it_works", "phishing", "recovery_reality", "evidence_poll", "case_orientation"],
+    "wednesday": ["community", "fake_support", "blockchain_tracing", "wallet_poll", "faq_prompt"],
+    "thursday": ["ecosystem", "social_engineering", "dead_dapp_education", "security_poll", "support_prompt"],
+    "friday": ["help_first", "seed_security", "web3_glossary", "learning_poll", "weekly_question"],
+    "saturday": ["community_welcome", "signature_safety", "recovery_scam", "weekend_poll", "community_story_prompt"],
+    "sunday": ["weekly_recap", "security_checklist", "evidence_first", "recap_poll", "next_week_prompt"]
+  },
+  "publishing_policy": {
+    "allowed_verification_levels": ["VERIFIED_PRIMARY_SOURCE", "VERIFIED", "HIGH_CONFIDENCE"],
+    "analysis_requires_label": true,
+    "deny_levels": ["DRAFT", "UNRESOLVED", "CONFLICT", "OBSOLETE"],
+    "private_evidence_forbidden": true,
+    "fake_scarcity_forbidden": true,
+    "fake_partnerships_forbidden": true,
+    "guaranteed_recovery_forbidden": true,
+    "max_publications_per_run": 1
+  }
+}
