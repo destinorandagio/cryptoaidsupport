@@ -1,0 +1,4 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+contract CryptoAIDReferralProof is AccessControl{bytes32 public constant VERIFIER_ROLE=keccak256("VERIFIER_ROLE");mapping(address=>address)public referrerOf;mapping(bytes32=>bool)public usedProof;event ReferralBound(address indexed user,address indexed referrer,bytes32 indexed proof);constructor(address admin){_grantRole(DEFAULT_ADMIN_ROLE,admin);_grantRole(VERIFIER_ROLE,admin);}function bind(address user,address referrer,bytes32 proof)external onlyRole(VERIFIER_ROLE){require(user!=address(0)&&referrer!=address(0)&&user!=referrer,"BAD");require(referrerOf[user]==address(0)&&!usedProof[proof]&&proof!=0,"USED");address p=referrer;for(uint256 i;i<32&&p!=address(0);++i){require(p!=user,"CYCLE");p=referrerOf[p];}usedProof[proof]=true;referrerOf[user]=referrer;emit ReferralBound(user,referrer,proof);} }
