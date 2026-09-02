@@ -1,37 +1,52 @@
-# CHAT02 — Evidence + Payment — v0.6.7
+# CHAT02 — Evidence + Payment — repo v1.1.0 / Factory Stage03 v0.6.7
 
-status=READBACK_VERIFIED_NO_GO
-cycle=20260902-1120
+status=CI_GREEN_NO_GO
+cycle=20260902-1220
 owner=CHAT02_EVIDENCE_PAYMENT
 sole_truth=evidence_lifecycle,payment_verification,entitlement
-parent_h02=Core v0.3.13 Drive 1y6Q0Z57IbF3B6qwMnfBND9OkTuPhYQMn-pCwFVxlw-8
-parent_patch_sha256=ffc2974e6f131ffec2050762ed6b70b6be307bb9554fc150572b53eb37b7f56e
-handoff03_drive=1IRC3LYNqt3aCVkw1TKysB9JlJjUvbyseMXsOhW79-Nc
-chat02_drive=1984TFbwh179AAaRvffbY2n1YjfGGPxG15uVJxvkPjos
-ownership_ledger_row=CAID-LK-0087 RELEASED_AFTER_READBACK_NO_GO
-stage03_source=UNCHANGED_EXACT_v0.6.2
-stage03_package_sha256=6419367f716fac62735b81e97c5a802318c3dcb3e332f7fcc0659ae25e0f3de9
-migrations_chat01=001..004
-migrations_chat02=005..008
+repo_source_commit=8611f17c3f0eb070d64cb1adf6fa61968a57d77a
+repo_source_blob=6c12b52548dda036eeb907da91d848c983657cdf
+parent_handoff02_repo=1.2.0
+parent_core_source=138f5154aabf2f79b296bf40dcf59e9c36a576ab
+parent_h02_factory=Core v0.3.13 Drive 16oHAKjgGrEYl34TRcQb9cbPmCvYaqQrdX3h3Pb9MkcU
+factory_stage03=0.6.7 UNCHANGED
+factory_stage03_exact_package_sha256=6419367f716fac62735b81e97c5a802318c3dcb3e332f7fcc0659ae25e0f3de9
+ci_run=33619108328
+ci_number=199
+ci_result=SUCCESS
 
-## Frozen configuration
+## SYNC_INPUTS
 
-Polygon chainId=137. Treasury=`0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`. SIC-ID is the sole durable principal; wallet is a revocable action/payment resource. Activation is 50 POL once per SIC-ID, yielding FIRST_CASE_CREDIT_50 AVAILABLE→RESERVED; first Case remainder is 450 POL; after CONSUMED, subsequent Cases cost 500 POL. Ambiguous/nonfinal/provider-disputed settlement is MANUAL_REVIEW. Automatic ACCEPTED is disabled. Evidence is private by default and bytes stay outside webroot.
+Fresh-read repo HANDOFF_02 v1.2.0, CHAT00 ownership/contracts/latest-state, CHAT05 QA snapshot, CHAT08 v0.1.0 and prior Drive Stage03 v0.6.7. CHAT10 current machine handoff was not persisted at read time. CHAT00 control plane remains the sole global-control writer; this CHAT02 cycle did not mutate control/latest-state, MASTER, public_html or .htaccess.
 
-Effective config fingerprint: `f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec`.
+## CONFIG_VERSION
 
-## Sync decisions
+Config label remains `CHAT02_ECON_CONFIG_FROZEN_H01_1100_CORE_v0.3.13`; fingerprint `f30e2d72441da5d3edcdcf6f0042fb5784dc48178352595ba70a9872daf334ec`. Polygon chainId=137; treasury=`0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`; SIC-ID is durable principal; wallet is revocable action/payment resource. Activation is 50 POL once per SIC-ID -> credit AVAILABLE->RESERVED -> 450 POL first Case remainder -> CONSUMED -> 500 POL subsequent Cases. Ambiguity is MANUAL_REVIEW; automatic acceptance is disabled. Evidence remains PRIVATE BY DEFAULT outside webroot.
 
-ACCEPT Core v0.3.13 consumer contract declaring CHAT02 ownership of Evidence/payment/entitlement and Core migrations 001..004 only. ACCEPT CHAT04 UX and CHAT07 Telegram/support as state/API consumers only. ACCEPT CHAT08 admin/config only through versioned authorized contracts with no direct truth writes. ACCEPT CHAT10 runtime/config evidence only. ACCEPT CHAT05/H06 independent QA as verifier, not authority owner.
+## LEDGER / EVIDENCE DELTA
 
-REJECT any parallel Evidence DB/store authority, payment ledger/verifier, entitlement truth, shadow `cryptoaid.sqlite`, consumer direct DB mutation, legacy exact-500-only economics, unversioned treasury/economic changes, or provider observation lacking tx/chain/receipt identity plus legal-operator authority evidence.
+CHAT02 fixed the exact repo D0B schema-engine binding defects without changing schema, economics or authority. `evidence_records` has 17 columns and now receives 17 SQL placeholders. `entitlement_ledger` has 8 columns and now receives 8 SQL placeholders. Evidence lifecycle, SHA-256 metadata, Case/consent/authorization binding, version/supersession, payment intent/idempotency, tx uniqueness, provider agreement and append-only entitlement semantics are unchanged.
 
-## Verification
+## COLLISIONS
 
-Core v0.3.13 source patch reconstructed exactly: 11,789 bytes, SHA256 `ffc2974e6f131ffec2050762ed6b70b6be307bb9554fc150572b53eb37b7f56e`. Fresh Core-v0.3.13/Stage03-v0.6.2 compatibility gate: 20/20 PASS. Fresh exact Stage03 contract: 35/35 PASS. Fresh Stage03 static/security: 20/20 PASS. PHP lint: 3/3 PASS. H06 independently proved canonical MASTER + migrations 001..008 x2, integrity ok, FK0, Stage03 schema/adversarial 41/41 and races one winner; that schema suite was not rerun in this cycle.
+ACCEPT repo CHAT02 v1.1.0 and Drive Factory Stage03 v0.6.7 as separate namespaces; neither silently supersedes the other. ACCEPT CHAT01 v1.2.0 Case repair and the boundary that CHAT02 emits durable entitlement authorization but never mutates Case truth. ACCEPT CHAT04/07 as consumers, CHAT08 only through versioned authorized config proposals, CHAT10 only as runtime/provider plumbing when persisted, and CHAT05 as independent verifier. REJECT parallel Evidence authority, ledger/verifier/entitlement truth, shadow database, direct consumer truth writes, legacy exact-500-only economics and unversioned treasury/economic changes.
 
-Adversarial coverage includes wrong amount/chain/treasury/sender/to/value/receipt, replay and tx identity, nonfinal/provider disagreement/incomplete authority, revoked wallet, 50-credit reserve/consume, binary Evidence PII/secret/malware/scanner failure, private-root webroot escape, and no network under writer lock.
+## TESTED
 
-## Release truth
+GitHub Actions run `33619108328` on exact source commit `8611f17c3f0eb070d64cb1adf6fa61968a57d77a` completed SUCCESS. Checkout/setup/dependency install, bot compile, `pytest -q`, and the configured post-test Telegram-token scan all passed. This closes the three repository failures attributed to CHAT02 D0B. Prior Factory Stage03 v0.6.7 evidence remains separately valid: compatibility 20/20, adversarial contract 35/35, static/security 20/20, PHP lint 3/3; H06 separately recorded exact MASTER 001..008 x2, integrity/FK green, Stage03 schema/adversarial 41/41 and one-winner races. Those Factory suites were not falsely relabeled as freshly rerun in this repo cycle.
 
-No Stage03 source/schema/economic change was required for Core v0.3.13. No real payment/signature/tx/deploy occurred. Production MASTER, `public_html` and `.htaccess` were not mutated. Global release remains NO_GO pending target runtime dependencies, request-time SIC-ID, production private Evidence FS/KMS/scanner/DLP/backup, >=2 approved independent Polygon provider authorities/finality, exact H04/H05 byte composition, clean public package, browser/PWA/device Golden E2E and HUMAN_GO_LIVE_GATE.
+## FIXED
+
+`evidence_records`: 18 placeholders -> 17. `entitlement_ledger`: 7 placeholders -> 8. Repository CI now passes through pytest and the configured token scan on the exact CHAT02 fix commit.
+
+## MANUAL_REVIEW
+
+Wrong/ambiguous chain, sender, treasury/to, amount/value, receipt, Case or entitlement binding; duplicate/replay; provider/block disagreement; insufficient/ambiguous finality; unresolved Evidence authorization/privacy/scanner status remain fail-closed to MANUAL_REVIEW. No real payment, wallet signature or chain transaction was performed.
+
+## BLOCKED
+
+Global release remains NO_GO. CHAT00 still must reconcile current D0B green evidence into its global state. CHAT10 current machine handoff/runtime proof is absent. Final exact CHAT03/04 tuple, disposable serial candidate, MASTER-clone migrations/integrity/FK/races, production private Evidence FS/KMS/scanner/DLP/backup, >=2 approved independent Polygon authorities, deterministic public package/rollback/restore, Golden E2E and CHAT05 independent final QA remain open. Real wallet/sign/payment/tx/deploy/cutover remain HUMAN_GATE.
+
+## NEXT
+
+Publish/read back HANDOFF_03 for this cycle, preserve repo-vs-Factory namespace mapping, hand exact commit `8611f17...` to CHAT05/CHAT00 consumers, and consume CHAT10 only after a versioned persisted contract exists. Keep one MASTER, frozen economics and CHAT02 sole Evidence/payment/entitlement truth.
