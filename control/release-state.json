@@ -1,8 +1,13 @@
 {
-  "schema_version":"1.0",
+  "schema_version":"1.1",
   "target":"READY_FOR_HUMAN_GO_LIVE_GATE",
   "status":"NO_GO",
-  "reason":"Golden Journey is not yet proven end-to-end and multiple canonical P0 authorities are absent or unverified in the observed main tree.",
-  "latest_ci":{"head":"e365199e75f54d69189ccdb6959c54be3b97ddbb","workflow":"CI","run_number":94,"conclusion":"success"},
-  "required_before_go":["all_P0_autonomous_green","golden_journey_e2e_green","security_release_gate_green","production_truth_verified"]
+  "qa_cycle":"20260902-1150",
+  "source_head_under_test":"3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
+  "reason":"Current main CI fails during pytest collection; CHAT03/04 contract versions are not serially reconciled; CHAT07-10 release handoffs are absent; final deploy/rollback/restore package and Golden Journey are not proven.",
+  "latest_ci_at_source_head":{"run_id":33616748051,"run_number":158,"conclusion":"failure","compile_bot":"PASS","pytest":"FAIL_COLLECTION","security_scan":"SKIPPED"},
+  "autonomous_p0_open":["QA05-P0-001","QA05-P0-002","QA05-P0-003","QA05-P0-004","QA05-P0-005"],
+  "required_before_go":["all_CHAT00_10_release_handoffs_reconciled","all_P0_autonomous_green","repository_CI_green","critical_cross_domain_contracts_green","golden_journey_e2e_green","clean_final_public_html_package_green","deterministic_upload_manifest_green","rollback_restore_green","production_truth_verified"],
+  "model_simulation_policy":"never_promote_to_production_pass",
+  "ready_for_human_go_live_gate":false
 }

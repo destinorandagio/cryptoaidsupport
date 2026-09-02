@@ -1,52 +1,25 @@
 {
   "chat": "05",
   "owner": "QA_SECURITY_RELEASE",
-  "version": "0.1.0",
-  "cycle": "20260902-1152",
-  "status": "ACTIVE_NO_GO",
+  "version": "0.2.0",
+  "cycle": "20260902-1150",
+  "status": "HANDOFF_READY_NO_GO",
   "release_authority": "GO_NO_GO",
-  "current_release_state": "NO_GO",
-  "tested_head": "838e346e3277463c910208ca27d7bceaee16f846",
-  "evidence": {
-    "latest_ci_run": 33616329394,
-    "ci": "FAIL",
-    "compile_bot": "PASS",
-    "pytest": "FAIL_COLLECTION",
-    "failure": "ImportError: core.__init__ imports CaseError but core.case_engine does not expose CaseError"
-  },
-  "upstream": {
-    "handoff_05_ui": "1.7.0",
-    "core": "0.3.13",
-    "evidence_payment": "0.6.7",
-    "twin": "1.0.0",
-    "wallet_matrix": "1.0.0",
-    "dappmap": "1.0.0"
-  },
-  "gates": {
-    "golden_journey": "NOT_TESTED",
-    "security_critical": "NOT_TESTED",
-    "release_package": "NOT_TESTED",
-    "rollback": "NOT_TESTED",
-    "restore": "NOT_TESTED",
-    "real_origin_pwa": "NOT_TESTED",
-    "physical_wallets": "HUMAN_GATE"
-  },
+  "current_release_state": "NO_GO_AUTONOMOUS_P0_AND_PACKAGE_GATES_OPEN",
+  "source_head_under_test": "3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
+  "latest_ci": {"run_id":33616748051,"run_number":158,"conclusion":"FAIL","compile_bot":"PASS","pytest":"FAIL_COLLECTION","post_test_secret_scan":"SKIPPED"},
+  "upstream": {"chat00":"HANDOFF_01_1100","core":"0.3.13","evidence_payment":"0.6.7","twin_main":"1.0.0","twin_pr3_proposed":"1.1.0","wallet_main":"1.0.0","dappmap_main":"1.0.0","ui":"1.7.0","knowledge":"0.1.0_ACTIVE_BOOTSTRAP","chat07":"NOT_DISCOVERED","chat08":"NOT_DISCOVERED","chat09":"NOT_DISCOVERED","chat10":"NOT_DISCOVERED"},
+  "q_status": {"Q1":"FAIL","Q2":"PASS_WITH_PRODUCTION_NOT_TESTED","Q3":"FAIL_LEGACY_TARGET_NOT_TESTED","Q4":"PASS_STAGE03_PRODUCTION_NOT_TESTED","Q5":"PASS_STAGE03_LIVE_NOT_TESTED","Q6":"FAIL_RELEASE_GATE","Q7":"PASS_ISOLATED_ORIGIN_NOT_TESTED","Q8":"NOT_TESTED_PRODUCTION","Q9":"FAIL","Q10":"NOT_TESTED","Q11":"NOT_TESTED_RELEASE_GRADE","Q12":"FAIL"},
   "blocking_findings": [
-    {
-      "id": "QA05-P0-001",
-      "severity": "P0",
-      "owner": "CHAT01_CORE_CASE",
-      "state": "OPEN",
-      "summary": "Repository CI cannot collect tests because CaseError contract is broken."
-    },
-    {
-      "id": "QA05-P0-002",
-      "severity": "P0",
-      "owner": "GLOBAL_SYNC",
-      "state": "OPEN",
-      "summary": "Canonical CHAT06-10 release-impacting handoffs are not yet reconciled/discoverable."
-    }
+    {"id":"QA05-P0-001","severity":"P0","owner":"CHAT01_CORE_CASE","state":"OPEN","summary":"Current main CI cannot collect tests because CaseError public import contract is broken."},
+    {"id":"QA05-P0-002","severity":"P0","owner":"GLOBAL_SYNC","state":"OPEN_PARTIAL","summary":"CHAT06 bootstrap arrived; CHAT07-10 release-impacting handoffs remain absent and Knowledge is not yet a concrete release."},
+    {"id":"QA05-P0-003","severity":"P0","owner":"CHAT03_CHAT04","state":"OPEN","summary":"CHAT03 PR3 proposes 1.1.0 while current main UI consumes 1.0.0; exact compatibility/merge not certified."},
+    {"id":"QA05-P0-004","severity":"P0","owner":"CHAT00_CHAT10","state":"OPEN","summary":"Final serial deploy package/upload manifest/rollback/production restore certificate absent."},
+    {"id":"QA05-P0-005","severity":"P0","owner":"CROSS_DOMAIN","state":"OPEN","summary":"Golden Journey and critical final-origin/runtime paths are not tested end-to-end."},
+    {"id":"QA05-P1-006","severity":"P1","owner":"CHAT10","state":"OPEN","summary":"CI release security scan is skipped after pytest failure and is too narrow for required package policy."},
+    {"id":"QA05-P1-007","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","summary":"main is unprotected and has no required status checks."},
+    {"id":"QA05-P1-008","severity":"P1","owner":"CHAT00","state":"OPEN","summary":"global latest/release state persisted success metadata is stale versus current failing CI."}
   ],
-  "rule": "NOT_TESTED_NEVER_EQUALS_PASS",
+  "rule": "MODEL_OR_SIMULATION_NEVER_EQUALS_PRODUCTION_PASS; NOT_TESTED_NEVER_EQUALS_PASS",
   "ready_for_human_go_live_gate": false
 }
