@@ -15,7 +15,7 @@ SERVER = (ROOT / "runtime" / "mvp_bridge_server.py").read_text()
 
 def config(tmp_path: Path, sic_id: str | None = "SIC-MVP-RUNTIME-1") -> BridgeConfig:
     static = tmp_path / "public_html"
-    static.mkdir()
+    static.mkdir(parents=True)
     (static / "index.html").write_text("<!doctype html><title>test</title>")
     return BridgeConfig(master_db=tmp_path / "private" / "BLOCKCHAINPLUS-MASTER.sqlite", static_root=static, sandbox_sic_id=sic_id)
 
