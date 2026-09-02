@@ -1,0 +1,8 @@
+[
+  {"id":"what-is","lang":"it","q":"Cos'è CryptoAID?","a":"CryptoAID è un ecosistema di supporto, educazione e sicurezza per utenti crypto/Web3, con orientamento anche su scam e recovery."},
+  {"id":"what-is-en","lang":"en","q":"What is CryptoAID?","a":"CryptoAID is a support, education and security ecosystem for crypto/Web3 users, including scam and recovery orientation."},
+  {"id":"seed","lang":"it","q":"Devo dare la seed phrase al supporto?","a":"No. Non condividere mai seed phrase, chiave privata, password o codici 2FA. CryptoAID non deve chiederteli."},
+  {"id":"seed-en","lang":"en","q":"Should I give my seed phrase to support?","a":"No. Never share a seed phrase, private key, password or 2FA code. CryptoAID support must not ask for them."},
+  {"id":"recovery","lang":"it","q":"CryptoAID garantisce il recupero dei fondi?","a":"No. Il tracing e l'analisi possono aiutare a comprendere un caso, ma non equivalgono a un recupero garantito."},
+  {"id":"recovery-en","lang":"en","q":"Does CryptoAID guarantee fund recovery?","a":"No. Tracing and analysis can help understand a case, but they do not equal guaranteed recovery."}
+]
