@@ -23,6 +23,8 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m compileall bot
       - run: pytest -q
+      - name: Fail closed on parallel MVP Case-payment authority
+        run: python scripts/check_mvp_authority.py web3/deploy/deployment-plan.json
       - name: Verify GitHub runner MVP PHP baseline
         shell: bash
         run: |
