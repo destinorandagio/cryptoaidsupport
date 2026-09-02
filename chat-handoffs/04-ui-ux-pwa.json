@@ -1,68 +1,66 @@
 {
-  "schema_version":"1.0",
-  "chat":"CHAT04_UI_UX_PWA",
-  "cycle":"20260902-1140",
-  "state":"FRONTEND_CANDIDATE_BUILT_NO_GO_VERSION_SYNC_PENDING",
-  "ui_version":"1.7.0",
-  "contracts_consumed":{
-    "core":"0.3.13",
-    "evidence_payment":"0.6.7",
-    "twin_schema":"1.0.0_CURRENT_MAIN",
-    "wallet_matrix":"1.0.0_CURRENT_MAIN",
-    "dappmap":"1.0.0_CURRENT_MAIN",
-    "knowledge":"CRYPTOAID_KNOWLEDGE_MASTER_V1_INGESTED_UNPINNED_CHAT06",
-    "chat07_support":"NO_SEPARATE_CANONICAL_HANDOFF_DISCOVERED",
-    "chat08_admin":"NO_SEPARATE_CANONICAL_HANDOFF_DISCOVERED",
-    "chat09_growth":"NO_SEPARATE_CANONICAL_HANDOFF_DISCOVERED",
-    "chat10_runtime":"NO_SEPARATE_CANONICAL_HANDOFF_DISCOVERED"
+  "schema_version": "1.2",
+  "chat": "CHAT04_UI_UX_PWA",
+  "cycle": "20260902-1642",
+  "state": "FRONTEND_SICID_LOGIN_REQUEST_CANDIDATE_NO_GO",
+  "ui_version": "2.0.0",
+  "branch": "feat/chat04-sicid-login-freshmain-1642",
+  "parent_main_observed": "46a8e76ac4b6b21284b0b258ed111f72c039f7bd",
+  "contracts_consumed": {
+    "core": "0.3.13",
+    "core_api": "1.0.0",
+    "evidence_payment": "UPSTREAM_ONLY",
+    "twin_accepted": ["1.0.0", "1.1.0", "1.2.0"],
+    "wallet_matrix_accepted": ["1.0.0", "1.1.0", "1.2.0"],
+    "dappmap_accepted": ["1.0.0", "1.1.0", "1.2.0"],
+    "knowledge_context_accepted": ["1.0.0"],
+    "chat03_freshmain_pr6": "TESTED_REVIEW_ONLY",
+    "chat01_freshmain_pr15": "CORE_API_1.0.0_TESTED_REVIEW_ONLY"
   },
-  "late_sync":{
-    "chat03_handoff":"20260902-1130",
-    "branch":"feat/chat03-twin-wallet-sync-v1-1",
-    "pr":3,
-    "proposed_twin":"1.1.0",
-    "proposed_wallet_matrix":"1.1.0",
-    "proposed_dappmap":"1.1.0",
-    "decision":"DO_NOT_SILENTLY_CONSUME_UNMERGED_1_1_0; VERSION_SYNC_REQUIRED_BEFORE_MERGE",
-    "chat03_readback":"VERIFIED_GITHUB_AND_DRIVE"
+  "identity_policy": {
+    "first_public_step": "SIC-ID LOGIN_OR_RESUME request before Search",
+    "event": "caid:sicid-login-request",
+    "requires_live_session": true,
+    "caller_may_provide_identity": false,
+    "wallet_is_identity": false,
+    "fail_closed": "If no Core identity adapter consumes the event, no session or identity is invented."
   },
-  "ownership":"frontend presentation only; Core/Case, Evidence/Payment/Entitlement, Twin/DAPPMAP and Knowledge truth remain upstream-owned",
-  "routes":["HOME","SEARCH","+CASE","RECOVERY","PROFILE"],
-  "built":[
-    "white-dominant red/black-neutral beginner-first shell",
-    "persistent CONNECT WALLET request adapter",
-    "search fallback that never invents a canonical project",
-    "four-step +CASE wizard with UNKNOWN and TO_VERIFY continuation",
-    "PRIVATE BY DEFAULT local SHA-256 Evidence preflight",
-    "Core-projection My Recovery / primary Next Action",
-    "fail-closed payment presentation from verified persisted upstream intent only",
-    "truth-state badges LIVE/CACHED/HISTORICAL/DERIVED/TO_VERIFY/UNKNOWN",
-    "shell-only PWA cache excluding API/Evidence/payment paths",
-    "390px mobile navigation with central red +CASE",
-    "reduced-motion and keyboard focus treatment"
+  "compatibility_policy": {
+    "mode": "FAIL_CLOSED_EXPLICIT_VERSION_LIST",
+    "unsupported_twin_adapter": "TO_VERIFY_AND_CONTINUE_CASE",
+    "ambiguous_twin_result": "TO_VERIFY_REQUIRE_DISAMBIGUATION_NO_AUTO_PICK",
+    "wallet_request": "advertise supported versions; prefer 1.2.0; Polygon137; explicit provider choice",
+    "connect_is_authentication": false,
+    "authority": "CHAT04 presents requests/state only; CHAT01 owns SIC-ID/auth/Case, CHAT02 payment/economics, CHAT03 Twin/Wallet/DAPPMAP, CHAT06 knowledge."
+  },
+  "ux_delta": [
+    "explicit beginner-first SIC-ID sign-in/resume CTA before Search",
+    "identity state remains TO_VERIFY until supplied by Core runtime projection",
+    "Profile exposes the same SIC-ID request action",
+    "wallet remains optional and cannot satisfy authentication",
+    "prior Twin 1.0/1.1/1.2 fail-closed compatibility retained",
+    "no frontend prices/payment verification/Case truth/Knowledge promotion/current web3 USDT Case semantics"
   ],
-  "static_tests":"9/9 PASS locally",
-  "chromium_injected":"PASS 390x844 and 1440x900; scrollWidth equals viewport, CONNECT height 44px, +CASE 58px, exact nav labels, unknown search TO_VERIFY, reduced motion disables node/line animation",
-  "real_origin":"NOT_TESTED_RUNTIME_BLOCKED_CHROMIUM_URL_POLICY_ERR_BLOCKED_BY_ADMINISTRATOR",
-  "pwa_origin_install":"NOT_TESTED",
-  "runtime_bytes":31357,
-  "runtime_external_http_assets":0,
-  "manifest_sha256":"22bb36af4d6eed4e5d9cdba1626af8b353e3ed89e20256fdd148a9a900c56ffa",
-  "ci":{"run_id":33616070813,"status":"FAIL_OUTSIDE_CHAT04","root_cause":"tests/test_core_case_engine.py cannot import CaseError from core.case_engine"},
-  "collisions":[
-    "CHAT03 PR #3 proposes Twin/Wallet/DAPPMAP 1.1.0 while current main CHAT04 safely pins 1.0.0; VERSION_SYNC_REQUIRED_BEFORE_MERGE",
-    "control/latest-state.json is CHAT00-owned and stale versus current source commits; not modified by CHAT04",
-    "legacy web3/ui/cryptoaid-brand.css is dark-dominant and was not reused for the required white-dominant UX",
-    "shared production public_html remains legacy DO_NOT_DEPLOY and was not mutated"
+  "growth_minimum": {
+    "owner": "CHAT09",
+    "version": "0.3.0",
+    "principles": ["HELP_FIRST", "VALUE_BEFORE_CTA", "NO_PURCHASE_NEEDED_ALLOWED", "OFFICIAL_FREE_PATH_FIRST", "NO_DARK_PATTERNS", "NO_FAKE_URGENCY", "NO_RECOVERY_GUARANTEE", "NO_ROI"],
+    "runtime_delta": "ONLY identity-before-search explanatory copy/CTA; no campaign expansion"
+  },
+  "browser": {
+    "exact_candidate": "NOT_TESTED",
+    "reason": "Antigravity broad Golden runtime is HOLD until global payment-authority collision is closed and CHAT00 publishes one exact serial candidate.",
+    "previous_layout_evidence": "NOT promoted to this source head"
+  },
+  "blocked": [
+    "global QA05-P0-016 parallel Case-payment authority/economics collision",
+    "no one exact serial Golden candidate",
+    "Antigravity real-origin 390/desktop/PWA evidence must run on the later serial Golden head, not this isolated UI PR",
+    "CHAT05 independent QA and final package/rollback/restore pending",
+    "physical wallet/sign/payment/tx/deploy remain HUMAN_GATE/NOT_TESTED"
   ],
-  "blocked":[
-    "coordinated CHAT03/CHAT04 contract version sync before PR #3 merge or final composition",
-    "CI is red on CHAT01 Core CaseError export mismatch before CHAT04 tests can run in repository CI",
-    "no canonical versioned CHAT06/07/08/09/10 handoffs were discoverable",
-    "real-origin browser/PWA service-worker install/offline reconnect blocked by browser administrator URL policy",
-    "physical MetaMask/TokenPocket/Reown acceptance remains HUMAN_GATE",
-    "no serial cutover to shared public_html"
-  ],
-  "readback_required":true,
-  "go_no_go":"NO_GO"
+  "go_no_go": "NO_GO",
+  "readback_required": true,
+  "github_pr": "PENDING_CREATE",
+  "ci": {"status": "PENDING_NEW_HEAD"}
 }
