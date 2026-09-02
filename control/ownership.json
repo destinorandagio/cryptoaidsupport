@@ -1,0 +1,19 @@
+{
+  "schema_version":"1.0",
+  "principle":"ONE_SHARED_SURFACE_ONE_WRITER",
+  "writers":{
+    "control_plane":"CHAT00",
+    "core_user_case":"CHAT01",
+    "evidence_payment":"CHAT02",
+    "digital_twin_wallet_dappmap":"CHAT03",
+    "ux_ui_pwa":"CHAT04",
+    "qa_security_release":"CHAT05",
+    "global_knowledge":"CHAT06",
+    "telegram_community_support":"CHAT07",
+    "admin_crm_analytics":"CHAT08",
+    "growth_marketing_partnership":"CHAT09",
+    "devops_infra_observability":"CHAT10"
+  },
+  "serialized_surfaces":["canonical_schema","MASTER","shared_api_contract","shared_configuration","release_state","canonical_merge"],
+  "forbidden_duplicate_authorities":["MASTER","Case Engine","entitlement ledger","payment truth","SIC-ID registry","Digital Twin authority","knowledge authority","configuration authority"]
+}
