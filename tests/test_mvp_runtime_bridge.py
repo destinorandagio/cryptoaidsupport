@@ -1,3 +1,7 @@
+import json
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -22,6 +26,20 @@ def config(tmp_path: Path, sic_id: str | None = "SIC-MVP-RUNTIME-1") -> BridgeCo
     return BridgeConfig(master_db=private / "BLOCKCHAINPLUS-MASTER.sqlite", static_root=static, sandbox_sic_id=sic_id)
 
 
+def _adapt_twin_envelope(payload: dict) -> dict:
+    node = shutil.which("node")
+    assert node, "Node.js is required to execute the browser Twin envelope regression"
+    line = next(line for line in BRIDGE.splitlines() if line.startswith("const adaptTwinEnvelope="))
+    script = f"{line}\nprocess.stdout.write(JSON.stringify(adaptTwinEnvelope(JSON.parse(process.argv[1]))));"
+    completed = subprocess.run(
+        [node, "-e", script, json.dumps(payload, separators=(",", ":"))],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(completed.stdout)
+
+
 def test_normal_package_loads_bridge_before_app_and_pwa_caches_it():
     bridge_tag = '<script src="assets/runtime-bridge.js" defer></script>'
     app_tag = '<script src="assets/app.js" defer></script>'
@@ -43,6 +61,53 @@ def test_browser_bridge_is_same_origin_fail_closed_and_does_not_author_identity_
     login_payload = BRIDGE.split("request('/session',{method:'POST'", 1)[1].split("}).then", 1)[0]
     for forbidden_identity in ["sic_id", "sicId", "user_id", "userId", "session_id", "wallet"]:
         assert forbidden_identity not in login_payload
+
+
+def test_twin_match_flat_provenance_is_executably_preserved_for_app_consumer():
+    result = _adapt_twin_envelope(
+        {
+            "state": "MATCH",
+            "result": {
+                "name": "Example Twin",
+                "source": "registry-A",
+                "source_date": "2026-09-02",
+                "confidence": 0.91,
+                "cache_state": "LIVE",
+                "truth_label": "LIVE",
+                "version": "1.0.0",
+            },
+        }
+    )
+    assert result["state"] == "MATCH"
+    assert len(result["results"]) == 1
+    card = result["results"][0]
+    assert card["name"] == "Example Twin"
+    assert card["provenance"] == [
+        {
+            "source": "registry-A",
+            "source_date": "2026-09-02",
+            "confidence": 0.91,
+            "cache_state": "LIVE",
+            "truth_label": "LIVE",
+            "version": "1.0.0",
+        }
+    ]
+
+
+def test_twin_ambiguous_envelope_is_executably_explicit_and_fail_closed():
+    candidates = [{"name": "A"}, {"name": "B"}]
+    result = _adapt_twin_envelope(
+        {
+            "state": "AMBIGUOUS",
+            "result": None,
+            "results": candidates,
+            "requires_disambiguation": True,
+        }
+    )
+    assert result["ambiguous"] is True
+    assert result["requires_disambiguation"] is True
+    assert result["results"] == candidates
+    assert result.get("match") is not True
 
 
 def test_server_requires_private_db_and_explicit_server_side_sandbox_identity(tmp_path: Path):
