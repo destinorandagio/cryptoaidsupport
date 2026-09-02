@@ -1,8 +1,8 @@
 """CHAT02 fail-closed Evidence consent/authorization gate for the 48H MVP.
 
 This layer remains inside the single CHAT02 Evidence/Payment/Entitlement
-authority. It rejects any Evidence upload whose authorization is not the exact,
-versioned allow state or whose consent binding is blank, before private bytes or
+authority. It rejects any Evidence upload whose authorization is not an exact,
+versioned allowed state or whose consent binding is blank, before private bytes or
 Evidence rows can be created. Payment/finality/economics are inherited unchanged.
 """
 from __future__ import annotations
@@ -13,7 +13,9 @@ from .engine import EvidencePaymentError
 from .idempotency_engine import EvidencePaymentEngine as _IdempotentEvidencePaymentEngine
 
 EVIDENCE_AUTHORIZATION_CONTRACT_VERSION = "1.0"
-EVIDENCE_AUTHORIZATION_ALLOWED_STATES = frozenset({"ALLOW"})
+# These are the only authorizing states used by the current CHAT02 contract and
+# one-head Core/Admin golden fixture. The comparison is exact and case-sensitive.
+EVIDENCE_AUTHORIZATION_ALLOWED_STATES = frozenset({"ALLOW", "OWNER"})
 
 
 def validate_evidence_authorization(authorization: Any) -> str:
