@@ -1,0 +1,51 @@
+{
+  "contract": "CRYPTOAID_CORE_CONSUMER_CONTRACT",
+  "version": "0.3.13",
+  "authority": {
+    "database": "BLOCKCHAINPLUS-MASTER.sqlite",
+    "durable_principal": "SIC-ID",
+    "wallet_role": "revocable_action_payment_resource",
+    "chain_id": 137,
+    "treasury": "0x3C320B3a0917fF44BF6551CDdee44402AFcF250C"
+  },
+  "ownership": {
+    "CHAT01": ["sic_id_auth_projection", "case_state", "case_tasks", "case_timeline", "case_next_actions", "to_verify_candidate_intake"],
+    "CHAT02": ["evidence", "payment", "entitlement"],
+    "CHAT03": ["twin_wallet_read_model"],
+    "CHAT06": ["knowledge_derived_layer"],
+    "CHAT07": ["support_consumer"],
+    "CHAT08": ["admin_ui_analytics_config_consumer"],
+    "CHAT09": ["growth_consumer"],
+    "CHAT10": ["infra_runtime_evidence"]
+  },
+  "consumer_rules": {
+    "CHAT03": "READ_DERIVED_INPUT_ONLY_NO_CORE_TRUTH_WRITE",
+    "CHAT04": "USE_CORE_API_PROJECTIONS_NO_DIRECT_DB_WRITE",
+    "CHAT06": "READ_DERIVED_INPUT_ONLY_NO_CLAIM_PROMOTION",
+    "CHAT07": "USE_STABLE_CASE_TIMELINE_NEXT_ACTIONS_PROJECTIONS_NO_DIRECT_DB_WRITE",
+    "CHAT08": "ADMIN_COMMANDS_ONLY_THROUGH_VERSIONED_CORE_API_NO_DIRECT_DB_WRITE",
+    "CHAT09": "NO_CORE_TRUTH_WRITE",
+    "CHAT10": "RUNTIME_CONFIG_AND_EVIDENCE_ONLY_NO_CORE_TRUTH_WRITE"
+  },
+  "candidate": {
+    "unknown_project_status": "USER_SUBMITTED_TO_VERIFY",
+    "canonical_promotion_by_core": false
+  },
+  "case": {
+    "state_machine_authority": "_caid_core_contract.php",
+    "create_requires_idempotency_key": true,
+    "transition_requires_idempotency_key": true,
+    "resume_principal": "SIC-ID",
+    "timeline_projection": "case_id+timeline",
+    "next_actions_projection": "case_id+next_action+open_or_blocked_tasks"
+  },
+  "economy": {
+    "activation_once_pol": 50,
+    "activation_effect": "FIRST_CASE_CREDIT_50_AVAILABLE",
+    "first_case_remainder_pol": 450,
+    "subsequent_case_pol": 500,
+    "credit_lifecycle": ["AVAILABLE", "RESERVED", "CONSUMED"],
+    "ambiguous_payment": "MANUAL_REVIEW"
+  },
+  "write_policy": "CONSUMERS_NEVER_WRITE_CORE_TRUTH_DIRECTLY"
+}
