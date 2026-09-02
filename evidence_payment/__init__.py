@@ -3,6 +3,12 @@
 from .engine import EvidencePaymentError
 from .authorization_engine import EvidencePaymentEngine
 from .rpc_adapter import RPC_PROVENANCE_VERSION, TrustedPolygonRPCAdapter
+from .runtime_facade import (
+    CORE_ACTIVATION_CLAIM_VERSION,
+    RUNTIME_FACADE_VERSION,
+    RuntimeAuthorityConfig,
+    TrustedEvidencePaymentRuntimeFacade,
+)
 
 # Importing legacy implementation modules still executes this package initializer.
 # Patch their exported class attributes so runtime imports cannot bypass private
@@ -22,4 +28,8 @@ __all__ = [
     "EvidencePaymentError",
     "TrustedPolygonRPCAdapter",
     "RPC_PROVENANCE_VERSION",
+    "TrustedEvidencePaymentRuntimeFacade",
+    "RuntimeAuthorityConfig",
+    "RUNTIME_FACADE_VERSION",
+    "CORE_ACTIVATION_CLAIM_VERSION",
 ]
