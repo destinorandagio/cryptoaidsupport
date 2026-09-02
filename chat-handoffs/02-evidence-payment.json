@@ -1,18 +1,118 @@
 {
-  "version":"1.0",
-  "chat":"CHAT02_EVIDENCE_PAYMENT_ENTITLEMENT",
-  "evidence_version":"1.0",
-  "payment_version":"1.0",
-  "entitlement_version":"1.0",
-  "treasury_config_version":"1.0",
-  "authority":"BLOCKCHAINPLUS-MASTER.sqlite runtime path; additive tables only",
-  "built":["evidence_payment/engine.py","private evidence storage guard","SHA-256 metadata and immutable version lineage","payment intent/state machine","two-provider agreement gate","tx uniqueness/replay guard","append-only entitlement ledger","versioned treasury config up to 100 IDs with multiple ACTIVE","tests/test_evidence_payment.py"],
-  "tested":["test suite committed; CI pending for current HEAD"],
-  "adversarial_tested":["wrong chain","provider disagreement","duplicate tx different Case","MIME mismatch","oversized evidence","unauthorized evidence","double settlement/idempotency"],
-  "fixed":[],
-  "manual_review":["verification mismatch","provider disagreement","duplicate/replayed tx","ambiguous payment"],
-  "blocked":["CHAT01 Case contract is being materialized concurrently and must be reconciled before E2E","CHAT08 admin treasury proposal contract not persisted yet","CHAT10 provider/runtime config not persisted yet","no real payment performed"],
-  "dependencies":["CHAT01 case authority","CHAT08 admin/config","CHAT10 provider runtime","CHAT05 adversarial release verification"],
-  "next":["run CI","reconcile Case activation contract with CHAT01","bind runtime provider adapters without embedding secrets","HANDOFF_03"],
-  "go_live":"NO_GO"
+  "CHAT_ID": "02",
+  "DOMAIN": "EVIDENCE_PAYMENT_ENTITLEMENT_TREASURY",
+  "TIMESTAMP": "2026-09-02T12:05:00+02:00",
+  "VERSION": "1.0.1",
+  "PARENT_VERSION": "1.0",
+  "GIT_SHA": "03ff01f7bb4e0d7b1a891e7d0ba838498f3913c5",
+  "INPUT_VERSIONS": {
+    "CONTROL_LATEST_STATE": "1.0 bootstrap; observed_head=e365199e75f54d69189ccdb6959c54be3b97ddbb; STALE_VS_MAIN",
+    "CHAT01_CORE_CASE": "1.0 / HANDOFF_02 contract",
+    "CHAT02_PREVIOUS": "1.0",
+    "CHAT05_QA_SECURITY": "available; repository-wide CI blocker observed outside CHAT02 ownership",
+    "CHAT08_SUPER_ADMIN": "0.1.0 DISCOVERED",
+    "CHAT10_DEVOPS": "NOT_VERIFIED",
+    "OBSERVED_MAIN_HEAD": "03ff01f7bb4e0d7b1a891e7d0ba838498f3913c5"
+  },
+  "OUTPUT_VERSION": "1.0.1",
+  "EVIDENCE_VERSION": "1.0",
+  "PAYMENT_VERSION": "1.0",
+  "ENTITLEMENT_VERSION": "1.0",
+  "TREASURY_CONFIG_VERSION": "1.0",
+  "FILES_CHANGED": [
+    "chat-handoffs/02-evidence-payment.json"
+  ],
+  "CONTRACTS_CHANGED": [
+    "CHAT02 handoff normalized to CRYPTOAID GLOBAL FACTORY CONTRACT minimum schema",
+    "CHAT01->CHAT02 boundary reaffirmed: CHAT02 emits durable ENTITLEMENT_GRANTED result; CHAT02 never mutates Case state",
+    "CHAT08 dependency updated from missing to DISCOVERED/contract-not-yet-integrated"
+  ],
+  "SCHEMA_CHANGED": [],
+  "BUILT": [
+    "existing evidence_payment/engine.py reused without duplicate authority",
+    "existing private Evidence storage guard reused",
+    "existing SHA-256/version/supersession lineage reused",
+    "existing payment state machine and two-provider agreement gate reused",
+    "existing tx uniqueness/replay guard reused",
+    "existing append-only entitlement ledger reused",
+    "existing versioned treasury configuration reused",
+    "machine-readable CHAT02 handoff reconciliation"
+  ],
+  "TESTED": [
+    "repository and main branch readback",
+    "control latest-state readback",
+    "CHAT02 previous handoff readback",
+    "CHAT01 upstream contract readback",
+    "CHAT05 downstream/release findings readback",
+    "CHAT08 newly persisted handoff readback",
+    "existing CHAT02 adversarial test source readback"
+  ],
+  "TEST_PASS": [
+    "CHAT02 ownership remains unique for evidence_payment",
+    "no parallel entitlement ledger created",
+    "no parallel payment verifier created",
+    "CHAT01 contract preserves Case authority boundary",
+    "CHAT08 handoff now exists and remains non-authoritative over payment/evidence truth",
+    "no real payment or transaction performed"
+  ],
+  "TEST_FAIL": [],
+  "NOT_TESTED": [
+    "current-main full CI completion after latest concurrent commits",
+    "live RPC/provider quorum",
+    "Polygon reorg/finality against real providers",
+    "production DB migration",
+    "production Evidence filesystem permissions",
+    "CHAT08 treasury proposal command integration",
+    "CHAT10 runtime/provider adapter integration",
+    "Golden Journey E2E",
+    "production verification"
+  ],
+  "FIXED": [
+    "legacy CHAT02 handoff schema incomplete versus global minimum schema",
+    "stale blocker claiming CHAT08 handoff absent"
+  ],
+  "BLOCKERS": [
+    "global control/latest-state.json is stale versus observed main HEAD and is CHAT00-owned",
+    "CHAT10 runtime/provider handoff not verified",
+    "CHAT08 is only DISCOVERED; treasury admin command integration remains untested",
+    "repository-wide CI has had an upstream CHAT01 Core collection regression; CHAT02 must not patch Core ownership surface",
+    "Golden Journey payment/evidence integration not yet independently verified by CHAT05",
+    "no production verification"
+  ],
+  "DEPENDENCIES": [
+    "CHAT01 Case authority and ENTITLEMENT_GRANTED consumer contract",
+    "CHAT08 authorized treasury proposal/admin command contract",
+    "CHAT10 provider/runtime configuration and secret injection",
+    "CHAT05 independent adversarial/integration/release verification",
+    "CHAT00 canonical control-plane reconciliation"
+  ],
+  "COLLISIONS": [
+    "control latest-state observed_head=e365199e75f54d69189ccdb6959c54be3b97ddbb versus observed main HEAD=03ff01f7bb4e0d7b1a891e7d0ba838498f3913c5",
+    "CHAT04 HANDOFF_05 reports Evidence/Payment 0.6.7 while CHAT02 authoritative main handoff and engine constants report 1.0; version reference requires consumer reconciliation, not silent downgrade"
+  ],
+  "HUMAN_GATES": [
+    "real payment",
+    "real blockchain transaction",
+    "production deploy",
+    "production secrets",
+    "irreversible treasury/configuration change"
+  ],
+  "MANUAL_REVIEW": [
+    "verification mismatch",
+    "provider disagreement",
+    "duplicate or replayed transaction",
+    "ambiguous payment",
+    "insufficient finality certainty"
+  ],
+  "STATE": "CODED",
+  "SYNC_INPUTS": "PARTIAL_VERIFIED",
+  "NEXT": [
+    "consume CHAT10 runtime/provider handoff when persisted",
+    "consume CHAT08 treasury proposal contract when it advances beyond DISCOVERED",
+    "request CHAT00 reconcile stale global latest-state and version collision",
+    "run/observe fresh full CI after upstream Core collection blocker is resolved",
+    "extend CHAT02-owned adversarial tests only for uncovered payment/evidence integrity deltas",
+    "submit CHAT02 outputs to CHAT05 for independent integration/security gate"
+  ],
+  "GO_NO_GO": "NO_GO"
 }
