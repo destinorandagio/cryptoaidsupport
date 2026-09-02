@@ -64,6 +64,27 @@ def test_runtime_auth_boundary_and_handled_errors_are_visible():
     assert ".catch(()=>visibleError(" in case
 
 
+def test_wallet_chooser_declared_modal_has_keyboard_focus_and_inert_contract():
+    chooser = BRIDGE.split("function chooseProvider", 1)[1].split("function publishWalletState", 1)[0]
+    for required in [
+        "aria-modal",
+        "document.activeElement",
+        "panel.addEventListener('keydown'",
+        "event.key==='Escape'",
+        "event.key!=='Tab'",
+        "event.shiftKey",
+        "appShell.inert=true",
+        "appShell.inert=shellWasInert",
+        "restoreFocus",
+        "document.contains(invoker)",
+        "first.focus()",
+        "last.focus()",
+    ]:
+        assert required in chooser
+    assert "close(null,new Error('wallet_choice_cancelled'))" in chooser
+    assert "close(option.id)" in chooser
+
+
 def test_wallet_disconnect_account_and_chain_changes_fail_closed_without_touching_sicid():
     assert "accountsChanged" in BRIDGE
     assert "chainChanged" in BRIDGE
