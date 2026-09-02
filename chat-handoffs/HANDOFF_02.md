@@ -2,75 +2,84 @@
 
 ## FROM
 CHAT01 — Core / User / SIC-ID / Case / Product
+CHAT08 — Super Admin / CRM / Analytics — minimum MVP surface
 
 ## CYCLE
-20260902-1210 Core delta, late-sync verification completed after downstream owner repair.
+20260902-1242 kickoff delta. Core remains stable; CHAT08 moved from bootstrap-only to tested minimum backend operations.
 
 ## STATUS
-Core-owned P0 D0A is fixed. Current-main repository CI is green after CHAT02 independently repaired its own D0B. Production/release remains **NO_GO** because runtime/composition/E2E/release gates are still open.
+CHAT01 Core-owned P0 D0A remains fixed and current-main CI was green before this delta. CHAT08 now has an executable RBAC-gated Case/manual-review backend surface. Repository CI for the admin regression commit `f88c87837b011dfa4256d56477053a86a5bc2c0b` is **SUCCESS** (`33620689610` / run `#214`). Production/release remains **NO_GO** because final runtime composition, protected Admin UI, Golden E2E and release-package gates are still open.
 
 ## VERSIONS / HASHES
-- REPO CHAT01 HANDOFF: `1.2.1`
-- REPO CORE SOURCE COMMIT: `138f5154aabf2f79b296bf40dcf59e9c36a576ab`
-- `core/__init__.py` blob: `f1f7b479d4cf1cf7eb34b6921b5b63b83bdcf6d1`
-- `core/case_engine.py` blob: `8a5bdc73a53d1a525f7a56ed4e732d9cb9bfc700`
-- LATE-SYNC MAIN HEAD VERIFIED: `8611f17c3f0eb070d64cb1adf6fa61968a57d77a`
-- LATE-SYNC CI: `33619108328` / run `#199` — SUCCESS
-- SCHEMA_VERSION: `chat01-core-1` — unchanged
-- API_CONTRACT_VERSION: `v1` — unchanged
-- CASE_STATE_VERSION: `1.0` — unchanged
-- DRIVE FACTORY CORE authority consumed: `v0.3.13`; separate version namespace, not overwritten or silently renumbered.
+- REPO CHAT01 HANDOFF: `1.2.1` — Core contract unchanged this kickoff.
+- REPO CHAT08 HANDOFF: `0.2.0`.
+- CORE SOURCE COMMIT retained: `138f5154aabf2f79b296bf40dcf59e9c36a576ab`.
+- CHAT08 implementation commits: `0a3060c03514f48a2c11c61be4012d86377594a3`, `4765330939d9aec215929ba82011c219143bc930`, `f88c87837b011dfa4256d56477053a86a5bc2c0b`.
+- CHAT08 handoff commit: `9fb9141a197f58e2c21fb87fd3ec24f637de1dd9`.
+- CI: `33620689610` / `#214` — SUCCESS.
+- SCHEMA_VERSION: `chat01-core-1` — unchanged.
+- API_CONTRACT_VERSION: `v1` — unchanged.
+- CASE_STATE_VERSION: `1.0` — unchanged.
+- CHAT08 ADMIN_VERSION: `0.1.0` runtime module / handoff `0.2.0`.
+- ANTIGRAVITY execution contract consumed: `1.0.0`; no factual Antigravity completion handoff was present at kickoff.
 
 ## SYNC INPUTS
-HANDOFF_01 1200, control/latest-state 0.4.1 at the build decision point, ownership/contracts, CHAT02 repo 1.0.1 / Stage03 0.6.7, CHAT03 main 1.0.0, CHAT04 1.7.0, CHAT06 0.2.0, CHAT07 0.1.0, CHAT08 0.1.0. CHAT09/CHAT10 were not persisted at initial sync. Late-sync observed CHAT02 owner fix `8611f17c...` and successful current-main CI.
+Fresh-read HANDOFF_01 20260902-1200 including late delta, control/ownership 1.0, control/contracts 1.0, current CHAT01 handoff 1.2.1, CHAT08 bootstrap 0.1.0, CHAT02 current owner state, GitHub current-main CI, and Drive `CRYPTOAID — CHAT00 ANTIGRAVITY EXECUTION CONTRACT — 20260902` v1.0.0.
 
-## CORE DELTA BUILT
-1. Restored stable `CaseError` compatibility as an alias of `CoreError` at package and module level.
-2. Fixed Case creation so `core_cases` INSERT supplies exactly the existing 13-column contract.
-3. Preserved explicit Case state machine, optimistic `expected_version` concurrency, Case idempotency, tasks/timeline and authorization audit trail.
-4. Preserved search miss -> `TO_VERIFY`; CHAT01 never upgrades it to verified truth by itself.
-5. Preserved SIC-ID durable-principal boundary, wallet binding, and CHAT02 entitlement authorization gate for `ACTIVE`.
+## CHAT01 CORE STATUS
+1. Stable `CaseError` compatibility is present.
+2. Case creation is aligned to the existing 13-column `core_cases` contract.
+3. Explicit Case state machine, optimistic `expected_version`, idempotency, tasks/timeline and authorization audit remain unchanged.
+4. Search miss remains `TO_VERIFY`.
+5. `ACTIVE` remains gated by CHAT02 entitlement/free authorization; Admin cannot bypass it.
 
-No migration, economic rule, MASTER write, public_html write or `.htaccess` mutation occurred.
+No Core schema, migration, economic rule, MASTER, public_html or `.htaccess` mutation occurred in this kickoff.
 
-## CONTRACT CHANGES
-Stable imports: `from core import CaseEngine, CaseError, CoreError`; direct module import of `CaseError` is supported. No state/schema/economy/downstream truth ownership change.
+## CHAT08 MVP DELTA BUILT
+1. Added `admin/__init__.py` and `admin/ops.py` as a fail-closed operational facade over the canonical SQLite authority.
+2. Added RBAC role `ADMIN_CASE_REVIEWER` for the minimum MVP Case operations surface.
+3. Added privacy-minimized Case queue and Case summary. They do not expose user_id/wallet in the queue and never expose private Evidence bytes.
+4. Added read-only payment `MANUAL_REVIEW` queue. It consumes CHAT02 state and excludes payer and treasury address from the Admin projection.
+5. Added Admin Case transition command routed through CHAT01 `CaseEngine.transition`; authorization is audited as `ADMIN_REVIEW` and cannot satisfy the entitlement guard for `ACTIVE`.
+6. Added `tests/test_admin_ops.py` regression coverage.
 
-CHAT04/CHAT07/CHAT08 consume versioned Core projections/commands only; CHAT08/Admin direct Case/auth writes are rejected. CHAT03 Twin and CHAT06 Knowledge remain read/derived inputs only.
-
-## COLLISION DECISIONS
-- **ACCEPT** — HANDOFF_01 D0A compatibility/arity repair inside CHAT01 ownership.
-- **ACCEPT** — CHAT03/CHAT06 read-derived inputs without authority promotion.
-- **ACCEPT** — CHAT04/CHAT07/CHAT08 consumer contract exposure as read/versioned commands.
-- **REJECT** — direct consumer/Admin write to Core Case/auth truth.
-- **BLOCKED_CONFLICT** — CHAT02 D0B was not stolen by CHAT01; CHAT02 later repaired its own evidence/payment schema arity at `8611f17c...`.
+## OWNERSHIP / COLLISION DECISIONS
+- **ACCEPT** — new isolated `admin/*` surface under CHAT08 ownership; no pre-existing admin directory existed.
+- **REJECT** — direct CHAT08 mutation of `core/*`, `evidence_payment/*`, Case tables or payment/entitlement truth.
+- **ACCEPT** — Admin Case mutation only via CHAT01 command/state guards and audit.
+- **ACCEPT** — payment manual review as read-only projection only.
+- Antigravity remains the local execution/browser plane; no AG-active file lock or factual AG completion result was found for this surface during kickoff.
 
 ## TESTED
-Targeted isolated Core harness using repository `tests/test_core_case_engine.py` semantics: **6/6 PASS**. Coverage: new/returning/idempotency, SIC-ID/wallet mismatch, TO_VERIFY/resume, invalid/stale/missing-entitlement transitions, unauthorized Case, product/task/timeline and optimistic concurrency.
+- Existing Core contract remains green from prior current-main CI.
+- GitHub Actions CI `33620689610` / run `#214` on `f88c8783...`: **SUCCESS**.
+- CI steps verified: checkout PASS, Python setup PASS, requirements install PASS, compile step PASS, `pytest -q` PASS, Telegram-token scan PASS.
+- Three new CHAT08 tests are included in the passing pytest suite:
+  - unauthorized Admin denied + privacy-minimized Case queue/summary;
+  - Admin transition uses Core guard/audit and cannot force `ACTIVE` without entitlement;
+  - CHAT02 `MANUAL_REVIEW` queue is read-only and excludes payer/treasury address.
 
-CI `33618548123` after the first alias fix restored collection and exposed 4 CHAT01 `core_cases` arity failures plus 3 CHAT02 arity failures. Source commit `138f5154...` repaired all 4 CHAT01 failures.
+## FIXED / CLOSED THIS KICKOFF
+- CHAT08 is no longer bootstrap-only: minimum Admin backend operations required by the Golden Path are implemented and CI-tested.
+- Admin-vs-Core/payment authority ambiguity is fail-closed in executable code.
+- Manual-review visibility has a tested backend contract.
 
-Late downstream owner commit `8611f17c...` repaired CHAT02 D0B. GitHub Actions `33619108328` / `#199` on current main is **SUCCESS**: compile PASS, pytest PASS, Telegram-token security scan PASS.
+## NOT TESTED / BLOCKED
+- Protected browser Admin UI route is not yet composed into the final runtime.
+- Production identity-provider issuance of `ADMIN_CASE_REVIEWER` is not proven.
+- Antigravity real local browser/runtime acceptance for Admin is pending until CHAT04/CHAT10 expose the protected surface.
+- Final serial runtime/package/manifest/rollback/restore and Golden E2E remain open.
+- Production private Evidence infrastructure and real wallet/payment/sign/deploy remain outside this kickoff / HUMAN_GATE as applicable.
 
-Inherited Factory Core v0.3.13 verified evidence remains **373 PASS / 0 FAIL / 1 NOT_RUN**, PHP lint 19/19, Core migrations 001..004 x2 on a fresh exact MASTER clone with integrity/FK green. The NOT_RUN target runtime gate is not promoted to PASS.
-
-## FIXED
-- P0 CaseError public contract mismatch.
-- P0 `core_cases` INSERT 14-vs-13 arity defect.
-- Global repository CI returned green after CHAT02 independently fixed its own D0B, preserving one-writer ownership.
-
-## BLOCKERS
-- CHAT03/CHAT04 exact consumer tuple remains uncertified.
-- CHAT09/CHAT10 current machine handoffs were absent at initial sync; CHAT10 target runtime/deploy/observability evidence remains required.
-- Target production `pdo_sqlite`, `curl`, `fileinfo`, request-time SIC-ID authority and private Evidence infrastructure are not proven here.
-- Final serial package/manifest/rollback/restore and Golden E2E are not complete.
-- Real wallet/signing/payment/transaction/deploy/public upload remain HUMAN_GATE / NOT_RUN.
-
-## CONTRACT FOR CHAT02
-CHAT02 remains sole authority for Evidence bytes, payment verification and entitlement ledger. It emits durable `ENTITLEMENT_GRANTED`; CHAT01 alone owns Case transition. The late CHAT02 D0B repair was accepted as an owner-local downstream fix, not a Core authority change.
+## CONTRACT FOR DOWNSTREAM
+CHAT04/CHAT10 may expose a protected Admin UI/runtime surface only by consuming this CHAT08 contract; they must not reimplement Case/payment state logic. CHAT05 must independently verify RBAC and manual-review visibility in final Golden E2E. CHAT02 remains sole payment/Evidence/entitlement authority; CHAT01 remains sole Case/auth truth authority.
 
 ## NEXT
-CHAT00 reconciles the green current-main CI and repo/factory namespaces. CHAT03/CHAT04 certify exact tuple. CHAT09/CHAT10 persist current handoffs and CHAT10 proves target runtime. Then: exact disposable serial candidate -> MASTER 001..008 x2/integrity/FK/idempotency/races/full regression -> clean package/manifest/rollback/restore -> Golden E2E -> CHAT05 independent QA -> HUMAN go-live gate.
+1. CHAT00 reconciles the newer all-green CI and clears stale D0A/D0B blockers from global control state.
+2. CHAT04/CHAT10 compose the minimum protected Admin route using CHAT08 projections/commands.
+3. Antigravity executes real local protected-route/browser acceptance and persists factual logs/results.
+4. CHAT05 independently verifies Admin RBAC/manual review in the final Golden Journey.
+5. Continue serial candidate → runtime/private-Evidence/provider tests → clean package/manifest/rollback/restore → Golden E2E → HUMAN go-live gate.
 
 ## GO / NO-GO
 **NO_GO**
