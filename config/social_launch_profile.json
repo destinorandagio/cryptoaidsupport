@@ -1,0 +1,69 @@
+{
+  "version": "1.0.0",
+  "status": "READY_TO_RUN_WITH_TEXT_POLL_MEDIA_PENDING_TRANSPORT",
+  "timezone": "Europe/Rome",
+  "official": {
+    "bot": "@CryptoAIDsupportBOT",
+    "group": "@cryptoAIDsupporter",
+    "channel": "@cryptoaidsup"
+  },
+  "runtime_evidence": {
+    "controlled_group_test": "PASS",
+    "controlled_channel_test": "PASS",
+    "healthcheck": "PASS",
+    "pytest": "85/85 PASS",
+    "ci": "GREEN",
+    "live_verification_commit": "879432a9a1c0702a6fdeedcbcb26f8524bb5bde2"
+  },
+  "launch_policy": {
+    "max_publications_per_run": 1,
+    "no_mass_dm": true,
+    "no_fake_scarcity": true,
+    "no_fake_partnerships": true,
+    "no_guaranteed_recovery": true,
+    "verified_knowledge_only": true,
+    "fallback": "UNKNOWN_TO_VERIFY_OR_HUMAN_SUPPORT"
+  },
+  "daily_target": {
+    "touchpoints": 5,
+    "mix": [
+      "CRYPTOAID_MISSION",
+      "SECURITY",
+      "EVIDENCE_RECOVERY_EDUCATION",
+      "POLL_QUIZ",
+      "COMMUNITY_GROWTH_CTA"
+    ],
+    "preferred_local_times": ["08:30", "11:30", "14:30", "17:30", "20:30"]
+  },
+  "current_live_scheduler": {
+    "publisher_local_times_cest": ["09:15", "13:15", "20:15"],
+    "poll_local_time_cest": "17:20",
+    "current_touchpoints": 4,
+    "note": "Owned by CHAT10; CHAT07 must not edit shared workflow surface directly."
+  },
+  "nurturing": {
+    "onboarding_days": 7,
+    "recovery_education_days": 14,
+    "max_touches_per_user_per_day": 2,
+    "minimum_hours_between_user_touches": 6,
+    "advocacy_loop": "invite_one_person_who_genuinely_needs_cryptoaid"
+  },
+  "asset_source": {
+    "provider": "GOOGLE_DRIVE",
+    "folder_id": "1EwPrGx4WICMYiSm4sG65wmPzfgaI4unD",
+    "selection": "semantic_score_then_cooldown",
+    "media": ["image/jpeg", "image/png", "video/mp4"]
+  },
+  "webinar": {
+    "enabled": false,
+    "node": "EVERGREEN_WEBINAR",
+    "reason": "Awaiting final webinar asset/official URL"
+  },
+  "go_no_go": {
+    "text_and_poll_scheduler": "GO",
+    "controlled_publish": "GO",
+    "media_publish": "BLOCKED_BY_DRIVE_TRANSPORT_ADAPTER",
+    "persistent_conversational_bot": "BLOCKED_BY_HOSTING_RUNTIME",
+    "overall": "CONDITIONAL_GO"
+  }
+}
