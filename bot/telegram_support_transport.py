@@ -10,11 +10,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from bot.support_mvp import SupportRejected, build_case_support_request, build_safe_case_notification
-from bot.support_transport import NotificationClaim, SupportTransportRejected, SupportTransportStore, TicketReceipt
-from bot.telegram_private_support import TelegramPrivateSupportRejected, TelegramPrivateSupportRuntime
+# Support both package imports used by pytest (``bot.*``) and direct
+# ``python bot/main.py`` execution, without loading duplicate class identities.
+try:
+    from .support_mvp import SupportRejected, build_case_support_request, build_safe_case_notification
+    from .support_transport import NotificationClaim, SupportTransportRejected, SupportTransportStore, TicketReceipt
+    from .telegram_private_support import TelegramPrivateSupportRejected, TelegramPrivateSupportRuntime
+except ImportError:  # pragma: no cover - exercised by direct bot entrypoint smoke
+    from support_mvp import SupportRejected, build_case_support_request, build_safe_case_notification
+    from support_transport import NotificationClaim, SupportTransportRejected, SupportTransportStore, TicketReceipt
+    from telegram_private_support import TelegramPrivateSupportRejected, TelegramPrivateSupportRuntime
 
-TELEGRAM_DURABLE_SUPPORT_VERSION = "1.0.0"
+TELEGRAM_DURABLE_SUPPORT_VERSION = "1.0.1"
 
 
 class TelegramDurableSupportRejected(ValueError):
