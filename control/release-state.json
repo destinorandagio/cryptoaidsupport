@@ -1,0 +1,8 @@
+{
+  "schema_version":"1.0",
+  "target":"READY_FOR_HUMAN_GO_LIVE_GATE",
+  "status":"NO_GO",
+  "reason":"Golden Journey is not yet proven end-to-end and multiple canonical P0 authorities are absent or unverified in the observed main tree.",
+  "latest_ci":{"head":"e365199e75f54d69189ccdb6959c54be3b97ddbb","workflow":"CI","run_number":94,"conclusion":"success"},
+  "required_before_go":["all_P0_autonomous_green","golden_journey_e2e_green","security_release_gate_green","production_truth_verified"]
+}
