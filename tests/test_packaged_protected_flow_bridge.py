@@ -65,6 +65,13 @@ def test_evidence_upload_occurs_only_after_canonical_case_and_requires_server_ha
     assert "Case created, but Evidence upload failed safely" in case
 
 
+def test_canonical_case_success_enters_recovery_via_ui_router_not_hash_only():
+    assert "function routeRecovery(){if(window.CryptoAIDUI&&typeof window.CryptoAIDUI.route==='function')window.CryptoAIDUI.route('recovery');else location.hash='recovery'}" in BRIDGE
+    case = _section("window.addEventListener('caid:case-request'", "window.addEventListener('caid:wallet-connect-request'")
+    assert "routeRecovery()" in case
+    assert "location.hash='recovery'" not in case
+
+
 def test_payment_intent_consumer_uses_upstream_quote_status_and_no_browser_settlement_path():
     payment = _section("async function requestPaymentIntent", "function installProtectedUx")
     for required in [
@@ -87,7 +94,7 @@ def test_payment_action_is_fail_closed_until_packaged_bridge_and_live_case_walle
     assert 'id="paymentIntentButton"' in HTML
     assert 'id="paymentIntentButton" type="button" disabled' in HTML
     assert "This button never signs or submits a transaction." in HTML
-    ux = _section("function installProtectedUx", "async function resume")
+    ux = _section("function installProtectedUx", "function routeRecovery")
     assert "button.disabled=false" in ux
     assert "state.identityDataState!=='LIVE'" in ux
     assert "typeof state.caseId!=='string'" in ux
