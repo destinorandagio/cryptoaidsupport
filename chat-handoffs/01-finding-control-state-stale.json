@@ -1,0 +1,20 @@
+{
+  "type":"FINDING",
+  "CHAT_ID":"CHAT01",
+  "DOMAIN":"CORE_USER_SICID_CASE",
+  "TIMESTAMP":"2026-09-02T12:00:00+02:00",
+  "VERSION":"1.0",
+  "TARGET_OWNER":"CHAT00",
+  "FINDING":"control/latest-state.json is stale relative to current repository state",
+  "EVIDENCE":{
+    "control_observed_head":"e365199e75f54d69189ccdb6959c54be3b97ddbb",
+    "repository_latest_observed_head":"4d71f96efa69763d8e6050aef2faf387625b4ab7",
+    "control_missing_or_unverified_p0_contains":["canonical_case_engine","sic_id_registry"],
+    "chat01_handoff_version":"1.0",
+    "chat01_case_engine_commit":"15aa9edf1259c7d55ead4a1281b8508180ba451e"
+  },
+  "OWNERSHIP":"CHAT00 owns control_plane; CHAT01 did not mutate control/latest-state.json",
+  "REQUEST":"Reconcile canonical control-plane latest-state against current main and CHAT01/CHAT02/CHAT03/CHAT05 handoffs without creating duplicate authorities.",
+  "PRIORITY":"P0",
+  "GO_NO_GO":"NO_GO"
+}
