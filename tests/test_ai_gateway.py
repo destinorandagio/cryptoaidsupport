@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from bot import ai_gateway
@@ -38,70 +40,76 @@ def test_gateway_disabled_without_keys(monkeypatch):
     assert ai_gateway.enabled() is False
 
 
-@pytest.mark.asyncio
-async def test_sensitive_input_rejected_before_provider_call(monkeypatch):
-    clear_provider_keys(monkeypatch)
-    monkeypatch.setenv("AI_ENABLED", "true")
-    monkeypatch.setenv("GROQ_API_KEY", "g")
-    called = False
+def test_sensitive_input_rejected_before_provider_call(monkeypatch):
+    async def scenario():
+        clear_provider_keys(monkeypatch)
+        monkeypatch.setenv("AI_ENABLED", "true")
+        monkeypatch.setenv("GROQ_API_KEY", "g")
+        called = False
 
-    async def fake_call(*args, **kwargs):
-        nonlocal called
-        called = True
-        return "should-not-run"
+        async def fake_call(*args, **kwargs):
+            nonlocal called
+            called = True
+            return "should-not-run"
 
-    monkeypatch.setattr(ai_gateway, "_call", fake_call)
-    with pytest.raises(AIUnavailable, match="sensitive_or_case_like_input"):
-        await ai_gateway.synthesize(
-            verified_context="verified facts",
-            user_message="My recovery case is linked to alice@example.com",
+        monkeypatch.setattr(ai_gateway, "_call", fake_call)
+        with pytest.raises(AIUnavailable, match="sensitive_or_case_like_input"):
+            await ai_gateway.synthesize(
+                verified_context="verified facts",
+                user_message="My recovery case is linked to alice@example.com",
+                language="en",
+            )
+        assert called is False
+
+    asyncio.run(scenario())
+
+
+def test_mnemonic_like_input_rejected_before_provider_call(monkeypatch):
+    async def scenario():
+        clear_provider_keys(monkeypatch)
+        monkeypatch.setenv("AI_ENABLED", "true")
+        monkeypatch.setenv("GROQ_API_KEY", "g")
+        called = False
+
+        async def fake_call(*args, **kwargs):
+            nonlocal called
+            called = True
+            return "should-not-run"
+
+        monkeypatch.setattr(ai_gateway, "_call", fake_call)
+        with pytest.raises(AIUnavailable, match="sensitive_or_case_like_input"):
+            await ai_gateway.synthesize(
+                verified_context="verified facts",
+                user_message="abandon ability able about above absent absorb abstract absurd abuse access accident",
+                language="en",
+            )
+        assert called is False
+
+    asyncio.run(scenario())
+
+
+def test_failover_uses_second_provider_for_generic_opt_in(monkeypatch):
+    async def scenario():
+        clear_provider_keys(monkeypatch)
+        monkeypatch.setenv("AI_ENABLED", "true")
+        monkeypatch.setenv("GROQ_API_KEY", "g")
+        monkeypatch.setenv("OPENAI_API_KEY", "o")
+        calls = []
+
+        async def fake_call(spec, key, model, system, body):
+            calls.append(spec.name)
+            if spec.name == "groq":
+                raise RuntimeError("quota")
+            return "grounded response"
+
+        monkeypatch.setattr(ai_gateway, "_call", fake_call)
+        result = await ai_gateway.synthesize(
+            verified_context="verified facts only",
+            user_message="What is CryptoAID?",
             language="en",
         )
-    assert called is False
+        assert result.provider == "openai"
+        assert result.text == "grounded response"
+        assert calls[:2] == ["groq", "openai"]
 
-
-@pytest.mark.asyncio
-async def test_mnemonic_like_input_rejected_before_provider_call(monkeypatch):
-    clear_provider_keys(monkeypatch)
-    monkeypatch.setenv("AI_ENABLED", "true")
-    monkeypatch.setenv("GROQ_API_KEY", "g")
-    called = False
-
-    async def fake_call(*args, **kwargs):
-        nonlocal called
-        called = True
-        return "should-not-run"
-
-    monkeypatch.setattr(ai_gateway, "_call", fake_call)
-    with pytest.raises(AIUnavailable, match="sensitive_or_case_like_input"):
-        await ai_gateway.synthesize(
-            verified_context="verified facts",
-            user_message="abandon ability able about above absent absorb abstract absurd abuse access accident",
-            language="en",
-        )
-    assert called is False
-
-
-@pytest.mark.asyncio
-async def test_failover_uses_second_provider_for_generic_opt_in(monkeypatch):
-    clear_provider_keys(monkeypatch)
-    monkeypatch.setenv("AI_ENABLED", "true")
-    monkeypatch.setenv("GROQ_API_KEY", "g")
-    monkeypatch.setenv("OPENAI_API_KEY", "o")
-    calls = []
-
-    async def fake_call(spec, key, model, system, body):
-        calls.append(spec.name)
-        if spec.name == "groq":
-            raise RuntimeError("quota")
-        return "grounded response"
-
-    monkeypatch.setattr(ai_gateway, "_call", fake_call)
-    result = await ai_gateway.synthesize(
-        verified_context="verified facts only",
-        user_message="What is CryptoAID?",
-        language="en",
-    )
-    assert result.provider == "openai"
-    assert result.text == "grounded response"
-    assert calls[:2] == ["groq", "openai"]
+    asyncio.run(scenario())
