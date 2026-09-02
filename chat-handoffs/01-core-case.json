@@ -1,140 +1,99 @@
 {
   "CHAT_ID": "CHAT01",
   "DOMAIN": "CORE_USER_SICID_CASE_PRODUCT",
-  "TIMESTAMP": "2026-09-02T12:24:00+02:00",
-  "VERSION": "1.2.1",
-  "PARENT_VERSION": "1.2.0",
+  "TIMESTAMP": "2026-09-02T12:43:00+02:00",
+  "VERSION": "1.2.2",
+  "PARENT_VERSION": "1.2.1",
   "SOURCE_COMMIT": "138f5154aabf2f79b296bf40dcf59e9c36a576ab",
   "CORE_INIT_BLOB": "f1f7b479d4cf1cf7eb34b6921b5b63b83bdcf6d1",
   "CASE_ENGINE_BLOB": "8a5bdc73a53d1a525f7a56ed4e732d9cb9bfc700",
-  "LATE_SYNC_MAIN_HEAD": "8611f17c3f0eb070d64cb1adf6fa61968a57d77a",
-  "LATE_SYNC_CI": "33619108328 / #199 SUCCESS",
+  "CURRENT_ADMIN_CONSUMER_HEAD": "f88c87837b011dfa4256d56477053a86a5bc2c0b",
+  "CURRENT_ADMIN_CI": "33620689610 / #214 SUCCESS",
   "INPUT_VERSIONS": {
-    "HANDOFF_01_DRIVE": "20260902-1200",
-    "CONTROL_LATEST_STATE": "0.4.1/schema-1.3 at build decision point",
+    "HANDOFF_01_DRIVE": "20260902-1200 + late delta",
     "OWNERSHIP": "1.0",
     "CONTRACTS": "1.0",
-    "CHAT01_DRIVE_FACTORY_CORE": "0.3.13",
-    "CHAT02_REPO": "1.0.1 + late owner fix 8611f17c",
-    "CHAT02_DRIVE_STAGE03": "0.6.7",
-    "CHAT03_MAIN": "1.0.0",
-    "CHAT04": "1.7.0",
-    "CHAT06": "0.2.0",
-    "CHAT07": "0.1.0",
-    "CHAT08": "0.1.0",
-    "CHAT09": "NOT_PERSISTED_AT_SYNC",
-    "CHAT10": "NOT_PERSISTED_AT_SYNC"
+    "CHAT02": "current owner-fixed main",
+    "CHAT08": "0.2.0",
+    "ANTIGRAVITY_EXECUTION_CONTRACT": "1.0.0"
   },
-  "OUTPUT_VERSION": "1.2.1",
+  "OUTPUT_VERSION": "1.2.2",
   "FILES_CHANGED": [
-    "core/__init__.py",
-    "core/case_engine.py",
     "chat-handoffs/01-core-case.json",
     "chat-handoffs/HANDOFF_02.md"
   ],
-  "CONTRACTS_CHANGED": [
-    "CaseError is restored as a stable public compatibility alias of CoreError at package and module level",
-    "Case create INSERT is aligned to the existing 13-column core_cases contract",
-    "No Case state, economy, MASTER, payment, Evidence, entitlement, Twin, Knowledge or Admin authority changed"
-  ],
+  "CONTRACTS_CHANGED": [],
   "SCHEMA_CHANGED": false,
-  "STATE": "TESTED_CORE_GLOBAL_CI_GREEN_NO_GO_RELEASE",
-  "SYNC_INPUTS": "VERIFIED_1200_CONTROL_CHANGED_HANDOFFS_PLUS_LATE_CI",
+  "STATE": "CORE_STABLE_ADMIN_CONSUMER_TESTED_GLOBAL_NO_GO",
+  "SYNC_INPUTS": "VERIFIED_CURRENT_MAIN_PLUS_CHAT08_MVP_DELTA",
   "BUILT": [
-    "Restored stable CaseError public import contract required by tests and downstream consumers",
-    "Fixed core_cases Case-create INSERT arity without adding or replacing schema",
-    "Preserved explicit Case state machine, optimistic version concurrency, idempotent Case creation, task/timeline primitives and TO_VERIFY non-promotion",
-    "Preserved SIC-ID as durable principal and wallet as bound action/payment resource",
-    "Preserved CHAT02 entitlement authorization boundary for ACTIVE transition"
+    "No Core source mutation in this kickoff",
+    "Accepted CHAT08 minimum Admin consumer contract as a guarded Core consumer",
+    "Preserved Case/auth one-writer ownership and entitlement-gated ACTIVE transition"
   ],
   "TESTED": [
-    "Exact repository tests/test_core_case_engine.py contract fetched and exercised against patched Core in an isolated temporary BLOCKCHAINPLUS-MASTER.sqlite",
-    "6/6 targeted Core tests PASS locally: new/returning/idempotency, wallet/SIC-ID mismatch, TO_VERIFY/resume, invalid/stale/missing-entitlement transitions, product/task/timeline authorization, optimistic concurrency",
-    "GitHub Actions 33618548123 after first compatibility fix: collection restored and exposed 4 CHAT01 plus 3 CHAT02 arity failures",
-    "CHAT01 source commit 138f5154 repaired the 4 CHAT01 core_cases arity failures",
-    "Late downstream owner commit 8611f17c repaired CHAT02 D0B; GitHub Actions 33619108328 / #199 on current main SUCCESS: compile PASS, pytest PASS, Telegram-token security scan PASS",
-    "Inherited verified Drive Factory Core v0.3.13 evidence remains 373 PASS / 0 FAIL / 1 NOT_RUN with PHP lint 19/19 and Core 001..004 x2 against fresh MASTER clone integrity/FK green; not re-labeled as freshly executed here"
+    "Prior CHAT01 targeted Core 6/6 PASS remains valid for unchanged Core blobs",
+    "Current CHAT08 consumer regression commit f88c8783 passed GitHub Actions CI 33620689610 / #214",
+    "Admin regression proves ADMIN_REVIEW transitions pass through Core guard/audit and cannot force ACTIVE without entitlement"
   ],
   "TEST_PASS": [
-    "CaseError package and module compatibility",
-    "Case create 13-column arity",
-    "6/6 targeted Core behavioral tests",
-    "Current-main repository CI #199 compile/pytest/token scan",
-    "No parallel DB authority created",
-    "Unknown project remains TO_VERIFY",
-    "ACTIVE remains entitlement-gated"
+    "Core Case contract unchanged",
+    "Admin consumer cannot bypass Core ACTIVE entitlement guard",
+    "Admin Case transition audit authorization preserved",
+    "Repository CI after Admin consumer delta"
   ],
   "TEST_FAIL": [],
   "NOT_TESTED": [
-    "Target production PHP PDO_SQLITE/curl/fileinfo runtime",
-    "Live request-time SIC-ID revocation/expiry authority",
-    "Final serial composed runtime",
+    "final composed protected Admin browser route",
+    "production role issuance",
+    "target runtime",
     "Golden Journey E2E",
-    "Real wallet signing/payment/transaction/deploy",
-    "Production private Evidence storage"
+    "real signing/payment/transaction/deploy"
   ],
   "FIXED": [
-    "P0 CaseError public contract mismatch",
-    "P0 core_cases INSERT 14-values-vs-13-columns defect",
-    "Observed CHAT02 owner independently clear downstream D0B without CHAT01 ownership violation; current-main CI returned green"
+    "CHAT08 bootstrap-only gap advanced to a tested guarded consumer without changing Core truth"
   ],
   "BLOCKERS": [
-    "CHAT03/CHAT04 exact consumer tuple remains uncertified",
-    "CHAT09 and CHAT10 current machine handoffs were not persisted at initial sync",
-    "Final serial package/manifest/rollback/restore and Golden E2E remain open",
-    "Target runtime, live SIC-ID authority, private Evidence/provider infrastructure and HUMAN_GATE actions remain unverified"
+    "final composed runtime and Golden E2E",
+    "CHAT03/CHAT04 exact tuple certification",
+    "CHAT10 runtime/release evidence",
+    "protected Admin UI/browser acceptance"
   ],
   "DEPENDENCIES": [
-    "CHAT00 control-plane reconciliation",
+    "CHAT00 control reconciliation",
     "CHAT02 entitlement/payment authority",
-    "CHAT03 Twin/TO_VERIFY read input",
-    "CHAT06 derived Knowledge context",
+    "CHAT03 Twin read input",
     "CHAT04 UX consumer",
-    "CHAT07 Telegram/support consumer",
-    "CHAT08 Admin/config consumer through versioned commands only",
-    "CHAT10 runtime/deploy evidence",
-    "CHAT05 independent QA/security release gate"
+    "CHAT05 independent QA",
+    "CHAT06 Knowledge read input",
+    "CHAT07 support consumer",
+    "CHAT08 guarded Admin consumer 0.2.0",
+    "CHAT10 runtime/deploy evidence"
   ],
   "COLLISIONS": [
     {
       "classification": "ACCEPT",
-      "request": "HANDOFF_01 D0A / downstream CaseError compatibility",
-      "decision": "Expose CaseError as stable alias and align Case create INSERT to existing schema; no schema/economic authority change"
-    },
-    {
-      "classification": "ACCEPT",
-      "request": "CHAT03 Twin and CHAT06 Knowledge inputs",
-      "decision": "Consume only as read/derived context; never promote Twin or Knowledge output into Core truth implicitly"
-    },
-    {
-      "classification": "ACCEPT",
-      "request": "CHAT04, CHAT07 and CHAT08 consumer access",
-      "decision": "Expose stable Core read/command contracts; consumers do not write Core tables directly"
-    },
-    {
-      "classification": "REJECT",
-      "request": "Any CHAT08/Admin or other consumer direct mutation of Case/auth truth",
-      "decision": "Rejected by one-writer ownership; Core commands remain CHAT01-owned"
-    },
-    {
-      "classification": "BLOCKED_CONFLICT",
-      "request": "Fix CHAT02 evidence/payment schema failures from CHAT01",
-      "decision": "Not stolen; CHAT02 repaired its own D0B later at 8611f17c and current-main CI #199 is green"
+      "request": "CHAT08 minimum Admin Case operations",
+      "decision": "Accepted only through CHAT01 CaseEngine commands and read projections; direct Core writes remain forbidden"
     }
   ],
+  "ANTIGRAVITY": {
+    "contract_version": "1.0.0",
+    "active_completion_handoff_found": false,
+    "next_local_acceptance": "protected Admin route/browser test after runtime composition"
+  },
   "HUMAN_GATES": [
     "production deploy",
     "real payment/transaction/signing",
     "production secrets",
-    "irreversible economic/configuration change",
+    "irreversible configuration change",
     "public publication"
   ],
   "NEXT": [
-    "CHAT00 reconciles current green CI and repo/factory version namespaces",
-    "CHAT03/CHAT04 certify exact consumer tuple",
-    "CHAT09/CHAT10 persist current machine handoffs; CHAT10 supplies target runtime/deploy/observability evidence",
-    "Serial-materialize exact disposable candidate, rerun MASTER 001..008 x2/integrity/FK/idempotency/race/full regression",
-    "Build clean package/manifest/rollback/restore, execute Golden E2E, then CHAT05 independent final QA"
+    "CHAT00 reconcile stale blockers against current green CI",
+    "CHAT04/CHAT10 compose minimum Admin route",
+    "Antigravity perform local protected-route/browser acceptance",
+    "CHAT05 independently verify final Admin step in Golden E2E"
   ],
   "GO_NO_GO": "NO_GO"
 }
