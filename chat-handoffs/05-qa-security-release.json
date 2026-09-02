@@ -1,25 +1,69 @@
 {
   "chat": "05",
   "owner": "QA_SECURITY_RELEASE",
-  "version": "0.2.0",
-  "cycle": "20260902-1150",
+  "version": "0.3.0",
+  "cycle": "20260902-1300",
   "status": "HANDOFF_READY_NO_GO",
   "release_authority": "GO_NO_GO",
-  "current_release_state": "NO_GO_AUTONOMOUS_P0_AND_PACKAGE_GATES_OPEN",
-  "source_head_under_test": "3c892d1a45aaaad34d695e1fbc9f30604cb0a73e",
-  "latest_ci": {"run_id":33616748051,"run_number":158,"conclusion":"FAIL","compile_bot":"PASS","pytest":"FAIL_COLLECTION","post_test_secret_scan":"SKIPPED"},
-  "upstream": {"chat00":"HANDOFF_01_1100","core":"0.3.13","evidence_payment":"0.6.7","twin_main":"1.0.0","twin_pr3_proposed":"1.1.0","wallet_main":"1.0.0","dappmap_main":"1.0.0","ui":"1.7.0","knowledge":"0.1.0_ACTIVE_BOOTSTRAP","chat07":"NOT_DISCOVERED","chat08":"NOT_DISCOVERED","chat09":"NOT_DISCOVERED","chat10":"NOT_DISCOVERED"},
-  "q_status": {"Q1":"FAIL","Q2":"PASS_WITH_PRODUCTION_NOT_TESTED","Q3":"FAIL_LEGACY_TARGET_NOT_TESTED","Q4":"PASS_STAGE03_PRODUCTION_NOT_TESTED","Q5":"PASS_STAGE03_LIVE_NOT_TESTED","Q6":"FAIL_RELEASE_GATE","Q7":"PASS_ISOLATED_ORIGIN_NOT_TESTED","Q8":"NOT_TESTED_PRODUCTION","Q9":"FAIL","Q10":"NOT_TESTED","Q11":"NOT_TESTED_RELEASE_GRADE","Q12":"FAIL"},
-  "blocking_findings": [
-    {"id":"QA05-P0-001","severity":"P0","owner":"CHAT01_CORE_CASE","state":"OPEN","summary":"Current main CI cannot collect tests because CaseError public import contract is broken."},
-    {"id":"QA05-P0-002","severity":"P0","owner":"GLOBAL_SYNC","state":"OPEN_PARTIAL","summary":"CHAT06 bootstrap arrived; CHAT07-10 release-impacting handoffs remain absent and Knowledge is not yet a concrete release."},
-    {"id":"QA05-P0-003","severity":"P0","owner":"CHAT03_CHAT04","state":"OPEN","summary":"CHAT03 PR3 proposes 1.1.0 while current main UI consumes 1.0.0; exact compatibility/merge not certified."},
-    {"id":"QA05-P0-004","severity":"P0","owner":"CHAT00_CHAT10","state":"OPEN","summary":"Final serial deploy package/upload manifest/rollback/production restore certificate absent."},
-    {"id":"QA05-P0-005","severity":"P0","owner":"CROSS_DOMAIN","state":"OPEN","summary":"Golden Journey and critical final-origin/runtime paths are not tested end-to-end."},
-    {"id":"QA05-P1-006","severity":"P1","owner":"CHAT10","state":"OPEN","summary":"CI release security scan is skipped after pytest failure and is too narrow for required package policy."},
-    {"id":"QA05-P1-007","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","summary":"main is unprotected and has no required status checks."},
-    {"id":"QA05-P1-008","severity":"P1","owner":"CHAT00","state":"OPEN","summary":"global latest/release state persisted success metadata is stale versus current failing CI."}
+  "current_release_state": "NO_GO_AUTONOMOUS_P0_AND_FINAL_RUNTIME_PACKAGE_GATES_OPEN",
+  "source_head_independently_tested": "2d58ebbefc7099baef2e471d75820e9011e3e80d",
+  "source_ci": {"run_id":33621762265,"conclusion":"SUCCESS","compile_bot":"PASS","pytest":"PASS","telegram_token_regex":"PASS"},
+  "handoff_head_after_chat07": "dbb9b62b44a270ad076d0b1155a37c5500bcf1b0",
+  "upstream": {
+    "chat00":"0.4.2_STALE_CONTROL",
+    "chat01":"1.2.2_CORE_STABLE",
+    "chat02":"1.1.1_MAIN_PLUS_PR4_PAYMENT_ENTITLEMENT_1.1_CANDIDATE",
+    "chat03":"1.0.0_MAIN_PR6_REBASE_CANDIDATE_OPEN",
+    "chat04":"1.7.0_PR5_COMPAT_CANDIDATE_OPEN",
+    "chat06":"0.2.0_DISCOVERED_NOT_RELEASE_GRADE",
+    "chat07":"0.2.0_MIN_SUPPORT_CONTRACT_GREEN_RUNTIME_PARTIAL",
+    "chat08":"0.2.0_ADMIN_BACKEND_CONSUMER_TESTED_BROWSER_PENDING",
+    "chat09":"NOT_PERSISTED",
+    "chat10":"0.1.0_CI_RUNTIME_BOOTSTRAP"
+  },
+  "q_status": {
+    "Q1":"PASS_REPO_CI_FINAL_SERIAL_PHP_NOT_TESTED",
+    "Q2":"PASS_DISPOSABLE_EVIDENCE_FINAL_COMPOSED_RUNTIME_NOT_TESTED",
+    "Q3":"FAIL_RELEASE_GATE_FINAL_AUTH_RUNTIME_NOT_TESTED",
+    "Q4":"PASS_CONTRACT_PRODUCTION_PRIVATE_STORAGE_NOT_TESTED",
+    "Q5":"PASS_MAIN_CONTRACT_PR4_STATIC_CI_PASS_AG_RUNTIME_NOT_ACCEPTED",
+    "Q6":"FAIL_RELEASE_GATE_UNMERGED_TUPLE_REAL_DEVICE_NOT_TESTED",
+    "Q7":"PASS_ISOLATED_AND_CANONICAL_SW_STATIC_REAL_ORIGIN_NOT_TESTED",
+    "Q8":"NOT_TESTED_FINAL_RUNTIME",
+    "Q9":"FAIL_PUBLIC_HTML_PACKAGE_HYGIENE",
+    "Q10":"FAIL_GOLDEN_E2E_NOT_EXECUTED_SUPPORT_RUNTIME_PARTIAL",
+    "Q11":"NOT_TESTED_RELEASE_GRADE_CHAT09_ABSENT",
+    "Q12":"FAIL_RELEASE_GATE_CI_GREEN_BUT_WEB3_SLITHER_RED_AND_PACKAGE_ROLLBACK_RESTORE_ABSENT"
+  },
+  "new_findings": [
+    {"id":"QA05-P0-009","severity":"P0","owner":"CHAT10_CHAT00","state":"OPEN","summary":"Canonical Drive public_html is not release-clean: LEGGIMI.txt and _lib/schema.sql are dev artifacts; assets/partners also contains LEGGIMI-LOGHI.txt and a placeholder image. Clean serial package audit is required before cutover."},
+    {"id":"QA05-P0-010","severity":"P0","owner":"CHAT02","state":"OPEN_RETEST_REQUIRED","summary":"PR4 durable settlement certificate candidate is CI-green at current head 62efcb016a1577863745b27ab83977c98efb0314, but prior AG task was pinned to stale 1000e991... and no command/environment/hash completion evidence was returned. CHAT05 reissued exact-head AG acceptance task."},
+    {"id":"QA05-P0-011","severity":"P0","owner":"CHAT07_CHAT01_CHAT10","state":"OPEN","summary":"Minimum support guard is unit/CI green but live Telegram path does not yet consume the authorization/rate-limit guard, official links are not pinned, and Case-owner/notification runtime contracts are unproven."},
+    {"id":"QA05-P1-012","severity":"P1","owner":"CHAT10_CHAT00","state":"OPEN","summary":"main remains unprotected with no required status checks."},
+    {"id":"QA05-P1-013","severity":"P1","owner":"WEB3_SECURITY_OWNER","state":"OPEN_SMART_CONTRACT_DEPLOY_GATE","summary":"Web3 Security workflow is red because Slither fails. Do not deploy production smart contracts until findings are classified/closed; this does not convert DApp-only synthetic MVP checks to FAIL by itself."}
   ],
+  "resolved_or_improved": [
+    "Prior Core CaseError/CHAT02 arity CI blockers are closed; current repo CI is green on tested source head.",
+    "CHAT07 and CHAT10 canonical handoffs now exist; CHAT08 advanced to tested minimum Admin backend consumer.",
+    "CHAT07 minimum support fail-closed adapter and targeted tests were added and CI-green.",
+    "Canonical .htaccess is present and current service worker static review shows shell-only pre-cache and no runtime response insertion; real-origin PWA remains NOT_TESTED."
+  ],
+  "ag_sync": {
+    "runtime_task":"AG-CRYPTOAID-MVP-RUNTIME-20260902-1238_READY_NO_COMPLETION",
+    "pr4_old_task":"STALE_SHA_NO_COMPLETION",
+    "pr4_reissued_task_drive_id":"1ptcQqqQgS-oNmPQnnhFVMhY0pXp_R2CbOa0rLP614WM",
+    "chat07_task_drive_id":"1ul6PIZKqrSwOx6CO5j8xTbWik3nPHrd437egGbErV0w",
+    "accepted_completion_evidence":[]
+  },
+  "public_html_audit": {
+    "root_htaccess":"PRESENT_SHA256_417784f69d64c650897c8a37ae0a415d190e183cb5d3c5ac33721980d63b3d1d",
+    "service_worker":"STATIC_PASS_SHA256_d9c173f9327736d776d37495985441e0facdf05f45798a96bca3bd3901ed5108",
+    "db_snapshot_observed":"NO_IN_SCANNED_ROOT_DATA_LIB_ASSETS",
+    "private_evidence_observed":"NO_IN_SCANNED_ROOT_DATA_LIB_ASSETS",
+    "demo_flag_observed":false,
+    "dev_artifacts_observed":["LEGGIMI.txt","_lib/schema.sql","assets/partners/LEGGIMI-LOGHI.txt","assets/partners/wallet-placeholder.png"]
+  },
   "rule": "MODEL_OR_SIMULATION_NEVER_EQUALS_PRODUCTION_PASS; NOT_TESTED_NEVER_EQUALS_PASS",
-  "ready_for_human_go_live_gate": false
+  "ready_for_human_go_live_gate": false,
+  "GO_NO_GO":"NO_GO"
 }
