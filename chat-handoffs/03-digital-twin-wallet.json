@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "chat": "CHAT03_DIGITAL_TWIN_SEARCH_WALLET_DAPPMAP",
+  "state": "FOUNDATION_BUILT",
+  "twin_schema_version": "1.0.0",
+  "knowledge_version_consumed": "UNPINNED_EXISTING_MASTER",
+  "wallet_matrix_version": "1.0.0",
+  "dappmap_contract_version": "1.0.0",
+  "built": [
+    "twin/engine.py deterministic entity resolution read model",
+    "TO_VERIFY search-miss contract with +CASE availability",
+    "provenance/freshness/confidence/version model",
+    "Polygon non-custodial wallet capability matrix",
+    "DAPPMAP node/edge/epistemic data contract",
+    "tests/test_twin_engine.py"
+  ],
+  "tested": [
+    "alias/old-name resolution specified in pytest",
+    "same-name cross-chain ambiguity specified in pytest",
+    "contract normalization specified in pytest",
+    "TO_VERIFY non-promotion specified in pytest",
+    "wallet custody/signing invariants specified in pytest",
+    "DAPPMAP epistemic metadata specified in pytest"
+  ],
+  "fixed": [],
+  "blocked": [
+    "No frontend wallet runtime owned by CHAT04 yet, so EIP-6963/MetaMask/TokenPocket/WalletConnect live flows are not runtime-tested",
+    "No CHAT06 versioned context-pack contract observed, so knowledge version cannot yet be pinned",
+    "RPC health provider/configuration is a CHAT10 integration dependency",
+    "CI result for this commit must be observed before TESTED status can be promoted"
+  ],
+  "next": [
+    "Observe CI and fix failures",
+    "Integrate CHAT06 versioned context packs without creating knowledge authority",
+    "Expose read-model/search contract to CHAT04",
+    "Integrate RPC health contract from CHAT10",
+    "Run browser/mobile wallet matrix tests when frontend surface exists"
+  ]
+}
