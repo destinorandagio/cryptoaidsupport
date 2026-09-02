@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "name": "HyperZ & Family Graph Scope",
+  "purpose": "Define the research graph that CryptoAID can use for historical/project questions without asserting unsupported relationships.",
+  "seed_projects": [
+    "Hyper Family", "DAOversal", "MetaUtopia", "MetFi", "Fintech AI", "GOAT Nation", "GOATECH",
+    "DBM", "BlackFort", "QuantWise", "XERA", "Double Finance", "SERE", "ERE",
+    "X-Shadow", "AlyxUnion", "CryptoItaliaSupport", "DeFiMaso", "Animal Farm", "DRIP",
+    "BitNest", "IM Academy"
+  ],
+  "entity_types": ["project", "person_public", "community", "token", "NFT", "wallet_publicly_attributed", "company", "event", "domain", "contract", "chain", "source"],
+  "digital_twin_fields": [
+    "identity", "aliases", "type", "timeline", "projects", "companies", "people", "social",
+    "communities", "assets", "contracts", "wallets", "chains", "geography", "events", "documents",
+    "sources", "evidence", "migrations", "risks", "unresolved_leads", "related_twins"
+  ],
+  "twin_states": ["EMPTY", "SEED", "PARTIAL", "SUBSTANTIAL", "NEAR_COMPLETE", "COMPLETE", "BLOCKED"],
+  "identity_rule": "1 object = 1 SIC-ID = 1 Digital Twin",
+  "resolution_flow": ["NORMALIZE", "SEARCH_EXISTING", "ALIASES", "EXTERNAL_IDS", "ENTITY_RESOLUTION", "DEDUP", "CREATE_OR_UPDATE"],
+  "evidence_rules": [
+    "Publicly verifiable evidence is required for public person or wallet attribution.",
+    "Social membership counts are not unique-person counts.",
+    "Project adjacency does not establish shared ownership or legal liability.",
+    "Private-group anonymous members are not catalogued.",
+    "Unresolved aliases must remain unresolved rather than being guessed."
+  ]
+}
