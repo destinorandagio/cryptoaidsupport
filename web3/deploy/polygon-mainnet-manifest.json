@@ -1,0 +1,43 @@
+{
+  "schema": "cryptoaid.polygon-mainnet-manifest.v1",
+  "project": "CryptoAID.support",
+  "network": "Polygon PoS Mainnet",
+  "chainId": 137,
+  "paymentAsset": "USDT0",
+  "gasAsset": "POL",
+  "authority": "0x3C320B3a0917fF44BF6551CDdee44402AFcF250C",
+  "externalTokens": {
+    "USDT0": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    "DUX": "0x983dD7fAfAbD3C6e179607AE46e8ce586099228b",
+    "DRX": "0x933767F8493f0AEB11A5f47f3BC28ab9072b1D27"
+  },
+  "contracts": {
+    "CryptoAIDSecurityController": "0xB592B5c7Dcd7F6B69c965E9fD9dEf44A3Ff499A9",
+    "CryptoAIDEmergencyGuardian": "0xbd0104d113AA82BC5E87BBbd2Ccf3f03DB54CC4e",
+    "CryptoAIDRewardTreasury": "0x9F85246A244141a1CC9536EbE523605BcFEc7c5F",
+    "CryptoAIDUSDTRewardRouter": "0x0A44bb6907749BDb2e20861d27714743a8a97741",
+    "CryptoAIDCasePayment": "0x47faA2541b69944bABD7045E68CdE0C7FF5223c5",
+    "CryptoAIDRank": "0x79A01f74cD780640BCd0db038A64ddB6bc18b0Cf",
+    "CryptoAIDAchievements": "0x17Ba3d6d67FE598Cf96948219484c5B24955b13C",
+    "CryptoAIDReferralProof": "0xB715e1A7Fa4854587935816905b4D3c3980EcaBd",
+    "CryptoAIDQuestRegistry": "0xe3594F7A0518691D6c941fCf26A2A27FA1013748",
+    "CryptoAIDDappContributionRegistry": "0xBD288EAB89003fB86f324D775d009e9166d6a8e0",
+    "CryptoAIDBoostLock": "0x15a3c337Fc4565c1A9e18f225ea545d428bF5Ef0",
+    "CryptoAIDStaking": "0x7eE2fC779Cb58FdCaE84Bc674E38aEC8EA163ffE",
+    "CryptoAIDStreamVault": "0x6E690cb40c5301D06c70Eb313Ec0e258A6d4649D",
+    "CryptoAIDVestingFactory": "0x8ff5269c99964DBBA67d8fB79CF9811133De0eec",
+    "CryptoAIDEpochClaim": "0x3B5d2B0E3160df2BC2C1D162e203415B54c877C0",
+    "CryptoAIDUsefulMiner": "0x56701625aE1374134C6a471196e88C7F0DBa7eCa",
+    "CryptoAIDTimelock": "0x22EA988eC8E8882055EAbECfc961Bea6FAbb4b6f",
+    "CryptoAIDGovernance": "0x6efb3DA04F57387e810C26d77B3c45b420296050"
+  },
+  "stale": {
+    "CryptoAIDStaking": ["0xBfa60e0aEED09c16Bb976A4b122a9d5a0858f7cb"]
+  },
+  "notes": [
+    "The stale staking address MUST NOT be used by the dApp or integrations.",
+    "Canonical staking constructor: authority, DUX, DRX.",
+    "Case treasury and current authority are the same configured address by explicit project decision.",
+    "Guardian and governance are centralized on the configured authority by explicit project decision."
+  ]
+}
