@@ -1,13 +1,9 @@
-"""CHAT02 48h-MVP Evidence/Payment economics extension.
+"""CHAT02 48h-MVP payment expiry and frozen 50/450/500 economics.
 
-This module layers the frozen activation50 -> credit50 -> first-case450 -> later500
-contract and durable payment-intent expiry onto the canonical CHAT02 engine.
-It never initiates a transaction. All settlement truth still comes from the base
-verifier/certificate path and the same SQLite authority.
+Same SQLite authority, same verifier/certificate path, no transaction initiation.
 """
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -15,7 +11,6 @@ from .engine import (
     CHAIN_ID,
     EvidencePaymentEngine as _BaseEvidencePaymentEngine,
     EvidencePaymentError,
-    PAYMENT_TRANSITIONS,
     _id,
     _now,
 )
@@ -28,6 +23,7 @@ FIRST_CASE_CREDIT = "50"
 FIRST_CASE_PAYABLE = "450"
 SUBSEQUENT_CASE_PAYABLE = "500"
 _PRE_TX_STATES = {"INTENT_CREATED", "USER_ACTION_REQUIRED"}
+_RETRYABLE_TERMINAL_STATES = {"EXPIRED", "REJECTED"}
 
 
 def _parse_ts(value: str) -> datetime:
@@ -38,24 +34,21 @@ def _parse_ts(value: str) -> datetime:
 
 
 class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
-    """Canonical CHAT02 engine with the frozen MVP economics contract."""
+    """Canonical CHAT02 engine with expiry and the frozen MVP pricing contract."""
 
     def __init__(self, db_path, private_root):
         super().__init__(db_path, private_root)
         self._init_mvp_schema()
 
     def _init_mvp_schema(self) -> None:
-        """Apply an additive, fail-closed schema extension to the same authority."""
         with self._connect() as c:
-            c.execute("BEGIN IMMEDIATE")
             columns = {row[1] for row in c.execute("PRAGMA table_info(payment_intents)").fetchall()}
             if "expires_at" not in columns:
                 c.execute("ALTER TABLE payment_intents ADD COLUMN expires_at TEXT")
-            # Existing non-terminal intents from a pre-expiry schema become expired on
-            # next read. This is deliberately fail-closed rather than granting an
-            # unbounded payment window.
-            c.execute("UPDATE payment_intents SET expires_at=updated_at WHERE expires_at IS NULL")
             c.executescript("""
+            BEGIN IMMEDIATE;
+            UPDATE payment_intents SET expires_at=updated_at WHERE expires_at IS NULL;
+
             CREATE TABLE IF NOT EXISTS economic_intents(
               intent_id TEXT PRIMARY KEY,
               principal_id TEXT NOT NULL,
@@ -64,8 +57,7 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
               nominal_value TEXT NOT NULL,
               credit_applied TEXT NOT NULL,
               payable_value TEXT NOT NULL,
-              created_at TEXT NOT NULL,
-              UNIQUE(principal_id,purpose,case_id));
+              created_at TEXT NOT NULL);
 
             CREATE TABLE IF NOT EXISTS activation_credits(
               principal_id TEXT PRIMARY KEY,
@@ -79,7 +71,7 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
             CREATE INDEX IF NOT EXISTS idx_payment_intents_expires_at
               ON payment_intents(state,expires_at);
             CREATE INDEX IF NOT EXISTS idx_economic_intents_principal
-              ON economic_intents(principal_id,purpose,case_id);
+              ON economic_intents(principal_id,purpose,case_id,created_at);
 
             CREATE TRIGGER IF NOT EXISTS trg_activation_credit_after_entitlement
             AFTER INSERT ON entitlement_ledger
@@ -137,8 +129,8 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
                 AND state='RESERVED'
                 AND reserved_case_id=(SELECT case_id FROM economic_intents WHERE intent_id=NEW.intent_id AND purpose='CASE');
             END;
+            COMMIT;
             """)
-            c.execute("COMMIT")
 
     @staticmethod
     def _expiry(ttl_seconds: int) -> tuple[str, str]:
@@ -162,11 +154,11 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
             expires_at = row["expires_at"]
             if state in _PRE_TX_STATES and expires_at and datetime.now(timezone.utc) >= _parse_ts(expires_at):
                 now = _now()
-                c.execute(
+                updated = c.execute(
                     "UPDATE payment_intents SET state='EXPIRED',updated_at=? WHERE intent_id=? AND state=?",
                     (now, intent_id, state),
                 )
-                if c.total_changes:
+                if updated.rowcount == 1:
                     c.execute(
                         "INSERT INTO payment_events VALUES(?,?,?,?,?,?,?)",
                         (_id("pe"), intent_id, state, "EXPIRED", "payment intent expired", None, now),
@@ -177,6 +169,14 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
 
     def get_intent(self, intent_id: str) -> dict[str, Any]:
         return self._expire_if_needed(intent_id)
+
+    def _active_economic_intent(self, c, *, principal_id: str, purpose: str, case_id: str):
+        return c.execute(
+            "SELECT p.* FROM economic_intents ei JOIN payment_intents p ON p.intent_id=ei.intent_id "
+            "WHERE ei.principal_id=? AND ei.purpose=? AND ei.case_id=? "
+            "AND p.state NOT IN ('EXPIRED','REJECTED') ORDER BY ei.created_at DESC LIMIT 1",
+            (principal_id, purpose, case_id),
+        ).fetchone()
 
     def create_payment_intent(
         self,
@@ -201,10 +201,12 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
                 c.execute("COMMIT")
                 return self.get_intent(existing["intent_id"])
             if _economic:
-                existing_economic = c.execute(
-                    "SELECT intent_id FROM economic_intents WHERE principal_id=? AND purpose=? AND case_id=?",
-                    (_economic["principal_id"], _economic["purpose"], _economic["case_id"]),
-                ).fetchone()
+                existing_economic = self._active_economic_intent(
+                    c,
+                    principal_id=_economic["principal_id"],
+                    purpose=_economic["purpose"],
+                    case_id=_economic["case_id"],
+                )
                 if existing_economic:
                     c.execute("COMMIT")
                     return self.get_intent(existing_economic["intent_id"])
@@ -214,22 +216,9 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
                 "state,tx_hash,request_id,idempotency_key,created_at,updated_at,expires_at"
                 ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    intent_id,
-                    case_id,
-                    entitlement_ref,
-                    payer,
-                    CHAIN_ID,
-                    asset,
-                    str(expected_value),
-                    treasury["treasury_id"],
-                    treasury["address"],
-                    "INTENT_CREATED",
-                    None,
-                    request_id,
-                    idempotency_key,
-                    created_at,
-                    created_at,
-                    expires_at,
+                    intent_id, case_id, entitlement_ref, payer, CHAIN_ID, asset, str(expected_value),
+                    treasury["treasury_id"], treasury["address"], "INTENT_CREATED", None,
+                    request_id, idempotency_key, created_at, created_at, expires_at,
                 ),
             )
             c.execute(
@@ -240,14 +229,8 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
                 c.execute(
                     "INSERT INTO economic_intents VALUES(?,?,?,?,?,?,?,?)",
                     (
-                        intent_id,
-                        _economic["principal_id"],
-                        _economic["purpose"],
-                        _economic["case_id"],
-                        _economic["nominal_value"],
-                        _economic["credit_applied"],
-                        _economic["payable_value"],
-                        created_at,
+                        intent_id, _economic["principal_id"], _economic["purpose"], _economic["case_id"],
+                        _economic["nominal_value"], _economic["credit_applied"], _economic["payable_value"], created_at,
                     ),
                 )
             c.execute("COMMIT")
@@ -322,10 +305,7 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
             if existing:
                 c.execute("COMMIT")
                 return self.get_intent(existing["intent_id"])
-            existing_case = c.execute(
-                "SELECT intent_id FROM economic_intents WHERE principal_id=? AND purpose='CASE' AND case_id=?",
-                (principal_id, case_id),
-            ).fetchone()
+            existing_case = self._active_economic_intent(c, principal_id=principal_id, purpose="CASE", case_id=case_id)
             if existing_case:
                 c.execute("COMMIT")
                 return self.get_intent(existing_case["intent_id"])
@@ -358,22 +338,9 @@ class EvidencePaymentEngine(_BaseEvidencePaymentEngine):
                 "state,tx_hash,request_id,idempotency_key,created_at,updated_at,expires_at"
                 ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    intent_id,
-                    case_id,
-                    f"case_active:{case_id}",
-                    payer,
-                    CHAIN_ID,
-                    "POL",
-                    payable,
-                    treasury["treasury_id"],
-                    treasury["address"],
-                    "INTENT_CREATED",
-                    None,
-                    request_id,
-                    idempotency_key,
-                    created_at,
-                    created_at,
-                    expires_at,
+                    intent_id, case_id, f"case_active:{case_id}", payer, CHAIN_ID, "POL", payable,
+                    treasury["treasury_id"], treasury["address"], "INTENT_CREATED", None,
+                    request_id, idempotency_key, created_at, created_at, expires_at,
                 ),
             )
             c.execute(
