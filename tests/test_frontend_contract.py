@@ -80,7 +80,7 @@ def test_service_worker_excludes_dynamic_truth():
     assert "req.mode==='navigate'" in SW
 
 def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
-    assert "const SHELL_VERSION='2.1.3'" in SW
+    assert "const SHELL_VERSION='2.1.4'" in SW
     assert "const CACHE_PREFIX='caid-shell-v'" in SW
     assert '${CACHE_PREFIX}${SHELL_VERSION}' in SW
     assert 'self.skipWaiting()' in SW
@@ -91,10 +91,18 @@ def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
         assert path in SW
 
 def test_service_worker_reads_only_current_cryptoaid_shell_cache():
-    assert "caches.open(CACHE).then(cache=>cache.match(req)" in SW
+    assert "caches.open(CACHE).then(cache=>cache.match(new URL(shellPath,self.registration.scope).href)" in SW
     assert "caches.open(CACHE).then(cache=>cache.match('./offline.html'))" in SW
     assert 'caches.match(req)' not in SW
     assert "caches.match('./offline.html')" not in SW
+    assert 'cache.match(req)' not in SW
+
+def test_service_worker_querystring_shell_requests_use_canonical_current_cache_key():
+    assert "const SCOPE_ORIGIN=new URL(self.registration.scope).origin" in SW
+    assert "url.origin===SCOPE_ORIGIN?SHELL.find" in SW
+    assert "pathname===url.pathname" in SW
+    assert "cache.match(new URL(shellPath,self.registration.scope).href)" in SW
+    assert 'cache.match(req)' not in SW
 
 def test_manifest_valid():
     data=json.loads((ROOT/'manifest.webmanifest').read_text())
