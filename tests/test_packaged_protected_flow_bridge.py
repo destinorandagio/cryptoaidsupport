@@ -57,7 +57,7 @@ def test_evidence_file_is_optional_but_if_selected_fails_closed_before_case_when
 def test_evidence_upload_occurs_only_after_canonical_case_and_requires_server_hash_match():
     case = _section("window.addEventListener('caid:case-request'", "window.addEventListener('caid:wallet-connect-request'")
     assert case.index("request('/cases'") < case.index("uploadEvidence(payload.caseId,evidenceFile)")
-    assert "publishCanonicalState(payload)&&payload.caseId" in case
+    assert "publishProtectedProjection(payload,'case_projection_invalid')&&payload.caseId" in case
     assert "stored.private_storage!==true" in case
     assert "stored.sha256!==localHash" in case
     assert "PRIVATE EVIDENCE STORED" in case
@@ -115,7 +115,7 @@ def test_payment_projection_is_server_authority_bound_and_never_equates_settleme
 
 
 def test_protected_runtime_bridge_change_rolls_installed_pwa_shell_and_dynamic_truth_is_never_cached():
-    assert "const SHELL_VERSION='2.1.10'" in SW
+    assert "const SHELL_VERSION='2.1.11'" in SW
     assert "./assets/runtime-bridge.js" in SW
     assert "url.pathname.includes('/api/')" in SW
     assert "url.pathname.includes('/evidence/')" in SW
