@@ -120,7 +120,7 @@ def test_case_active_presentation_is_bound_only_to_canonical_case_state():
 
 
 def test_projection_security_change_rolls_the_precached_pwa_shell():
-    assert "const SHELL_VERSION='2.1.10'" in SW
+    assert "const SHELL_VERSION='2.1.11'" in SW
     assert "./assets/runtime-bridge.js" in SW
     assert "url.pathname.includes('/api/')" in SW
     assert "url.pathname.includes('/evidence/')" in SW
