@@ -9,7 +9,10 @@ PASS invariants on the factual target DB:
     payment_intents.idempotency_key directly or by payment_idempotency_resolutions;
   * a key may not directly identify one intent while resolving to another;
   * every durable resolution must be semantically compatible with the binding
-    operation and with the frozen ACTIVATION/CASE economic contract.
+    operation and with the frozen ACTIVATION/CASE economic contract;
+  * PASS is emitted only when no durable resolution rows exist. A nonzero
+    resolution_count requires separate non-sensitive canonical-writer/cutover or
+    audited-migration provenance before release acceptance.
 
 Source-stability invariant:
   durable data-bearing SQLite files (database + WAL when present) must remain
@@ -18,12 +21,15 @@ Source-stability invariant:
   update shared-memory read marks even when the connection is mode=ro/query_only.
 
 Exit codes:
-  0  PASS (all alias/semantic/integrity/schema/source-stability checks pass)
+  0  PASS (all alias/semantic/integrity/schema/source-stability checks pass and
+     resolution_count is zero)
   20 MIGRATION_REQUIRED (orphan or semantically inconsistent historical alias)
   21 SCHEMA_REQUIRED (required table/column absent)
   22 DB_INTEGRITY_FAILED (integrity_check or foreign_key_check failed)
   23 SOURCE_CHANGED_DURING_SCAN (database/WAL fingerprint changed during audit)
   24 INPUT_ERROR / OPEN_FAILED
+  25 PROVENANCE_REQUIRED (durable resolution rows exist and require independent
+     canonical-writer/cutover or audited-migration provenance)
 """
 from __future__ import annotations
 
@@ -58,8 +64,11 @@ REQUIRED_COLUMNS: dict[str, set[str]] = {
     },
 }
 
-AUDIT_CONTRACT = "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_2"
+AUDIT_CONTRACT = "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_3"
 SOURCE_STABILITY_CONTRACT = "SQLITE_DATABASE_PLUS_WAL_V1"
+RESOLUTION_PROVENANCE_POLICY = (
+    "CANONICAL_WRITER_OR_AUDITED_MIGRATION_REQUIRED_WHEN_RESOLUTION_COUNT_NONZERO"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -231,6 +240,7 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
         "database_realpath": str(real),
         "database_before": before,
         "source_stability_contract": SOURCE_STABILITY_CONTRACT,
+        "resolution_provenance_policy": RESOLUTION_PROVENANCE_POLICY,
     }
 
     try:
@@ -329,6 +339,11 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
     if result["orphan_aliases"] or result["semantic_resolution_failures"]:
         result["status"] = "MIGRATION_REQUIRED"
         return result, 20
+    if result["resolution_count"]:
+        result["provenance_required"] = True
+        result["status"] = "PROVENANCE_REQUIRED"
+        return result, 25
+    result["provenance_required"] = False
     result["status"] = "PASS"
     return result, 0
 
