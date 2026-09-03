@@ -1,3 +1,4 @@
+import asyncio
 import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
@@ -58,8 +59,7 @@ def bind(private, session, sic_id, principal):
     return private.bind(telegram_principal=principal, link_code=code)
 
 
-@pytest.mark.asyncio
-async def test_authorized_notification_claim_send_ack_and_replay_dedupe(tmp_path: Path):
+def test_authorized_notification_claim_send_ack_and_replay_dedupe(tmp_path: Path):
     _, private, durable, db, owner, _, session, _, case = fixture(tmp_path)
     chat_id = 1001
     principal = f"telegram:{chat_id}"
@@ -67,22 +67,22 @@ async def test_authorized_notification_claim_send_ack_and_replay_dedupe(tmp_path
     bot = FakeBot(message_id=77)
     sender = TelegramNotificationSender(durable_runtime=durable, bot=bot)
 
-    first = await sender.deliver(
+    first = asyncio.run(sender.deliver(
         telegram_principal=principal,
         telegram_chat_id=chat_id,
         support_session_id=token,
         case_id=case["case_id"],
         event_type="STATUS_CHANGED",
         now=1000.0,
-    )
-    second = await sender.deliver(
+    ))
+    second = asyncio.run(sender.deliver(
         telegram_principal=principal,
         telegram_chat_id=chat_id,
         support_session_id=token,
         case_id=case["case_id"],
         event_type="STATUS_CHANGED",
         now=1001.0,
-    )
+    ))
 
     assert first.sent is True and first.state == "DELIVERED" and first.transport_message_id == "77"
     assert second.sent is False and second.state == "DELIVERED"
@@ -97,29 +97,27 @@ async def test_authorized_notification_claim_send_ack_and_replay_dedupe(tmp_path
     assert row == ("DELIVERED", 1, "77")
 
 
-@pytest.mark.asyncio
-async def test_principal_chat_confused_deputy_rejected_before_claim_or_send(tmp_path: Path):
+def test_principal_chat_confused_deputy_rejected_before_claim_or_send(tmp_path: Path):
     _, private, durable, db, owner, _, session, _, case = fixture(tmp_path)
     token = bind(private, session, owner["sic_id"], "telegram:1001")
     bot = FakeBot()
     sender = TelegramNotificationSender(durable_runtime=durable, bot=bot)
 
     with pytest.raises(TelegramNotificationSendRejected):
-        await sender.deliver(
+        asyncio.run(sender.deliver(
             telegram_principal="telegram:1001",
             telegram_chat_id=2002,
             support_session_id=token,
             case_id=case["case_id"],
             event_type="ACTION_REQUIRED",
-        )
+        ))
 
     assert bot.calls == []
     with sqlite3.connect(db) as connection:
         assert connection.execute("SELECT COUNT(*) FROM notification_deliveries").fetchone()[0] == 0
 
 
-@pytest.mark.asyncio
-async def test_cross_user_fails_before_network_and_persistence(tmp_path: Path):
+def test_cross_user_fails_before_network_and_persistence(tmp_path: Path):
     _, private, durable, db, _, other, _, other_session, case = fixture(tmp_path)
     chat_id = 2002
     principal = f"telegram:{chat_id}"
@@ -128,21 +126,20 @@ async def test_cross_user_fails_before_network_and_persistence(tmp_path: Path):
     sender = TelegramNotificationSender(durable_runtime=durable, bot=bot)
 
     with pytest.raises(TelegramNotificationSendRejected):
-        await sender.deliver(
+        asyncio.run(sender.deliver(
             telegram_principal=principal,
             telegram_chat_id=chat_id,
             support_session_id=token,
             case_id=case["case_id"],
             event_type="STATUS_CHANGED",
-        )
+        ))
 
     assert bot.calls == []
     with sqlite3.connect(db) as connection:
         assert connection.execute("SELECT COUNT(*) FROM notification_deliveries").fetchone()[0] == 0
 
 
-@pytest.mark.asyncio
-async def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: Path):
+def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: Path):
     _, private, durable, db, owner, _, session, _, case = fixture(tmp_path)
     chat_id = 3003
     principal = f"telegram:{chat_id}"
@@ -151,7 +148,7 @@ async def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: 
     sender = TelegramNotificationSender(durable_runtime=durable, bot=failing)
 
     with pytest.raises(TelegramNotificationSendRejected):
-        await sender.deliver(
+        asyncio.run(sender.deliver(
             telegram_principal=principal,
             telegram_chat_id=chat_id,
             support_session_id=token,
@@ -159,7 +156,7 @@ async def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: 
             event_type="MANUAL_REVIEW",
             lease_seconds=10,
             now=100.0,
-        )
+        ))
 
     with sqlite3.connect(db) as connection:
         row = connection.execute(
@@ -169,7 +166,7 @@ async def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: 
 
     holding = FakeBot(message_id=88)
     retry_sender = TelegramNotificationSender(durable_runtime=durable, bot=holding)
-    within_lease = await retry_sender.deliver(
+    within_lease = asyncio.run(retry_sender.deliver(
         telegram_principal=principal,
         telegram_chat_id=chat_id,
         support_session_id=token,
@@ -177,10 +174,10 @@ async def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: 
         event_type="MANUAL_REVIEW",
         lease_seconds=10,
         now=105.0,
-    )
+    ))
     assert within_lease.sent is False and holding.calls == []
 
-    after_lease = await retry_sender.deliver(
+    after_lease = asyncio.run(retry_sender.deliver(
         telegram_principal=principal,
         telegram_chat_id=chat_id,
         support_session_id=token,
@@ -188,13 +185,12 @@ async def test_send_failure_is_not_acked_and_retries_only_after_lease(tmp_path: 
         event_type="MANUAL_REVIEW",
         lease_seconds=10,
         now=111.0,
-    )
+    ))
     assert after_lease.sent is True and after_lease.attempt_count == 2
     assert len(holding.calls) == 1
 
 
-@pytest.mark.asyncio
-async def test_missing_telegram_message_id_is_never_acked(tmp_path: Path):
+def test_missing_telegram_message_id_is_never_acked(tmp_path: Path):
     _, private, durable, db, owner, _, session, _, case = fixture(tmp_path)
     chat_id = 4004
     principal = f"telegram:{chat_id}"
@@ -202,14 +198,14 @@ async def test_missing_telegram_message_id_is_never_acked(tmp_path: Path):
     sender = TelegramNotificationSender(durable_runtime=durable, bot=FakeBot(message_id=None))
 
     with pytest.raises(TelegramNotificationSendRejected):
-        await sender.deliver(
+        asyncio.run(sender.deliver(
             telegram_principal=principal,
             telegram_chat_id=chat_id,
             support_session_id=token,
             case_id=case["case_id"],
             event_type="ACTION_REQUIRED",
             now=200.0,
-        )
+        ))
 
     with sqlite3.connect(db) as connection:
         row = connection.execute("SELECT state,transport_message_id FROM notification_deliveries").fetchone()
