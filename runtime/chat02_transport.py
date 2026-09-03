@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
 from urllib.parse import urlparse
+import uuid
 
 import httpx
 
@@ -23,7 +24,7 @@ from evidence_payment import (
     TrustedPolygonRPCAdapter,
 )
 
-CHAT02_HTTP_TRANSPORT_VERSION = "1.1"
+CHAT02_HTTP_TRANSPORT_VERSION = "1.2"
 MAX_EVIDENCE_BYTES = 25_000_000
 
 _FORBIDDEN_AUTHORITY_KEYS = frozenset(
@@ -105,6 +106,25 @@ def _rpc_provider_host(value: str) -> str:
     if not host:
         raise EvidencePaymentError("RPC_PROVIDER_CONFIG_INVALID", "RPC provider hostname is required")
     return host
+
+
+def _validated_rpc_response(payload: Any, request_id: str) -> dict[str, Any]:
+    """Fail closed unless one response is exactly correlated to this JSON-RPC 2.0 request."""
+    if not isinstance(payload, Mapping):
+        raise EvidencePaymentError("RPC_MALFORMED", "RPC provider returned malformed JSON")
+    if payload.get("jsonrpc") != "2.0" or "id" not in payload or payload.get("id") != request_id:
+        raise EvidencePaymentError(
+            "RPC_RESPONSE_MISMATCH",
+            "RPC provider response is not correlated to the server request",
+        )
+    has_result = "result" in payload
+    has_error = "error" in payload
+    if has_result == has_error:
+        raise EvidencePaymentError(
+            "RPC_MALFORMED",
+            "RPC response must contain exactly one of result or error",
+        )
+    return dict(payload)
 
 
 @dataclass(frozen=True)
@@ -221,19 +241,18 @@ class Chat02HTTPTransport:
             raise EvidencePaymentError("RPC_PROVIDER_CONFIG_INVALID", "Unknown server RPC provider")
         if self._http_client is None:
             self._http_client = httpx.Client(timeout=httpx.Timeout(8.0, connect=4.0), follow_redirects=False)
+        request_id = f"caid-{uuid.uuid4().hex}"
         try:
             response = self._http_client.post(
                 url,
-                json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
+                json={"jsonrpc": "2.0", "id": request_id, "method": method, "params": params},
                 headers={"Accept": "application/json", "Content-Type": "application/json"},
             )
             response.raise_for_status()
             payload = response.json()
         except Exception as exc:
             raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC provider call failed") from exc
-        if not isinstance(payload, Mapping):
-            raise EvidencePaymentError("RPC_MALFORMED", "RPC provider returned malformed JSON")
-        return dict(payload)
+        return _validated_rpc_response(payload, request_id)
 
     @staticmethod
     def _payload(payload: Any) -> dict[str, Any]:
