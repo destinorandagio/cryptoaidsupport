@@ -324,7 +324,7 @@ def test_finality_pending_never_grants_entitlement_or_core_activation(stack):
         request_id="req_pending",
         idempotency_key="idem_pending",
     )
-    rpc.set_tx(TX_PENDING, sender=PAYER_A, recipient=intent["treasury_address"], pol="450", block=150, finalized=150)
+    rpc.set_tx(TX_PENDING, sender=PAYER_A, recipient=intent["treasury_address"], pol="450", block=150, finalized=149)
     result = facade.settle_tx_hash(session_id="ses_a", intent_id=intent["intent_id"], tx_hash=TX_PENDING)
     assert result["payment_state"] == "FINALITY_PENDING"
     assert result["entitlement_granted"] is False
