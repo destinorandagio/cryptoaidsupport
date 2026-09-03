@@ -225,6 +225,32 @@ def test_claim_hash_and_durable_lineage_fail_closed(tmp_path: Path):
     assert rejected.value.code == "ACTIVATION_EFFECT_MISMATCH"
 
 
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("chain_id", 1),
+        ("asset", "USDT"),
+        ("settled_value", "1"),
+        ("treasury_address", "0x2222222222222222222222222222222222222222"),
+    ),
+)
+def test_claim_rejects_inconsistent_settlement_certificate_dimensions(
+    tmp_path: Path, field: str, replacement: object
+):
+    db, core, payments, user, opened, _, _, claim = _stack(tmp_path)
+    with payments._connect() as conn:
+        conn.execute(
+            f"UPDATE settlement_certificates SET {field}=? WHERE certificate_id=?",
+            (replacement, claim["settlement_certificate_id"]),
+        )
+
+    consumer = TrustedActivationClaimConsumer(db)
+    with pytest.raises(CoreError) as rejected:
+        consumer.consume(claim=claim, request_id=f"claim-cert-mismatch-{field}")
+    assert rejected.value.code == "ACTIVATION_EFFECT_MISMATCH"
+    assert core.get_case(opened["case_id"], user["user_id"])["state"] == "PAYMENT_VERIFYING"
+
+
 def test_claim_cannot_skip_required_core_state_or_accept_client_shape_drift(tmp_path: Path):
     db, core, _, user, opened, _, _, claim = _stack(tmp_path)
     with core.conn() as conn:
