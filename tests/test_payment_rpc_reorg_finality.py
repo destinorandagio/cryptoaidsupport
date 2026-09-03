@@ -37,8 +37,7 @@ class ReorgWindowRPC:
         self.calls.append((provider_id, method, tuple(params)))
         if method == "eth_chainId":
             return "0x89"
-        if method == "eth_getBlockByNumber":
-            assert params == ["finalized", False]
+        if method == "eth_getBlockByNumber" and params == ["finalized", False]:
             self.finalized_seen.add(provider_id)
             return {"number": "0x6e", "hash": "0xfinalized110"}
         if self.orphan_after_finalized and provider_id in self.finalized_seen:
@@ -60,6 +59,8 @@ class ReorgWindowRPC:
                 "blockHash": "0xblock100",
                 "blockNumber": "0x64",
             }
+        if method == "eth_getBlockByNumber" and params == ["0x64", False]:
+            return {"number": "0x64", "hash": "0xblock100"}
         raise AssertionError((provider_id, method, params))
 
 
@@ -101,4 +102,5 @@ def test_each_provider_observes_finalized_before_transaction_and_receipt():
             "eth_getBlockByNumber",
             "eth_getTransactionByHash",
             "eth_getTransactionReceipt",
+            "eth_getBlockByNumber",
         ]
