@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.1"
+RPC_PROVENANCE_VERSION = "1.2"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
 
@@ -65,12 +65,9 @@ class TrustedPolygonRPCAdapter:
     def _provider_snapshot(self, provider_id: str, tx_hash: str) -> dict[str, Any]:
         try:
             chain_raw = _rpc_result(self.rpc_call(provider_id, "eth_chainId", []))
-            # Observe the provider's finalized head *before* transaction/receipt
-            # evidence. If the transaction is below that finalized height, the
-            # subsequent tx/receipt reads must come from the provider's current
-            # canonical view after finality was established. This removes the
-            # old tx/receipt -> finalized TOCTOU window where a reorg could make
-            # an earlier cached receipt stale before settlement.
+            # Establish the provider's finalized head before reading transaction
+            # evidence. A second canonical-block read below then binds the
+            # tx/receipt pair to this provider's current canonical chain view.
             finalized = _rpc_result(self.rpc_call(provider_id, "eth_getBlockByNumber", ["finalized", False]))
             tx = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionByHash", [tx_hash]))
             receipt = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionReceipt", [tx_hash]))
@@ -99,6 +96,31 @@ class TrustedPolygonRPCAdapter:
             raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
         if tx_block != receipt_block or tx_block_hash != receipt_block_hash:
             raise EvidencePaymentError("RPC_BLOCK_MISMATCH", "Transaction and receipt block mismatch")
+
+        # Bind the mutually-consistent tx/receipt pair to the provider's current
+        # canonical block at the same height. Without this post-evidence lookup,
+        # a stale/orphan tx+receipt pair can agree internally and still be paired
+        # with an unrelated finalized height. That evidence must never settle.
+        try:
+            canonical_block = _rpc_result(
+                self.rpc_call(provider_id, "eth_getBlockByNumber", [hex(tx_block), False])
+            )
+        except EvidencePaymentError:
+            raise
+        except Exception as exc:
+            raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC canonical block lookup failed") from exc
+        if not isinstance(canonical_block, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "Canonical transaction block is required")
+        try:
+            canonical_block_number = _block_number(canonical_block.get("number"))
+        except (TypeError, ValueError) as exc:
+            raise EvidencePaymentError("RPC_MALFORMED", "Invalid canonical block number") from exc
+        canonical_block_hash = _hex_identity(canonical_block.get("hash"), "canonical transaction block hash")
+        if canonical_block_number != tx_block or canonical_block_hash != tx_block_hash:
+            raise EvidencePaymentError(
+                "RPC_CANONICAL_BLOCK_MISMATCH",
+                "Transaction and receipt are not bound to the provider's current canonical block",
+            )
 
         return {
             "provider_id": provider_id,
@@ -181,6 +203,7 @@ class TrustedPolygonRPCAdapter:
                     "eth_getBlockByNumber(finalized)-before-tx-evidence",
                     "eth_getTransactionByHash",
                     "eth_getTransactionReceipt",
+                    "eth_getBlockByNumber(tx_block)-after-tx-evidence",
                 ],
             },
         }
