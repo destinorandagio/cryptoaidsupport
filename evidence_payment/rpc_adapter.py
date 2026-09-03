@@ -196,6 +196,13 @@ class TrustedPolygonRPCAdapter:
         """Verify and settle using only server-derived RPC evidence; never client economics."""
         current = self.engine.get_intent(intent_id)
         if current["state"] == "SETTLED":
+            requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+            recorded_tx = _hex_identity(current.get("tx_hash"), "settled transaction hash")
+            if requested_tx != recorded_tx:
+                raise EvidencePaymentError(
+                    "TX_REPLAY_CONFLICT",
+                    "Settled payment intent is already bound to a different transaction hash",
+                )
             certificate = self.engine.get_settlement_certificate(intent_id)
             return {
                 "intent_id": intent_id,
