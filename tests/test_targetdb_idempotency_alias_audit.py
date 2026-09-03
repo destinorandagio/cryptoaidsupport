@@ -120,6 +120,8 @@ def test_direct_intent_key_is_not_orphan_and_source_is_unchanged(tmp_path: Path)
 
     assert code == 0
     assert result["status"] == "PASS"
+    assert result["resolution_count"] == 0
+    assert result["provenance_required"] is False
     assert result["orphan_aliases"] == 0
     assert result["direct_resolution_conflicts"] == 0
     assert result["resolution_operation_mismatches"] == 0
@@ -130,7 +132,9 @@ def test_direct_intent_key_is_not_orphan_and_source_is_unchanged(tmp_path: Path)
     assert db.read_bytes() == before
 
 
-def test_durable_resolution_covers_semantically_matching_case_alias(tmp_path: Path) -> None:
+def test_durable_resolution_requires_provenance_even_when_semantically_matching(
+    tmp_path: Path,
+) -> None:
     db = tmp_path / "master.sqlite"
     conn = _make_db(db)
     _binding(conn, "origin-key", "CASE")
@@ -139,15 +143,20 @@ def test_durable_resolution_covers_semantically_matching_case_alias(tmp_path: Pa
     _resolve(conn, "alias-key", "pi_1")
     conn.commit()
     conn.close()
+    before = db.read_bytes()
 
     result, code = audit_db(db)
 
-    assert code == 0
-    assert result["status"] == "PASS"
+    assert code == 25
+    assert result["status"] == "PROVENANCE_REQUIRED"
     assert result["binding_count"] == 2
     assert result["resolution_count"] == 1
+    assert result["provenance_required"] is True
     assert result["orphan_aliases"] == 0
     assert result["semantic_resolution_failures"] == 0
+    assert result["source_stable"] is True
+    assert "alias-key" not in json.dumps(result)
+    assert db.read_bytes() == before
 
 
 def test_orphan_alias_fails_closed_without_leaking_raw_key(tmp_path: Path) -> None:
