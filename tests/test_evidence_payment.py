@@ -145,11 +145,11 @@ def test_polygon_finalized_boundary_replaces_confirmation_count():
     op = good_obs(pending, "0xpending", 100)
     op["confirmations"] = 10_000
     op["required_confirmations"] = 1
-    assert e.verify_observation(pending["intent_id"], op, providers(op, 100, 99)) == "FINALITY_PENDING"
+    assert e.verify_observation(pending["intent_id"], op, providers(op, 99, 99)) == "FINALITY_PENDING"
 
     mixed = advance(e, new_intent(e, "mixed", "m", "em"))
     om = good_obs(mixed, "0xmixed", 100)
-    assert e.verify_observation(mixed["intent_id"], om, providers(om, 101, 100)) == "MANUAL_REVIEW"
+    assert e.verify_observation(mixed["intent_id"], om, providers(om, 100, 99)) == "MANUAL_REVIEW"
 
     final = advance(e, new_intent(e, "final", "f", "ef"))
     of = good_obs(final, "0xfinal", 100)
@@ -203,7 +203,7 @@ def test_nonfinal_transaction_never_grants_certificate_or_entitlement():
     e = engine()
     i = advance(e, new_intent(e, "nf"))
     o = good_obs(i)
-    result = e.settle(i["intent_id"], o, providers(o, 100, 99))
+    result = e.settle(i["intent_id"], o, providers(o, 99, 99))
     assert result == {
         "intent_id": i["intent_id"],
         "verdict": "FINALITY_PENDING",
