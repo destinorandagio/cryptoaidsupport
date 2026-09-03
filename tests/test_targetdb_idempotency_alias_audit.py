@@ -189,6 +189,68 @@ def test_shm_only_coordination_drift_does_not_fail_source_stability(
     assert result["database_before"]["database"] == result["database_after"]["database"]
     assert result["database_before"].get("wal") == result["database_after"].get("wal")
     assert result["database_before"].get("shm") != result["database_after"].get("shm")
+    assert result["shm_changed_observational"] is True
+
+
+def test_real_wal_reader_does_not_self_fail_when_only_shm_read_marks_change(
+    tmp_path: Path,
+) -> None:
+    db = tmp_path / "live-wal.sqlite"
+    conn = _make_db(db)
+    assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0].lower() == "wal"
+    _binding(conn, "direct-key")
+    conn.execute("INSERT INTO payment_intents VALUES(?,?)", ("pi_1", "direct-key"))
+    conn.commit()
+
+    wal = Path(str(db) + "-wal")
+    shm = Path(str(db) + "-shm")
+    assert wal.exists()
+    assert shm.exists()
+    db_before = hashlib.sha256(db.read_bytes()).hexdigest()
+    wal_before = hashlib.sha256(wal.read_bytes()).hexdigest()
+
+    result, code = audit_module.audit_db(db)
+
+    assert code == 0
+    assert result["status"] == "PASS"
+    assert result["source_stable"] is True
+    assert result["orphan_aliases"] == 0
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == db_before
+    assert hashlib.sha256(wal.read_bytes()).hexdigest() == wal_before
+    conn.close()
+
+
+def test_database_or_wal_drift_still_fails_closed(tmp_path: Path, monkeypatch) -> None:
+    db = tmp_path / "drift.sqlite"
+    conn = _make_db(db)
+    _binding(conn, "direct-key")
+    conn.execute("INSERT INTO payment_intents VALUES(?,?)", ("pi_1", "direct-key"))
+    conn.commit()
+    conn.close()
+
+    original = audit_module.sqlite_file_fingerprint
+    calls = 0
+
+    def fingerprint_with_database_drift(path: Path):
+        nonlocal calls
+        calls += 1
+        fingerprint = original(path)
+        if calls >= 2:
+            fingerprint = dict(fingerprint)
+            database = dict(fingerprint["database"])
+            database["sha256"] = "0" * 64
+            fingerprint["database"] = database
+        return fingerprint
+
+    monkeypatch.setattr(
+        audit_module, "sqlite_file_fingerprint", fingerprint_with_database_drift
+    )
+
+    result, code = audit_module.audit_db(db)
+
+    assert code == 23
+    assert result["status"] == "SOURCE_CHANGED_DURING_SCAN"
+    assert result["source_stable"] is False
 
 
 def test_cli_returns_20_and_json_contains_no_raw_orphan_key(tmp_path: Path) -> None:
