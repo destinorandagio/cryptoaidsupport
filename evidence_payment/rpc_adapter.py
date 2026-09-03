@@ -12,9 +12,10 @@ from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.2"
+RPC_PROVENANCE_VERSION = "1.3"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
+_RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING", "RPC_RECEIPT_PENDING"})
 
 
 def _rpc_result(value: Any) -> Any:
@@ -76,6 +77,15 @@ class TrustedPolygonRPCAdapter:
         except Exception as exc:
             raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC provider call failed") from exc
 
+        # A submitted transaction can legitimately be absent from a provider or
+        # have no receipt yet while it propagates/is pending. That is not a
+        # settlement truth and must not grant entitlement, but it is retryable.
+        # Keep malformed/finality/provider-authority failures on the stricter
+        # MANUAL_REVIEW path below.
+        if tx is None:
+            raise EvidencePaymentError("RPC_TX_PENDING", "RPC transaction is not yet available")
+        if receipt is None:
+            raise EvidencePaymentError("RPC_RECEIPT_PENDING", "RPC transaction receipt is not yet available")
         if not isinstance(tx, dict) or not isinstance(receipt, dict) or not isinstance(finalized, dict):
             raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction, receipt and finalized block are required")
 
@@ -221,6 +231,14 @@ class TrustedPolygonRPCAdapter:
             self.engine.transition_payment(intent_id, "MANUAL_REVIEW", reason)
         return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
 
+    def _mark_retryable_pending(self, intent_id: str, reason: str) -> dict[str, Any]:
+        """Park incomplete tx/receipt propagation without creating settlement truth."""
+        current = self.engine.get_intent(intent_id)
+        state = current["state"]
+        if state == "VERIFYING":
+            self.engine.transition_payment(intent_id, "FINALITY_PENDING", reason)
+        return {"intent_id": intent_id, "verdict": "FINALITY_PENDING", "entitlement_granted": False}
+
     def settle_from_tx_hash(self, *, intent_id: str, tx_hash: str, provider_ids: Iterable[str]) -> dict[str, Any]:
         """Verify and settle using only server-derived RPC evidence; never client economics."""
         current = self.engine.get_intent(intent_id)
@@ -255,6 +273,8 @@ class TrustedPolygonRPCAdapter:
                 intent_id=intent_id, tx_hash=tx_hash, provider_ids=provider_ids
             )
         except EvidencePaymentError as exc:
+            if exc.code in _RETRYABLE_PENDING_CODES:
+                return self._mark_retryable_pending(intent_id, exc.code)
             return self._mark_manual_review(intent_id, exc.code)
 
         if current["state"] == "VERIFYING":
