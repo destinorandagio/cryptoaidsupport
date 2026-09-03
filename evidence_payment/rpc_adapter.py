@@ -15,7 +15,7 @@ from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_
 RPC_PROVENANCE_VERSION = "1.3"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
-_RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING", "RPC_RECEIPT_PENDING"})
+_RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING"})
 
 
 def _rpc_result(value: Any) -> Any:
@@ -77,21 +77,40 @@ class TrustedPolygonRPCAdapter:
         except Exception as exc:
             raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC provider call failed") from exc
 
-        # A submitted transaction can legitimately be absent from a provider or
-        # have no receipt yet while it propagates/is pending. That is not a
-        # settlement truth and must not grant entitlement, but it is retryable.
-        # Keep malformed/finality/provider-authority failures on the stricter
-        # MANUAL_REVIEW path below.
+        if not isinstance(finalized, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC finalized block is required")
         if tx is None:
-            raise EvidencePaymentError("RPC_TX_PENDING", "RPC transaction is not yet available")
-        if receipt is None:
-            raise EvidencePaymentError("RPC_RECEIPT_PENDING", "RPC transaction receipt is not yet available")
-        if not isinstance(tx, dict) or not isinstance(receipt, dict) or not isinstance(finalized, dict):
-            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction, receipt and finalized block are required")
+            # A completely missing tx after the provider's finalized snapshot is
+            # ambiguous: it may be propagation lag or an orphan/reorg view. Keep
+            # that ambiguity on MANUAL_REVIEW rather than weakening the reorg gate.
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction is required")
+        if not isinstance(tx, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction is required")
+
+        tx_block_hash_raw = tx.get("blockHash")
+        tx_block_number_raw = tx.get("blockNumber")
+        if tx_block_hash_raw is None and tx_block_number_raw is None:
+            # Ethereum JSON-RPC explicitly represents a known pending transaction
+            # with null blockHash/blockNumber and no receipt. This is a safe,
+            # retryable non-settlement state because the transaction has not yet
+            # entered a block and therefore cannot grant entitlement.
+            requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+            observed_tx = _hex_identity(tx.get("hash"), "transaction hash")
+            if observed_tx != requested_tx:
+                raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
+            if receipt is not None:
+                raise EvidencePaymentError("RPC_MALFORMED", "Pending transaction must not have a receipt")
+            raise EvidencePaymentError("RPC_TX_PENDING", "RPC transaction is pending and not yet mined")
+        if tx_block_hash_raw is None or tx_block_number_raw is None:
+            raise EvidencePaymentError("RPC_MALFORMED", "Transaction block identity is incomplete")
+        if not isinstance(receipt, dict):
+            # Once a provider claims the tx is mined, a missing receipt is an
+            # inconsistent/ambiguous provider view, not ordinary pending state.
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction receipt is required")
 
         try:
             chain_id = _block_number(chain_raw)
-            tx_block = _block_number(tx.get("blockNumber"))
+            tx_block = _block_number(tx_block_number_raw)
             receipt_block = _block_number(receipt.get("blockNumber"))
             finalized_block = _block_number(finalized.get("number"))
         except (TypeError, ValueError) as exc:
@@ -100,7 +119,7 @@ class TrustedPolygonRPCAdapter:
         observed_tx = _hex_identity(tx.get("hash"), "transaction hash")
         receipt_tx = _hex_identity(receipt.get("transactionHash"), "receipt transaction hash")
         requested_tx = _hex_identity(tx_hash, "requested transaction hash")
-        tx_block_hash = _hex_identity(tx.get("blockHash"), "transaction block hash")
+        tx_block_hash = _hex_identity(tx_block_hash_raw, "transaction block hash")
         receipt_block_hash = _hex_identity(receipt.get("blockHash"), "receipt block hash")
         if observed_tx != requested_tx or receipt_tx != requested_tx:
             raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
@@ -232,7 +251,7 @@ class TrustedPolygonRPCAdapter:
         return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
 
     def _mark_retryable_pending(self, intent_id: str, reason: str) -> dict[str, Any]:
-        """Park incomplete tx/receipt propagation without creating settlement truth."""
+        """Park an explicitly pending transaction without creating settlement truth."""
         current = self.engine.get_intent(intent_id)
         state = current["state"]
         if state == "VERIFYING":
