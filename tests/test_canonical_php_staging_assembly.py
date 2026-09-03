@@ -27,10 +27,13 @@ def _make_canonical_source(tmp_path: Path) -> Path:
     (source / "assets").mkdir()
     (source / "assets" / "app.js").write_text("console.log('ok');\n", encoding="utf-8")
 
-    # Exact release-dirty paths already recorded by the canonical Drive audit.
+    # Exact release-dirty paths recorded by the latest canonical Drive audit.
     (source / "LEGGIMI.txt").write_text("operator note\n", encoding="utf-8")
     (source / "_lib").mkdir()
     (source / "_lib" / "schema.sql").write_text("create table forbidden(x);\n", encoding="utf-8")
+    icons = source / "assets" / "icons"
+    icons.mkdir()
+    (icons / "make-icons.py").write_text("print('build-only')\n", encoding="utf-8")
     partners = source / "assets" / "partners"
     partners.mkdir()
     (partners / "LEGGIMI-LOGHI.txt").write_text("logo note\n", encoding="utf-8")
@@ -82,12 +85,14 @@ def test_assembles_clean_disposable_tree_preserving_htaccess_and_restores(tmp_pa
     assert set(payload["excluded_known_dirty"]) == {
         "LEGGIMI.txt",
         "_lib/schema.sql",
+        "assets/icons/make-icons.py",
         "assets/partners/LEGGIMI-LOGHI.txt",
         "assets/partners/wallet-placeholder.png",
     }
     assert _sha256(staging / ".htaccess") == htaccess_sha
     assert not (staging / "LEGGIMI.txt").exists()
     assert not (staging / "_lib" / "schema.sql").exists()
+    assert not (staging / "assets" / "icons" / "make-icons.py").exists()
     assert not (staging / "assets" / "partners" / "LEGGIMI-LOGHI.txt").exists()
     assert not (staging / "assets" / "partners" / "wallet-placeholder.png").exists()
     assert package.is_file()

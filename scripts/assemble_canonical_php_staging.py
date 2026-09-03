@@ -30,6 +30,7 @@ from mvp_release_candidate import (
 KNOWN_DRIVE_DIRTY_PATHS = {
     "LEGGIMI.txt",
     "_lib/schema.sql",
+    "assets/icons/make-icons.py",
     "assets/partners/LEGGIMI-LOGHI.txt",
     "assets/partners/wallet-placeholder.png",
 }
@@ -216,7 +217,7 @@ def main() -> int:
     parser.add_argument(
         "--exclude-known-drive-dirty",
         action="store_true",
-        help="exclude only the four exact release-dirty paths already recorded in canonical Drive audit",
+        help="exclude only the exact release-dirty paths recorded in the latest canonical Drive audit",
     )
     parser.add_argument(
         "--require-sha256",
