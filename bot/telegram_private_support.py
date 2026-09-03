@@ -21,7 +21,7 @@ from typing import Any
 from core import CoreError, TrustedSupportAPI
 from bot.support_binding import SupportBindingRejected, SupportBindingStore
 
-TELEGRAM_PRIVATE_SUPPORT_VERSION = "1.0.0"
+TELEGRAM_PRIVATE_SUPPORT_VERSION = "1.0.1"
 
 
 class TelegramPrivateSupportRejected(ValueError):
@@ -35,6 +35,41 @@ def _clean(value: str, *, max_len: int = 256) -> str:
     if not value or len(value) > max_len:
         raise TelegramPrivateSupportRejected("private_support_failed")
     return value
+
+
+def _register_dispatch_route(
+    *,
+    telegram_principal: str,
+    support_session_id: str,
+    core_db_path: Path,
+    binding_db_path: Path,
+) -> None:
+    """Best-effort registration into the memory-only proactive route registry.
+
+    Notification plumbing is optional to normal private Support. A dispatcher
+    startup/configuration problem must never turn an otherwise valid /link into
+    an identity or Case authorization failure.
+    """
+    try:
+        from bot.core_event_dispatcher import register_linked_route
+
+        register_linked_route(
+            telegram_principal=telegram_principal,
+            support_session_id=support_session_id,
+            core_db_path=core_db_path,
+            binding_db_path=binding_db_path,
+        )
+    except Exception:
+        return
+
+
+def _unregister_dispatch_route(telegram_principal: str) -> None:
+    try:
+        from bot.core_event_dispatcher import unregister_linked_route
+
+        unregister_linked_route(telegram_principal)
+    except Exception:
+        return
 
 
 class TelegramPrivateSupportRuntime:
@@ -61,12 +96,19 @@ class TelegramPrivateSupportRuntime:
         principal = _clean(telegram_principal, max_len=128)
         code = _clean(link_code, max_len=128)
         try:
-            return self.store.consume_link_code(
+            token = self.store.consume_link_code(
                 telegram_principal=principal,
                 link_code=code,
             )
         except SupportBindingRejected as exc:
             raise TelegramPrivateSupportRejected("private_support_failed") from exc
+        _register_dispatch_route(
+            telegram_principal=principal,
+            support_session_id=token,
+            core_db_path=self.core_db_path,
+            binding_db_path=self.binding_db_path,
+        )
+        return token
 
     def case_status(
         self,
@@ -87,10 +129,16 @@ class TelegramPrivateSupportRuntime:
                 case_id=case,
             )
         except (CoreError, SupportBindingRejected) as exc:
+            _unregister_dispatch_route(principal)
             raise TelegramPrivateSupportRejected("private_support_failed") from exc
         if verdict.get("requester_is_case_owner") is not True:
+            _unregister_dispatch_route(principal)
             raise TelegramPrivateSupportRejected("private_support_failed")
         allowed = {"case_id", "requester_is_case_owner", "case_state", "case_version"}
         if set(verdict) != allowed:
+            _unregister_dispatch_route(principal)
             raise TelegramPrivateSupportRejected("private_support_failed")
-        return {key: verdict[key] for key in ("case_id", "requester_is_case_owner", "case_state", "case_version")}
+        return {
+            key: verdict[key]
+            for key in ("case_id", "requester_is_case_owner", "case_state", "case_version")
+        }
