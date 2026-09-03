@@ -175,33 +175,37 @@ class TrustedPolygonRPCAdapter:
         if len(ids) < 2 or any(not provider_id for provider_id in ids) or len(set(ids)) != len(ids):
             raise EvidencePaymentError("RPC_PROVIDER_QUORUM", "At least two distinct RPC provider identities are required")
 
-        # A retryable pending verdict is itself a quorum statement. Sample every
-        # configured authority before returning it; never let the first pending
-        # provider short-circuit a mined/missing/error observation from another.
+        # A retryable pending verdict is itself a quorum statement. Once any
+        # provider reports explicit pending, continue sampling the remaining
+        # authorities. A mixed pending/mined/missing/error view is disagreement.
+        # Fatal non-pending evidence may still fail fast when no pending view has
+        # been observed, preserving the existing canonical/reorg security gate.
         snapshots: list[dict[str, Any]] = []
         pending_provider_ids: list[str] = []
-        provider_errors: list[EvidencePaymentError] = []
         for provider_id in ids:
             try:
                 snapshots.append(self._provider_snapshot(provider_id, tx_hash))
             except EvidencePaymentError as exc:
                 if exc.code in _RETRYABLE_PENDING_CODES:
                     pending_provider_ids.append(provider_id)
-                else:
-                    provider_errors.append(exc)
+                    continue
+                if pending_provider_ids:
+                    raise EvidencePaymentError(
+                        "RPC_PROVIDER_DISAGREEMENT",
+                        "RPC providers disagree on pending versus mined or missing transaction state",
+                    ) from exc
+                raise
 
         if pending_provider_ids:
-            if len(pending_provider_ids) == len(ids) and not snapshots and not provider_errors:
+            if len(pending_provider_ids) == len(ids) and not snapshots:
                 raise EvidencePaymentError(
                     "RPC_TX_PENDING",
                     "All RPC providers report the transaction as explicitly pending",
                 )
             raise EvidencePaymentError(
                 "RPC_PROVIDER_DISAGREEMENT",
-                "RPC providers disagree on pending versus mined or missing transaction state",
+                "RPC providers disagree on pending versus mined transaction state",
             )
-        if provider_errors:
-            raise provider_errors[0]
 
         economic_keys = (
             "chain_id", "from", "to", "value", "receipt_status",
