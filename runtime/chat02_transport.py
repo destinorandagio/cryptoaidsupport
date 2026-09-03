@@ -24,7 +24,7 @@ from evidence_payment import (
     TrustedPolygonRPCAdapter,
 )
 
-CHAT02_HTTP_TRANSPORT_VERSION = "1.2"
+CHAT02_HTTP_TRANSPORT_VERSION = "1.3"
 MAX_EVIDENCE_BYTES = 25_000_000
 
 _FORBIDDEN_AUTHORITY_KEYS = frozenset(
@@ -127,6 +127,15 @@ def _validated_rpc_response(payload: Any, request_id: str) -> dict[str, Any]:
     return dict(payload)
 
 
+def _path_is_within(path: Path, root: Path) -> bool:
+    """Return whether resolved ``path`` is equal to or below resolved ``root``."""
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 @dataclass(frozen=True)
 class Chat02TransportConfig:
     private_root: Path
@@ -146,12 +155,15 @@ class Chat02TransportConfig:
         static = Path(static_root).expanduser().resolve()
         if not str(evidence_consent_id).strip():
             raise EvidencePaymentError("CONSENT_REQUIRED", "Server Evidence consent binding is required")
-        try:
-            private.relative_to(static)
-        except ValueError:
-            pass
-        else:
-            raise EvidencePaymentError("PUBLIC_STORAGE_FORBIDDEN", "Evidence root must be outside static webroot")
+        # The two roots must be disjoint in both directions. Checking only
+        # private-within-static is insufficient: if static is a child of private,
+        # a valid Case storage key matching that child (for example public_html)
+        # could direct private Evidence bytes into the served tree.
+        if _path_is_within(private, static) or _path_is_within(static, private):
+            raise EvidencePaymentError(
+                "PUBLIC_STORAGE_FORBIDDEN",
+                "Evidence root and static webroot must be disjoint",
+            )
         urls = {str(k).strip(): _safe_rpc_url(str(v)) for k, v in dict(rpc_provider_urls).items()}
         if len(urls) < 2 or any(not key for key in urls) or len(set(urls.values())) != len(urls):
             raise EvidencePaymentError(
