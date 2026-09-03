@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import scripts.audit_payment_idempotency_aliases as audit_module
 from scripts.audit_payment_idempotency_aliases import audit_db
 
 
@@ -141,6 +142,53 @@ def test_foreign_key_violation_fails_integrity_gate(tmp_path: Path) -> None:
     assert code == 22
     assert result["status"] == "DB_INTEGRITY_FAILED"
     assert result["foreign_key_violation_count"] == 1
+
+
+def test_shm_only_coordination_drift_does_not_fail_source_stability(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """SQLite readers may legitimately change WAL shared-memory read marks.
+
+    The -shm file is coordination metadata, not durable database content. A
+    read-only audit must still fail on DB/WAL drift, but it must not reject an
+    otherwise stable source merely because its own reader changed -shm bytes.
+    """
+    db = tmp_path / "wal.sqlite"
+    conn = _make_db(db)
+    _binding(conn, "direct-key")
+    conn.execute("INSERT INTO payment_intents VALUES(?,?)", ("pi_1", "direct-key"))
+    conn.commit()
+    conn.close()
+
+    original = audit_module.sqlite_file_fingerprint
+    calls = 0
+
+    def fingerprint_with_shm_coordination_change(path: Path):
+        nonlocal calls
+        calls += 1
+        fingerprint = original(path)
+        if calls >= 2:
+            fingerprint = dict(fingerprint)
+            fingerprint["shm"] = {
+                "size": 32768,
+                "mtime_ns": 1,
+                "sha256": "f" * 64,
+            }
+        return fingerprint
+
+    monkeypatch.setattr(
+        audit_module, "sqlite_file_fingerprint", fingerprint_with_shm_coordination_change
+    )
+
+    result, code = audit_module.audit_db(db)
+
+    assert code == 0
+    assert result["status"] == "PASS"
+    assert result["source_stable"] is True
+    assert result["orphan_aliases"] == 0
+    assert result["database_before"]["database"] == result["database_after"]["database"]
+    assert result["database_before"].get("wal") == result["database_after"].get("wal")
+    assert result["database_before"].get("shm") != result["database_after"].get("shm")
 
 
 def test_cli_returns_20_and_json_contains_no_raw_orphan_key(tmp_path: Path) -> None:
