@@ -23,7 +23,7 @@ from evidence_payment import (
     TrustedPolygonRPCAdapter,
 )
 
-CHAT02_HTTP_TRANSPORT_VERSION = "1.0"
+CHAT02_HTTP_TRANSPORT_VERSION = "1.1"
 MAX_EVIDENCE_BYTES = 25_000_000
 
 _FORBIDDEN_AUTHORITY_KEYS = frozenset(
@@ -92,6 +92,21 @@ def _safe_rpc_url(value: str) -> str:
     )
 
 
+def _rpc_provider_host(value: str) -> str:
+    """Normalize the network host used by one server-owned RPC endpoint.
+
+    Distinct provider IDs or URL paths are not independent quorum authorities if
+    they resolve through the same configured hostname. This is a configuration
+    guard only; different hostnames still require factual operator-independence
+    evidence at the target runtime gate.
+    """
+    parsed = urlparse(value)
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        raise EvidencePaymentError("RPC_PROVIDER_CONFIG_INVALID", "RPC provider hostname is required")
+    return host
+
+
 @dataclass(frozen=True)
 class Chat02TransportConfig:
     private_root: Path
@@ -122,6 +137,12 @@ class Chat02TransportConfig:
             raise EvidencePaymentError(
                 "RUNTIME_PROVIDER_QUORUM",
                 "At least two distinct server-configured RPC endpoints are required",
+            )
+        hosts = [_rpc_provider_host(url) for url in urls.values()]
+        if len(set(hosts)) != len(hosts):
+            raise EvidencePaymentError(
+                "RPC_PROVIDER_ALIAS",
+                "RPC quorum endpoints must use distinct normalized hostnames",
             )
         return cls(private_root=private, evidence_consent_id=str(evidence_consent_id).strip(), rpc_provider_urls=urls)
 
