@@ -73,7 +73,8 @@ def validate_rpc_observation(observation: Mapping[str,Any],*,now:datetime|None=N
     if isinstance(latency,bool) or not isinstance(latency,(int,float)) or latency<0: raise ValueError("invalid latency_ms")
     chain_id=parse_chain_id(observation["chain_id"]); observed=_parse_observed_at(str(observation["observed_at"])); current=(now or datetime.now(timezone.utc)).astimezone(timezone.utc); age=(current-observed).total_seconds()
     if age < -5: raise ValueError("rpc observation timestamp is in the future")
-    success=bool(observation["result"])
+    success=observation["result"]
+    if not isinstance(success,bool): raise ValueError("rpc result must be boolean")
     if chain_id!=POLYGON_CHAIN_ID or not success: return {"provider_id":str(observation["provider_id"]),"chain_id":chain_id,"truth_label":"TO_VERIFY","cache_state":"BYPASS","usable":False,"reason":"WRONG_CHAIN" if chain_id!=POLYGON_CHAIN_ID else "RPC_FAILURE"}
     if age>max_age_seconds: return {"provider_id":str(observation["provider_id"]),"chain_id":chain_id,"truth_label":"CACHED","cache_state":"STALE","usable":False,"reason":"STALE_OBSERVATION"}
     return {"provider_id":str(observation["provider_id"]),"chain_id":chain_id,"truth_label":"LIVE","cache_state":"FRESH","usable":True,"reason":"REQUEST_TIME_POLYGON_HEALTH_VERIFIED"}
