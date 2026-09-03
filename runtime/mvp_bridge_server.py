@@ -173,22 +173,42 @@ class MVPBridgeRuntime:
         }
         if case_id:
             try:
-                case = self.core.resume_case(session_id=principal["session_id"], sic_id=principal["sic_id"], case_id=case_id)
-                state.update({
-                    "caseId": case["case_id"],
-                    "caseDataState": "LIVE",
-                    "timeline": [
-                        {"label": item.get("reason") or item.get("new_state") or "Case update", "dataState": "LIVE"}
-                        for item in self.core.timeline(session_id=principal["session_id"], sic_id=principal["sic_id"], case_id=case_id)[-8:]
-                    ],
-                    "nextAction": self._next_action(principal, case_id),
-                })
+                case = self.core.resume_case(
+                    session_id=principal["session_id"],
+                    sic_id=principal["sic_id"],
+                    case_id=case_id,
+                )
+                state.update(
+                    {
+                        "caseId": case["case_id"],
+                        "caseState": case["state"],
+                        "caseDataState": "LIVE",
+                        "timeline": [
+                            {
+                                "label": item.get("reason")
+                                or item.get("new_state")
+                                or "Case update",
+                                "dataState": "LIVE",
+                            }
+                            for item in self.core.timeline(
+                                session_id=principal["session_id"],
+                                sic_id=principal["sic_id"],
+                                case_id=case_id,
+                            )[-8:]
+                        ],
+                        "nextAction": self._next_action(principal, case_id),
+                    }
+                )
             except (CoreError, BridgeRejected):
                 pass
         return state
 
     def _next_action(self, principal: dict, case_id: str) -> dict | None:
-        raw = self.core.next_action(session_id=principal["session_id"], sic_id=principal["sic_id"], case_id=case_id)
+        raw = self.core.next_action(
+            session_id=principal["session_id"],
+            sic_id=principal["sic_id"],
+            case_id=case_id,
+        )
         if not raw:
             return None
         return {
@@ -213,12 +233,28 @@ class MVPBridgeRuntime:
                 "result": None,
                 "results": [],
                 "requires_disambiguation": False,
-                "candidate": {"status": "USER_SUBMITTED_TO_VERIFY", "truth_label": "TO_VERIFY", "promoted": False, "case_available": True},
+                "candidate": {
+                    "status": "USER_SUBMITTED_TO_VERIFY",
+                    "truth_label": "TO_VERIFY",
+                    "promoted": False,
+                    "case_available": True,
+                },
             }
         return self.search_facade.query(raw, chain_id=137)
 
     def create_case(self, session_id: str | None, payload: dict) -> dict:
-        if any(key in payload for key in ("sic_id", "sicId", "user_id", "userId", "authorization", "payment", "entitlement")):
+        if any(
+            key in payload
+            for key in (
+                "sic_id",
+                "sicId",
+                "user_id",
+                "userId",
+                "authorization",
+                "payment",
+                "entitlement",
+            )
+        ):
             raise BridgeRejected("caller_authority_forbidden", 400)
         principal = self._principal(session_id)
         project_query = str(payload.get("projectQuery", "")).strip()[:500]
@@ -226,12 +262,20 @@ class MVPBridgeRuntime:
         idempotency_key = str(payload.get("idempotencyKey", "")).strip()
         if not request_id or not idempotency_key:
             raise BridgeRejected("mutation_metadata_required", 400)
-        search_result = self.search(principal["session_id"], project_query) if project_query else {"state": "TO_VERIFY"}
-        search_hit = search_result.get("state") == "MATCH" and isinstance(search_result.get("result"), dict)
+        search_result = (
+            self.search(principal["session_id"], project_query)
+            if project_query
+            else {"state": "TO_VERIFY"}
+        )
+        search_hit = search_result.get("state") == "MATCH" and isinstance(
+            search_result.get("result"), dict
+        )
         project_ref = None
         if search_hit:
             result = search_result["result"]
-            project_ref = str(result.get("twin_id") or result.get("sic_id") or project_query)[:500]
+            project_ref = str(
+                result.get("twin_id") or result.get("sic_id") or project_query
+            )[:500]
         elif project_query:
             project_ref = project_query
         case = self.core.create_case(
@@ -243,7 +287,11 @@ class MVPBridgeRuntime:
             request_id=request_id,
             idempotency_key=idempotency_key,
         )
-        return {**self.session_projection(principal["session_id"], case["case_id"]), "caseId": case["case_id"], "caseDataState": "LIVE"}
+        return {
+            **self.session_projection(principal["session_id"], case["case_id"]),
+            "caseId": case["case_id"],
+            "caseDataState": "LIVE",
+        }
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -264,12 +312,17 @@ class Handler(SimpleHTTPRequestHandler):
         return _cookie_value(self.headers.get("Cookie"), COOKIE_CASE)
 
     def _json(self, status: int, payload: dict, cookies: list[str] | None = None):
-        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(
+            "utf-8"
+        )
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        )
         for cookie in cookies or []:
             self.send_header("Set-Cookie", cookie)
         self.send_header("Content-Length", str(len(body)))
@@ -307,7 +360,9 @@ class Handler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             raise BridgeRejected("invalid_body_size", 400) from exc
         if length <= 0 or length > MAX_EVIDENCE_BYTES:
-            raise BridgeRejected("invalid_evidence_body_size", 413 if length > MAX_EVIDENCE_BYTES else 400)
+            raise BridgeRejected(
+                "invalid_evidence_body_size", 413 if length > MAX_EVIDENCE_BYTES else 400
+            )
         body = self.rfile.read(length)
         if len(body) != length:
             raise BridgeRejected("invalid_evidence_body_size", 400)
@@ -331,7 +386,10 @@ class Handler(SimpleHTTPRequestHandler):
         elif isinstance(exc, EvidencePaymentError):
             self._json(self._evidence_error_status(exc), {"error": exc.code})
         elif isinstance(exc, CoreError):
-            self._json(getattr(exc, "status", 400) or 400, {"error": getattr(exc, "code", "core_rejected")})
+            self._json(
+                getattr(exc, "status", 400) or 400,
+                {"error": getattr(exc, "code", "core_rejected")},
+            )
         else:
             self._json(503, {"error": "runtime_unavailable"})
 
@@ -341,27 +399,41 @@ class Handler(SimpleHTTPRequestHandler):
             return super().do_GET()
         try:
             if parsed.path == "/api/mvp/health":
-                self._json(200, {
-                    "status": "ok",
-                    "bridgeVersion": BRIDGE_VERSION,
-                    "coreApiVersion": CORE_API_FACADE_VERSION,
-                    "chat02TransportReady": self.runtime.chat02 is not None,
-                    "productionDeployPerformed": False,
-                })
+                self._json(
+                    200,
+                    {
+                        "status": "ok",
+                        "bridgeVersion": BRIDGE_VERSION,
+                        "coreApiVersion": CORE_API_FACADE_VERSION,
+                        "chat02TransportReady": self.runtime.chat02 is not None,
+                        "productionDeployPerformed": False,
+                    },
+                )
                 return
             if parsed.path == "/api/mvp/session":
-                self._json(200, self.runtime.session_projection(self._session(), self._case()))
+                self._json(
+                    200,
+                    self.runtime.session_projection(self._session(), self._case()),
+                )
                 return
             if parsed.path == "/api/mvp/search":
                 query = parse_qs(parsed.query).get("q", [""])[0]
                 self._json(200, self.runtime.search(self._session(), query))
                 return
             if parsed.path == "/api/mvp/payment/quote":
-                self._json(200, self.runtime._chat02().quote(session_id=self._session() or ""))
+                self._json(
+                    200,
+                    self.runtime._chat02().quote(session_id=self._session() or ""),
+                )
                 return
             if parsed.path == "/api/mvp/payment/status":
                 intent_id = parse_qs(parsed.query).get("intentId", [""])[0]
-                self._json(200, self.runtime._chat02().payment_status(session_id=self._session() or "", intent_id=intent_id))
+                self._json(
+                    200,
+                    self.runtime._chat02().payment_status(
+                        session_id=self._session() or "", intent_id=intent_id
+                    ),
+                )
                 return
             raise BridgeRejected("not_found", 404)
         except Exception as exc:
@@ -374,11 +446,19 @@ class Handler(SimpleHTTPRequestHandler):
             if parsed.path == "/api/mvp/session":
                 session = self.runtime.login_sandbox(self._payload())
                 projection = self.runtime.session_projection(session["session_id"])
-                self._json(200, projection, [self._cookie(COOKIE_SESSION, session["session_id"])])
+                self._json(
+                    200,
+                    projection,
+                    [self._cookie(COOKIE_SESSION, session["session_id"])],
+                )
                 return
             if parsed.path == "/api/mvp/cases":
                 result = self.runtime.create_case(self._session(), self._payload())
-                self._json(201, result, [self._cookie(COOKIE_CASE, result["caseId"], 86400)])
+                self._json(
+                    201,
+                    result,
+                    [self._cookie(COOKIE_CASE, result["caseId"], 86400)],
+                )
                 return
             if parsed.path == "/api/mvp/evidence":
                 result = self.runtime._chat02().store_evidence(
@@ -451,10 +531,16 @@ def config_from_env() -> BridgeConfig:
 def main():
     runtime = MVPBridgeRuntime(config_from_env())
     host = os.getenv("CAID_MVP_HOST", "127.0.0.1")
-    if host not in {"127.0.0.1", "localhost", "::1"} and os.getenv("CAID_MVP_ALLOW_NONLOOPBACK") != "1":
-        raise SystemExit("non-loopback bind requires explicit human-gated CAID_MVP_ALLOW_NONLOOPBACK=1")
+    if host not in {"127.0.0.1", "localhost", "::1"} and os.getenv(
+        "CAID_MVP_ALLOW_NONLOOPBACK"
+    ) != "1":
+        raise SystemExit(
+            "non-loopback bind requires explicit human-gated CAID_MVP_ALLOW_NONLOOPBACK=1"
+        )
     port = int(os.getenv("CAID_MVP_PORT", "8788"))
-    server = ThreadingHTTPServer((host, port), partial(Handler, runtime=runtime))
+    server = ThreadingHTTPServer(
+        (host, port), partial(Handler, runtime=runtime)
+    )
     print(
         f"mvp-bridge: listening on {host}:{port}; sandbox only; "
         f"chat02={'ready' if runtime.chat02 else 'not-configured'}; no deploy/sign/tx performed"
