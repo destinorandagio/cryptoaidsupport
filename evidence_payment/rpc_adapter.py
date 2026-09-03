@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.0"
+RPC_PROVENANCE_VERSION = "1.1"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
 
@@ -94,6 +94,32 @@ class TrustedPolygonRPCAdapter:
         if tx_block != receipt_block or tx_block_hash != receipt_block_hash:
             raise EvidencePaymentError("RPC_BLOCK_MISMATCH", "Transaction and receipt block mismatch")
 
+        # Finality height alone is not sufficient if a reorg happened between
+        # the transaction/receipt reads and the finalized read. Re-read the
+        # transaction block by number *after* observing finalized, and require
+        # the current canonical block hash at that height to remain the hash
+        # already bound by both transaction and receipt.
+        try:
+            canonical = _rpc_result(
+                self.rpc_call(provider_id, "eth_getBlockByNumber", [hex(tx_block), False])
+            )
+        except EvidencePaymentError:
+            raise
+        except Exception as exc:
+            raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC canonical block lookup failed") from exc
+        if not isinstance(canonical, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "Canonical transaction block is required")
+        try:
+            canonical_block_number = _block_number(canonical.get("number"))
+        except (TypeError, ValueError) as exc:
+            raise EvidencePaymentError("RPC_MALFORMED", "Invalid canonical block number") from exc
+        canonical_block_hash = _hex_identity(canonical.get("hash"), "canonical transaction block hash")
+        if canonical_block_number != tx_block or canonical_block_hash != tx_block_hash:
+            raise EvidencePaymentError(
+                "RPC_BLOCK_REORG",
+                "Transaction block is no longer the canonical block at its height",
+            )
+
         return {
             "provider_id": provider_id,
             "chain_id": chain_id,
@@ -105,6 +131,7 @@ class TrustedPolygonRPCAdapter:
             "block_hash": tx_block_hash,
             "tx_block_number": tx_block,
             "finalized_block_number": finalized_block,
+            "canonical_block_hash": canonical_block_hash,
         }
 
     def build_trusted_observation(
@@ -121,7 +148,7 @@ class TrustedPolygonRPCAdapter:
         snapshots = [self._provider_snapshot(provider_id, tx_hash) for provider_id in ids]
         economic_keys = (
             "chain_id", "from", "to", "value", "receipt_status",
-            "tx_hash", "block_hash", "tx_block_number",
+            "tx_hash", "block_hash", "tx_block_number", "canonical_block_hash",
         )
         agreed = {tuple(snapshot[key] for key in economic_keys) for snapshot in snapshots}
         if len(agreed) != 1:
@@ -175,6 +202,7 @@ class TrustedPolygonRPCAdapter:
                     "eth_getTransactionByHash",
                     "eth_getTransactionReceipt",
                     "eth_getBlockByNumber(finalized)",
+                    "eth_getBlockByNumber(tx_block)",
                 ],
             },
         }
