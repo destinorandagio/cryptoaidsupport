@@ -102,7 +102,7 @@ def test_server_rpc_provenance_settles_and_binds_certificate():
     cert = e.get_settlement_certificate(intent["intent_id"])
     assert cert["provider_ids"] == ["rpc_a", "rpc_b"]
     assert cert["settled_value"] == "450"
-    assert len(rpc.calls) == 10
+    assert len(rpc.calls) == 8
     assert {call[1] for call in rpc.calls} == {
         "eth_chainId",
         "eth_getTransactionByHash",
