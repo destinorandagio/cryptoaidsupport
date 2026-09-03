@@ -25,3 +25,8 @@ def test_stale_rpc_observation_is_never_fake_live():
     now=datetime(2026,9,2,10,30,tzinfo=timezone.utc); r=validate_rpc_observation({"provider_id":"rpc-1","observed_at":(now-timedelta(minutes=5)).isoformat(),"latency_ms":120,"chain_id":137,"result":True,"source":"cached-health"},now=now,max_age_seconds=60); assert r["truth_label"]=="CACHED" and r["cache_state"]=="STALE" and r["usable"] is False
 def test_wrong_chain_rpc_observation_is_to_verify_not_live():
     now=datetime(2026,9,2,10,30,tzinfo=timezone.utc); r=validate_rpc_observation({"provider_id":"rpc-1","observed_at":now.isoformat(),"latency_ms":10,"chain_id":1,"result":True,"source":"request-time-health"},now=now); assert r["truth_label"]=="TO_VERIFY" and r["usable"] is False and r["reason"]=="WRONG_CHAIN"
+@pytest.mark.parametrize("bad_result",["false","true",1,0,None,{},[]])
+def test_rpc_result_must_be_strict_boolean_and_never_truthy_coerced(bad_result):
+    now=datetime(2026,9,2,10,30,tzinfo=timezone.utc)
+    with pytest.raises(ValueError,match="rpc result must be boolean"):
+        validate_rpc_observation({"provider_id":"rpc-1","observed_at":now.isoformat(),"latency_ms":10,"chain_id":137,"result":bad_result,"source":"request-time-health"},now=now)
