@@ -24,7 +24,8 @@ class FakeClient:
 
     def post(self, url, *, json, headers):
         self.calls.append((url, json, headers))
-        return FakeResponse(self.payload)
+        payload = self.payload(json) if callable(self.payload) else self.payload
+        return FakeResponse(payload)
 
 
 def transport_with_response(payload):
@@ -35,25 +36,47 @@ def transport_with_response(payload):
 
 
 def test_rpc_response_rejects_mismatched_request_id():
-    transport = transport_with_response({"jsonrpc": "2.0", "id": 999, "result": "0x89"})
+    transport = transport_with_response({"jsonrpc": "2.0", "id": "wrong-request", "result": "0x89"})
     with pytest.raises(EvidencePaymentError) as rejected:
         transport._rpc_call("rpc_a", "eth_chainId", [])
     assert rejected.value.code == "RPC_RESPONSE_MISMATCH"
 
 
 def test_rpc_response_requires_jsonrpc_2_0_and_id():
-    for payload in (
-        {"id": 1, "result": "0x89"},
-        {"jsonrpc": "1.0", "id": 1, "result": "0x89"},
-        {"jsonrpc": "2.0", "result": "0x89"},
-    ):
+    payloads = (
+        lambda request: {"id": request["id"], "result": "0x89"},
+        lambda request: {"jsonrpc": "1.0", "id": request["id"], "result": "0x89"},
+        lambda request: {"jsonrpc": "2.0", "result": "0x89"},
+    )
+    for payload in payloads:
         transport = transport_with_response(payload)
         with pytest.raises(EvidencePaymentError) as rejected:
             transport._rpc_call("rpc_a", "eth_chainId", [])
         assert rejected.value.code == "RPC_RESPONSE_MISMATCH"
 
 
+def test_rpc_response_requires_exactly_one_result_or_error():
+    payloads = (
+        lambda request: {"jsonrpc": "2.0", "id": request["id"]},
+        lambda request: {
+            "jsonrpc": "2.0",
+            "id": request["id"],
+            "result": "0x89",
+            "error": {"code": -32000, "message": "ambiguous"},
+        },
+    )
+    for payload in payloads:
+        transport = transport_with_response(payload)
+        with pytest.raises(EvidencePaymentError) as rejected:
+            transport._rpc_call("rpc_a", "eth_chainId", [])
+        assert rejected.value.code == "RPC_MALFORMED"
+
+
 def test_rpc_response_accepts_exact_jsonrpc_correlation():
-    payload = {"jsonrpc": "2.0", "id": 1, "result": "0x89"}
-    transport = transport_with_response(payload)
-    assert transport._rpc_call("rpc_a", "eth_chainId", []) == payload
+    transport = transport_with_response(
+        lambda request: {"jsonrpc": "2.0", "id": request["id"], "result": "0x89"}
+    )
+    response = transport._rpc_call("rpc_a", "eth_chainId", [])
+    assert response["jsonrpc"] == "2.0"
+    assert response["result"] == "0x89"
+    assert response["id"].startswith("caid-")
