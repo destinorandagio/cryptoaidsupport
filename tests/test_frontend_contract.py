@@ -56,6 +56,16 @@ def test_private_recovery_and_profile_projection_fail_closed_without_live_sicid(
     assert 'Not available until a live SIC-ID session' in JS
     assert "PROTECTED_GOLDEN_ROUTES.has(active.dataset.route)&&!hasLiveIdentity()" in JS
 
+def test_recovery_uses_only_canonical_case_state_and_refreshes_on_route_entry():
+    assert "function setCaseStateBadge" in JS
+    assert "state==='ACTIVE'" in JS
+    assert "CASE ACTIVE" in JS
+    assert "setCaseStateBadge(el('recoveryTruth'),r.caseState)" in JS
+    assert "setTruthBadge(el('recoveryTruth'),r.caseDataState)" not in JS
+    assert "caid:recovery-refresh-request" in JS
+    assert "if(allowed&&name==='recovery')requestRecoveryProjection()" in JS
+    assert "Protected Recovery refresh is unavailable. Private Case state remains TO_VERIFY." in JS
+
 def test_truth_labels_present():
     for item in ['LIVE','CACHED','HISTORICAL','DERIVED','TO_VERIFY']: assert item in JS+HTML
 
@@ -85,7 +95,7 @@ def test_service_worker_excludes_dynamic_truth():
     assert "req.mode==='navigate'" in SW
 
 def test_service_worker_shell_version_tracks_security_ui_and_updates_promptly():
-    assert "const SHELL_VERSION='2.1.9'" in SW
+    assert "const SHELL_VERSION='2.1.11'" in SW
     assert "const CACHE_PREFIX='caid-shell-v'" in SW
     assert '${CACHE_PREFIX}${SHELL_VERSION}' in SW
     assert 'self.skipWaiting()' in SW

@@ -79,7 +79,8 @@ def test_runtime_auth_boundary_and_handled_errors_are_visible():
     assert "Case request failed safely" in BRIDGE
     login = BRIDGE.split("window.addEventListener('caid:sicid-login-request'", 1)[1].split("window.addEventListener('caid:case-request'", 1)[0]
     case = BRIDGE.split("window.addEventListener('caid:case-request'", 1)[1].split("window.addEventListener('caid:wallet-connect-request'", 1)[0]
-    assert ".catch(()=>visibleError(" in login
+    assert "clearCanonicalState('session_unavailable')" in login
+    assert "visibleError('SIC-ID sandbox sign-in failed safely" in login
     assert ".catch(()=>visibleError(" in case
 
 
