@@ -152,11 +152,11 @@ def test_v14_preserves_v13_provenance_required(tmp_path: Path) -> None:
     db = tmp_path / "resolution.sqlite"
     conn = _make_db(db)
     _binding(conn, "origin", "CASE")
-    _binding(conn, "alias", "CASE")
+    _binding(conn, "never-print-provenance-alias", "CASE")
     _case(conn, "pi_case", "origin")
     conn.execute(
         "INSERT INTO payment_idempotency_resolutions VALUES(?,?,datetime('now'))",
-        ("alias", "pi_case"),
+        ("never-print-provenance-alias", "pi_case"),
     )
     conn.commit()
     conn.close()
@@ -166,7 +166,7 @@ def test_v14_preserves_v13_provenance_required(tmp_path: Path) -> None:
     assert code == 25
     assert result["status"] == "PROVENANCE_REQUIRED"
     assert result["direct_semantic_failures"] == 0
-    assert "alias" not in json.dumps(result)
+    assert "never-print-provenance-alias" not in json.dumps(result)
 
 
 def test_cli_v14_never_emits_raw_direct_key(tmp_path: Path) -> None:
