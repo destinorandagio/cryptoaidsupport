@@ -175,7 +175,7 @@ def test_finality_pending_and_mixed_finality_are_distinct_fail_closed_states():
     pending_engine = engine()
     pending_intent = new_intent(pending_engine, key="pending")
     pending = TrustedPolygonRPCAdapter(
-        pending_engine, FakeRPC(pending_intent, finalized=(100, 99))
+        pending_engine, FakeRPC(pending_intent, finalized=(99, 99))
     ).settle_from_tx_hash(
         intent_id=pending_intent["intent_id"], tx_hash="0xabc", provider_ids=["rpc_a", "rpc_b"]
     )
@@ -185,7 +185,7 @@ def test_finality_pending_and_mixed_finality_are_distinct_fail_closed_states():
     mixed_engine = engine()
     mixed_intent = new_intent(mixed_engine, key="mixed")
     mixed = TrustedPolygonRPCAdapter(
-        mixed_engine, FakeRPC(mixed_intent, finalized=(101, 100))
+        mixed_engine, FakeRPC(mixed_intent, finalized=(100, 99))
     ).settle_from_tx_hash(
         intent_id=mixed_intent["intent_id"], tx_hash="0xabc", provider_ids=["rpc_a", "rpc_b"]
     )
