@@ -86,7 +86,7 @@ def test_durable_resolution_covers_historical_alias(tmp_path: Path) -> None:
     assert result["orphan_aliases"] == 0
 
 
-def test_orphan_alias_fails_closed_without_leaking_raw_key(tmp_path: Path, capsys) -> None:
+def test_orphan_alias_fails_closed_without_leaking_raw_key(tmp_path: Path) -> None:
     db = tmp_path / "master.sqlite"
     conn = _make_db(db)
     _binding(conn, "raw-sensitive-orphan-key")
@@ -124,6 +124,10 @@ def test_foreign_key_violation_fails_integrity_gate(tmp_path: Path) -> None:
     db = tmp_path / "broken.sqlite"
     conn = _make_db(db)
     _binding(conn, "alias-key")
+    # Leave the valid binding transaction before deliberately inserting a corrupt
+    # legacy row with FK enforcement disabled. This models target data created by
+    # an older writer that did not enable PRAGMA foreign_keys.
+    conn.commit()
     conn.execute("PRAGMA foreign_keys=OFF")
     conn.execute(
         "INSERT INTO payment_idempotency_resolutions VALUES(?,?,datetime('now'))",
