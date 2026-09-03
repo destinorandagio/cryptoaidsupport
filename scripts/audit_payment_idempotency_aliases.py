@@ -8,12 +8,18 @@ PASS invariant on the factual target DB:
   every payment_idempotency_bindings.idempotency_key is represented either by
   payment_intents.idempotency_key directly or by payment_idempotency_resolutions.
 
+Source-stability invariant:
+  durable data-bearing SQLite files (database + WAL when present) must remain
+  byte-identical for the full audit. The -shm file is reported for evidence but
+  excluded from the stability verdict because SQLite readers may legitimately
+  update shared-memory read marks even when the connection is mode=ro/query_only.
+
 Exit codes:
   0  PASS (orphan_aliases == 0, integrity/FK/schema/source-stability checks pass)
   20 MIGRATION_REQUIRED (one or more orphan historical aliases)
   21 SCHEMA_REQUIRED (required table/column absent)
   22 DB_INTEGRITY_FAILED (integrity_check or foreign_key_check failed)
-  23 SOURCE_CHANGED_DURING_SCAN (DB/WAL/SHM fingerprint changed during the audit)
+  23 SOURCE_CHANGED_DURING_SCAN (database/WAL fingerprint changed during audit)
   24 INPUT_ERROR / OPEN_FAILED
 """
 from __future__ import annotations
@@ -32,6 +38,9 @@ REQUIRED_COLUMNS: dict[str, set[str]] = {
     "payment_intents": {"intent_id", "idempotency_key"},
     "payment_idempotency_resolutions": {"idempotency_key", "intent_id"},
 }
+
+AUDIT_CONTRACT = "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_1"
+SOURCE_STABILITY_CONTRACT = "SQLITE_DATABASE_PLUS_WAL_V1"
 
 
 def _sha256(path: Path) -> str:
@@ -52,12 +61,38 @@ def _file_state(path: Path) -> dict[str, Any]:
 
 
 def sqlite_file_fingerprint(db_path: Path) -> dict[str, Any]:
-    """Hash the database and any current WAL/SHM sidecars without creating them."""
+    """Hash the database and current WAL/SHM sidecars without creating them."""
     result: dict[str, Any] = {"database": _file_state(db_path)}
     for suffix, label in (("-wal", "wal"), ("-shm", "shm")):
         candidate = Path(str(db_path) + suffix)
         result[label] = _file_state(candidate) if candidate.exists() else None
     return result
+
+
+def _source_data_fingerprint(fingerprint: dict[str, Any]) -> dict[str, Any]:
+    """Return only durable data-bearing files used for stability acceptance.
+
+    SQLite WAL shared-memory (`-shm`) contains coordination/read-mark state and a
+    reader can legitimately change it. Treating SHM bytes as database content
+    makes a read-only audit self-fail. The database and WAL are data-bearing and
+    remain mandatory byte-for-byte stability gates.
+    """
+    return {
+        "database": fingerprint.get("database"),
+        "wal": fingerprint.get("wal"),
+    }
+
+
+def _record_after(
+    result: dict[str, Any], before: dict[str, Any], db_path: Path
+) -> tuple[dict[str, Any], bool]:
+    after = sqlite_file_fingerprint(db_path)
+    stable = _source_data_fingerprint(before) == _source_data_fingerprint(after)
+    result["database_after"] = after
+    result["source_stability_contract"] = SOURCE_STABILITY_CONTRACT
+    result["source_stable"] = stable
+    result["shm_changed_observational"] = before.get("shm") != after.get("shm")
+    return after, stable
 
 
 def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -82,9 +117,10 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
     real = supplied.resolve(strict=True)
     before = sqlite_file_fingerprint(real)
     result: dict[str, Any] = {
-        "contract": "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1",
+        "contract": AUDIT_CONTRACT,
         "database_realpath": str(real),
         "database_before": before,
+        "source_stability_contract": SOURCE_STABILITY_CONTRACT,
     }
 
     try:
@@ -114,10 +150,8 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
         if schema_missing:
             conn.execute("ROLLBACK")
             result.update(status="SCHEMA_REQUIRED", missing_schema=schema_missing)
-            after = sqlite_file_fingerprint(real)
-            result["database_after"] = after
-            result["source_stable"] = before == after
-            return result, 21 if before == after else 23
+            _, stable = _record_after(result, before, real)
+            return result, 21 if stable else 23
 
         integrity_rows = [str(row[0]) for row in conn.execute("PRAGMA integrity_check")]
         foreign_key_rows = [list(row) for row in conn.execute("PRAGMA foreign_key_check")]
@@ -127,10 +161,8 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
         if not integrity_ok or foreign_key_rows:
             conn.execute("ROLLBACK")
             result["status"] = "DB_INTEGRITY_FAILED"
-            after = sqlite_file_fingerprint(real)
-            result["database_after"] = after
-            result["source_stable"] = before == after
-            return result, 22 if before == after else 23
+            _, stable = _record_after(result, before, real)
+            return result, 22 if stable else 23
 
         binding_count = int(conn.execute(
             "SELECT COUNT(*) FROM payment_idempotency_bindings"
@@ -175,17 +207,13 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
         if conn.in_transaction:
             conn.execute("ROLLBACK")
         result.update(status="OPEN_FAILED", error=type(exc).__name__)
-        after = sqlite_file_fingerprint(real)
-        result["database_after"] = after
-        result["source_stable"] = before == after
-        return result, 24 if before == after else 23
+        _, stable = _record_after(result, before, real)
+        return result, 24 if stable else 23
     finally:
         conn.close()
 
-    after = sqlite_file_fingerprint(real)
-    result["database_after"] = after
-    result["source_stable"] = before == after
-    if before != after:
+    _, stable = _record_after(result, before, real)
+    if not stable:
         result["status"] = "SOURCE_CHANGED_DURING_SCAN"
         return result, 23
     if result["orphan_aliases"]:
