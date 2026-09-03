@@ -65,73 +65,93 @@ class TrustedPolygonRPCAdapter:
     def _provider_snapshot(self, provider_id: str, tx_hash: str) -> dict[str, Any]:
         try:
             chain_raw = _rpc_result(self.rpc_call(provider_id, "eth_chainId", []))
+            tx_before = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionByHash", [tx_hash]))
+            receipt_before = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionReceipt", [tx_hash]))
+            finalized = _rpc_result(self.rpc_call(provider_id, "eth_getBlockByNumber", ["finalized", False]))
+            # Close the reorg/TOCTOU window: once the provider has exposed its
+            # finalized head, re-read the transaction and receipt from that
+            # provider's current canonical view. A transaction that moved,
+            # disappeared or changed block identity cannot become settlement
+            # truth merely because an earlier receipt was cached.
             tx = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionByHash", [tx_hash]))
             receipt = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionReceipt", [tx_hash]))
-            finalized = _rpc_result(self.rpc_call(provider_id, "eth_getBlockByNumber", ["finalized", False]))
         except EvidencePaymentError:
             raise
         except Exception as exc:
             raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC provider call failed") from exc
 
-        if not isinstance(tx, dict) or not isinstance(receipt, dict) or not isinstance(finalized, dict):
-            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction, receipt and finalized block are required")
+        if not all(isinstance(value, dict) for value in (tx_before, receipt_before, tx, receipt, finalized)):
+            raise EvidencePaymentError(
+                "RPC_MISSING_DATA",
+                "RPC transaction, receipt and finalized block are required before and after finality observation",
+            )
 
         try:
             chain_id = _block_number(chain_raw)
+            before_tx_block = _block_number(tx_before.get("blockNumber"))
+            before_receipt_block = _block_number(receipt_before.get("blockNumber"))
             tx_block = _block_number(tx.get("blockNumber"))
             receipt_block = _block_number(receipt.get("blockNumber"))
             finalized_block = _block_number(finalized.get("number"))
         except (TypeError, ValueError) as exc:
             raise EvidencePaymentError("RPC_MALFORMED", "Invalid RPC quantity") from exc
 
-        observed_tx = _hex_identity(tx.get("hash"), "transaction hash")
-        receipt_tx = _hex_identity(receipt.get("transactionHash"), "receipt transaction hash")
         requested_tx = _hex_identity(tx_hash, "requested transaction hash")
-        tx_block_hash = _hex_identity(tx.get("blockHash"), "transaction block hash")
-        receipt_block_hash = _hex_identity(receipt.get("blockHash"), "receipt block hash")
-        if observed_tx != requested_tx or receipt_tx != requested_tx:
-            raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
-        if tx_block != receipt_block or tx_block_hash != receipt_block_hash:
-            raise EvidencePaymentError("RPC_BLOCK_MISMATCH", "Transaction and receipt block mismatch")
+        before_observed_tx = _hex_identity(tx_before.get("hash"), "pre-finality transaction hash")
+        before_receipt_tx = _hex_identity(
+            receipt_before.get("transactionHash"), "pre-finality receipt transaction hash"
+        )
+        observed_tx = _hex_identity(tx.get("hash"), "post-finality transaction hash")
+        receipt_tx = _hex_identity(receipt.get("transactionHash"), "post-finality receipt transaction hash")
+        before_tx_block_hash = _hex_identity(tx_before.get("blockHash"), "pre-finality transaction block hash")
+        before_receipt_block_hash = _hex_identity(
+            receipt_before.get("blockHash"), "pre-finality receipt block hash"
+        )
+        tx_block_hash = _hex_identity(tx.get("blockHash"), "post-finality transaction block hash")
+        receipt_block_hash = _hex_identity(receipt.get("blockHash"), "post-finality receipt block hash")
 
-        # Finality height alone is not sufficient if a reorg happened between
-        # the transaction/receipt reads and the finalized read. Re-read the
-        # transaction block by number *after* observing finalized, and require
-        # the current canonical block hash at that height to remain the hash
-        # already bound by both transaction and receipt.
-        try:
-            canonical = _rpc_result(
-                self.rpc_call(provider_id, "eth_getBlockByNumber", [hex(tx_block), False])
-            )
-        except EvidencePaymentError:
-            raise
-        except Exception as exc:
-            raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC canonical block lookup failed") from exc
-        if not isinstance(canonical, dict):
-            raise EvidencePaymentError("RPC_MISSING_DATA", "Canonical transaction block is required")
-        try:
-            canonical_block_number = _block_number(canonical.get("number"))
-        except (TypeError, ValueError) as exc:
-            raise EvidencePaymentError("RPC_MALFORMED", "Invalid canonical block number") from exc
-        canonical_block_hash = _hex_identity(canonical.get("hash"), "canonical transaction block hash")
-        if canonical_block_number != tx_block or canonical_block_hash != tx_block_hash:
+        if {before_observed_tx, before_receipt_tx, observed_tx, receipt_tx} != {requested_tx}:
+            raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
+        if before_tx_block != before_receipt_block or before_tx_block_hash != before_receipt_block_hash:
+            raise EvidencePaymentError("RPC_BLOCK_MISMATCH", "Pre-finality transaction and receipt block mismatch")
+        if tx_block != receipt_block or tx_block_hash != receipt_block_hash:
+            raise EvidencePaymentError("RPC_BLOCK_MISMATCH", "Post-finality transaction and receipt block mismatch")
+        if before_tx_block != tx_block or before_tx_block_hash != tx_block_hash:
             raise EvidencePaymentError(
                 "RPC_BLOCK_REORG",
-                "Transaction block is no longer the canonical block at its height",
+                "Transaction block identity changed across the finalized-head observation",
             )
 
+        before_economics = (
+            _address(tx_before.get("from"), "pre-finality sender"),
+            _address(tx_before.get("to"), "pre-finality recipient"),
+            _wei_to_pol(tx_before.get("value")),
+            _status(receipt_before.get("status")),
+        )
+        after_economics = (
+            _address(tx.get("from"), "sender"),
+            _address(tx.get("to"), "recipient"),
+            _wei_to_pol(tx.get("value")),
+            _status(receipt.get("status")),
+        )
+        if before_economics != after_economics:
+            raise EvidencePaymentError(
+                "RPC_REORG_ECONOMIC_DRIFT",
+                "RPC economic evidence changed across the finalized-head observation",
+            )
+
+        sender, recipient, value, receipt_status = after_economics
         return {
             "provider_id": provider_id,
             "chain_id": chain_id,
-            "from": _address(tx.get("from"), "sender"),
-            "to": _address(tx.get("to"), "recipient"),
-            "value": _wei_to_pol(tx.get("value")),
-            "receipt_status": _status(receipt.get("status")),
+            "from": sender,
+            "to": recipient,
+            "value": value,
+            "receipt_status": receipt_status,
             "tx_hash": observed_tx,
             "block_hash": tx_block_hash,
             "tx_block_number": tx_block,
             "finalized_block_number": finalized_block,
-            "canonical_block_hash": canonical_block_hash,
         }
 
     def build_trusted_observation(
@@ -148,7 +168,7 @@ class TrustedPolygonRPCAdapter:
         snapshots = [self._provider_snapshot(provider_id, tx_hash) for provider_id in ids]
         economic_keys = (
             "chain_id", "from", "to", "value", "receipt_status",
-            "tx_hash", "block_hash", "tx_block_number", "canonical_block_hash",
+            "tx_hash", "block_hash", "tx_block_number",
         )
         agreed = {tuple(snapshot[key] for key in economic_keys) for snapshot in snapshots}
         if len(agreed) != 1:
@@ -199,10 +219,9 @@ class TrustedPolygonRPCAdapter:
                 "provider_ids": sorted(ids),
                 "methods": [
                     "eth_chainId",
-                    "eth_getTransactionByHash",
-                    "eth_getTransactionReceipt",
+                    "eth_getTransactionByHash(pre+post-finalized)",
+                    "eth_getTransactionReceipt(pre+post-finalized)",
                     "eth_getBlockByNumber(finalized)",
-                    "eth_getBlockByNumber(tx_block)",
                 ],
             },
         }
