@@ -74,6 +74,56 @@ def test_next_action_task_exact_replay_is_single_side_effect(tmp_path: Path):
     assert projection["next_action"] == "OPEN_RECOVERY_CHECKLIST"
 
 
+def test_next_action_projection_ignores_open_non_action_tasks(tmp_path: Path):
+    db, core, user, session, case = _fixture(tmp_path)
+    generic = core.add_task(
+        case["case_id"],
+        user["user_id"],
+        "Internal review placeholder",
+        None,
+        request_id="task-r-generic",
+        idempotency_key="task-i-generic",
+        expected_version=case["version"],
+    )
+    actionable = core.add_task(
+        case["case_id"],
+        user["user_id"],
+        "Upload requested evidence",
+        "UPLOAD_REQUESTED_EVIDENCE",
+        request_id="task-r-action",
+        idempotency_key="task-i-action",
+        expected_version=generic["version"],
+    )
+
+    projection = CoreAPI(db).next_action(
+        session_id=session["session_id"],
+        sic_id=user["sic_id"],
+        case_id=case["case_id"],
+    )
+    assert projection["task_id"] == actionable["task_id"]
+    assert projection["next_action"] == "UPLOAD_REQUESTED_EVIDENCE"
+
+
+def test_next_action_projection_is_none_when_only_generic_open_tasks(tmp_path: Path):
+    db, core, user, session, case = _fixture(tmp_path)
+    core.add_task(
+        case["case_id"],
+        user["user_id"],
+        "Internal review placeholder",
+        None,
+        request_id="task-r-generic-only",
+        idempotency_key="task-i-generic-only",
+        expected_version=case["version"],
+    )
+
+    projection = CoreAPI(db).next_action(
+        session_id=session["session_id"],
+        sic_id=user["sic_id"],
+        case_id=case["case_id"],
+    )
+    assert projection is None
+
+
 def test_next_action_same_key_payload_drift_and_stale_version_fail_closed(tmp_path: Path):
     _, core, user, _, case = _fixture(tmp_path)
     core.add_task(
