@@ -193,13 +193,19 @@ class CoreAPI:
         }
 
     def next_action(self, *, session_id: str, sic_id: str, case_id: str) -> dict | None:
-        """Return one open Next Action for My Recovery, oldest first."""
+        """Return one actual open Next Action for My Recovery, oldest first.
+
+        Generic OPEN workflow tasks are valid Core records but are not a user-facing
+        Next Action unless ``next_action`` is non-empty. They must never mask a
+        later actionable task in the My Recovery projection.
+        """
         principal = self._principal(session_id, sic_id)
         self.engine.get_case(case_id, principal["user_id"])
         with self.engine.conn() as conn:
             row = conn.execute(
                 "SELECT task_id,case_id,title,status,next_action,created_at,updated_at "
                 "FROM core_case_tasks WHERE case_id=? AND status='OPEN' "
+                "AND next_action IS NOT NULL AND TRIM(next_action)<>'' "
                 "ORDER BY created_at,task_id LIMIT 1",
                 (case_id,),
             ).fetchone()

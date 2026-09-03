@@ -62,9 +62,11 @@ class FakeRPC:
                 "blockNumber": s["block_number"],
             }
         if method == "eth_getBlockByNumber":
-            assert params == ["finalized", False]
-            return {"number": s["finalized_block_number"], "hash": "0xfinalized"}
-        raise AssertionError(method)
+            if params == ["finalized", False]:
+                return {"number": s["finalized_block_number"], "hash": "0xfinalized"}
+            if params == [hex(self.block_number), False]:
+                return {"number": s["block_number"], "hash": s["block_hash"]}
+        raise AssertionError((method, params))
 
 
 def new_intent(e, expected="450", key="rpc", case_id="case-rpc"):

@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.0"
+RPC_PROVENANCE_VERSION = "1.1"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
 
@@ -65,9 +65,15 @@ class TrustedPolygonRPCAdapter:
     def _provider_snapshot(self, provider_id: str, tx_hash: str) -> dict[str, Any]:
         try:
             chain_raw = _rpc_result(self.rpc_call(provider_id, "eth_chainId", []))
+            # Observe the provider's finalized head *before* transaction/receipt
+            # evidence. If the transaction is below that finalized height, the
+            # subsequent tx/receipt reads must come from the provider's current
+            # canonical view after finality was established. This removes the
+            # old tx/receipt -> finalized TOCTOU window where a reorg could make
+            # an earlier cached receipt stale before settlement.
+            finalized = _rpc_result(self.rpc_call(provider_id, "eth_getBlockByNumber", ["finalized", False]))
             tx = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionByHash", [tx_hash]))
             receipt = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionReceipt", [tx_hash]))
-            finalized = _rpc_result(self.rpc_call(provider_id, "eth_getBlockByNumber", ["finalized", False]))
         except EvidencePaymentError:
             raise
         except Exception as exc:
@@ -172,9 +178,9 @@ class TrustedPolygonRPCAdapter:
                 "provider_ids": sorted(ids),
                 "methods": [
                     "eth_chainId",
+                    "eth_getBlockByNumber(finalized)-before-tx-evidence",
                     "eth_getTransactionByHash",
                     "eth_getTransactionReceipt",
-                    "eth_getBlockByNumber(finalized)",
                 ],
             },
         }
