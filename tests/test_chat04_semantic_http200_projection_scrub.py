@@ -79,7 +79,7 @@ def test_all_protected_projection_consumers_use_fail_closed_publisher():
     assert "publishProtectedProjection" in login
     assert ".then(publishCanonicalState)" not in login
 
-    case_end = BRIDGE.index("window.addEventListener('caid:twin-query'", case_start)
+    case_end = BRIDGE.index("window.addEventListener('caid:wallet-connect-request'", case_start)
     case_listener = BRIDGE[case_start:case_end]
     assert "publishProtectedProjection(payload" in case_listener
 
