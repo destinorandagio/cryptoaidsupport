@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.3"
+RPC_PROVENANCE_VERSION = "1.4"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
 _RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING"})
@@ -175,7 +175,34 @@ class TrustedPolygonRPCAdapter:
         if len(ids) < 2 or any(not provider_id for provider_id in ids) or len(set(ids)) != len(ids):
             raise EvidencePaymentError("RPC_PROVIDER_QUORUM", "At least two distinct RPC provider identities are required")
 
-        snapshots = [self._provider_snapshot(provider_id, tx_hash) for provider_id in ids]
+        # A retryable pending verdict is itself a quorum statement. Sample every
+        # configured authority before returning it; never let the first pending
+        # provider short-circuit a mined/missing/error observation from another.
+        snapshots: list[dict[str, Any]] = []
+        pending_provider_ids: list[str] = []
+        provider_errors: list[EvidencePaymentError] = []
+        for provider_id in ids:
+            try:
+                snapshots.append(self._provider_snapshot(provider_id, tx_hash))
+            except EvidencePaymentError as exc:
+                if exc.code in _RETRYABLE_PENDING_CODES:
+                    pending_provider_ids.append(provider_id)
+                else:
+                    provider_errors.append(exc)
+
+        if pending_provider_ids:
+            if len(pending_provider_ids) == len(ids) and not snapshots and not provider_errors:
+                raise EvidencePaymentError(
+                    "RPC_TX_PENDING",
+                    "All RPC providers report the transaction as explicitly pending",
+                )
+            raise EvidencePaymentError(
+                "RPC_PROVIDER_DISAGREEMENT",
+                "RPC providers disagree on pending versus mined or missing transaction state",
+            )
+        if provider_errors:
+            raise provider_errors[0]
+
         economic_keys = (
             "chain_id", "from", "to", "value", "receipt_status",
             "tx_hash", "block_hash", "tx_block_number",
