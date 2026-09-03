@@ -90,7 +90,7 @@ class TrustedActivationClaimConsumer:
         return f"core-activation-claim:{digest}"
 
     @staticmethod
-    def _validate_effect_rows(conn, claim: Mapping[str, str]) -> None:
+    def _validate_effect_rows(conn, claim: Mapping[str, str], case) -> None:
         required_tables = (
             "payment_intents",
             "entitlement_ledger",
@@ -133,10 +133,11 @@ class TrustedActivationClaimConsumer:
             not economic
             or economic["purpose"] != "CASE"
             or economic["case_id"] != claim["case_id"]
+            or economic["principal_id"] != case["sic_id"]
         ):
             raise CoreError(
                 "ACTIVATION_EFFECT_MISMATCH",
-                "activation claim is not backed by a Case economic intent",
+                "activation claim is not backed by the Case owner's economic intent",
                 409,
             )
 
@@ -201,12 +202,12 @@ class TrustedActivationClaimConsumer:
         idem = self._activation_idempotency_key(canonical["sha256"])
 
         with self.engine.conn() as conn:
-            self._validate_effect_rows(conn, canonical)
             case = conn.execute(
                 "SELECT * FROM core_cases WHERE case_id=?", (canonical["case_id"],)
             ).fetchone()
             if not case:
                 raise CoreError("CASE_NOT_FOUND", "activation Case does not exist", 404)
+            self._validate_effect_rows(conn, canonical, case)
 
             prior = conn.execute(
                 "SELECT * FROM core_case_events WHERE idempotency_key=?", (idem,)
