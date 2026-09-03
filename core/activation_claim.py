@@ -22,7 +22,7 @@ from typing import Any
 from .case_engine import CoreError
 from .case_engine_mvp import CaseEngine
 
-CORE_ACTIVATION_CLAIM_CONSUMER_VERSION = "1.0.0"
+CORE_ACTIVATION_CLAIM_CONSUMER_VERSION = "1.0.1"
 ACCEPTED_ACTIVATION_CLAIM_VERSION = "1.0"
 _ACTIVATION_ACTOR = "CORE_SETTLEMENT_EFFECT"
 _ACTIVATION_REASON = "CHAT02 settled Case payment activation claim"
@@ -167,6 +167,11 @@ class TrustedActivationClaimConsumer:
             or certificate["case_id"] != claim["case_id"]
             or certificate["entitlement_ref"] != claim["entitlement_ref"]
             or certificate["tx_hash"] != intent["tx_hash"]
+            or int(certificate["chain_id"]) != int(intent["chain_id"])
+            or certificate["asset"] != intent["asset"]
+            or str(certificate["settled_value"]) != str(intent["expected_value"])
+            or str(certificate["treasury_address"]).lower()
+            != str(intent["treasury_address"]).lower()
         ):
             raise CoreError(
                 "ACTIVATION_EFFECT_MISMATCH",
