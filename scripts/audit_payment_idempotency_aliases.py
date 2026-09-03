@@ -4,9 +4,12 @@
 This is release-evidence tooling only. It never initializes application engines,
 creates tables, runs migrations, or mutates the supplied SQLite database.
 
-PASS invariant on the factual target DB:
-  every payment_idempotency_bindings.idempotency_key is represented either by
-  payment_intents.idempotency_key directly or by payment_idempotency_resolutions.
+PASS invariants on the factual target DB:
+  * every payment_idempotency_bindings.idempotency_key is represented either by
+    payment_intents.idempotency_key directly or by payment_idempotency_resolutions;
+  * a key may not directly identify one intent while resolving to another;
+  * every durable resolution must be semantically compatible with the binding
+    operation and with the frozen ACTIVATION/CASE economic contract.
 
 Source-stability invariant:
   durable data-bearing SQLite files (database + WAL when present) must remain
@@ -15,8 +18,8 @@ Source-stability invariant:
   update shared-memory read marks even when the connection is mode=ro/query_only.
 
 Exit codes:
-  0  PASS (orphan_aliases == 0, integrity/FK/schema/source-stability checks pass)
-  20 MIGRATION_REQUIRED (one or more orphan historical aliases)
+  0  PASS (all alias/semantic/integrity/schema/source-stability checks pass)
+  20 MIGRATION_REQUIRED (orphan or semantically inconsistent historical alias)
   21 SCHEMA_REQUIRED (required table/column absent)
   22 DB_INTEGRITY_FAILED (integrity_check or foreign_key_check failed)
   23 SOURCE_CHANGED_DURING_SCAN (database/WAL fingerprint changed during audit)
@@ -34,12 +37,28 @@ from pathlib import Path
 from typing import Any
 
 REQUIRED_COLUMNS: dict[str, set[str]] = {
-    "payment_idempotency_bindings": {"idempotency_key"},
-    "payment_intents": {"intent_id", "idempotency_key"},
+    "payment_idempotency_bindings": {"idempotency_key", "operation"},
+    "payment_intents": {
+        "intent_id",
+        "idempotency_key",
+        "case_id",
+        "entitlement_ref",
+        "asset",
+        "expected_value",
+    },
     "payment_idempotency_resolutions": {"idempotency_key", "intent_id"},
+    "economic_intents": {
+        "intent_id",
+        "principal_id",
+        "purpose",
+        "case_id",
+        "nominal_value",
+        "credit_applied",
+        "payable_value",
+    },
 }
 
-AUDIT_CONTRACT = "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_1"
+AUDIT_CONTRACT = "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_2"
 SOURCE_STABILITY_CONTRACT = "SQLITE_DATABASE_PLUS_WAL_V1"
 
 
@@ -70,13 +89,7 @@ def sqlite_file_fingerprint(db_path: Path) -> dict[str, Any]:
 
 
 def _source_data_fingerprint(fingerprint: dict[str, Any]) -> dict[str, Any]:
-    """Return only durable data-bearing files used for stability acceptance.
-
-    SQLite WAL shared-memory (`-shm`) contains coordination/read-mark state and a
-    reader can legitimately change it. Treating SHM bytes as database content
-    makes a read-only audit self-fail. The database and WAL are data-bearing and
-    remain mandatory byte-for-byte stability gates.
-    """
+    """Return only durable data-bearing files used for stability acceptance."""
     return {
         "database": fingerprint.get("database"),
         "wal": fingerprint.get("wal"),
@@ -101,12 +114,109 @@ def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
 
 
 def _open_read_only(db_path: Path) -> sqlite3.Connection:
-    # Path.as_uri() safely percent-encodes spaces and works on POSIX/Windows.
     conn = sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA query_only=ON")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
+
+
+def _private_digest(values: list[str]) -> str:
+    """Return deterministic evidence without emitting the underlying secret keys."""
+    return hashlib.sha256("\n".join(sorted(values)).encode("utf-8")).hexdigest()
+
+
+def _semantic_alias_rows(conn: sqlite3.Connection) -> dict[str, list[str]]:
+    """Return privacy-sensitive key sets for semantic alias validation.
+
+    The caller emits only counts and SHA-256 digests. Queries intentionally stay
+    inside the existing CHAT02 schema and do not infer authority from UI state.
+    """
+    direct_conflicts = [
+        str(row[0])
+        for row in conn.execute(
+            """
+            SELECT b.idempotency_key
+            FROM payment_idempotency_bindings AS b
+            JOIN payment_idempotency_resolutions AS r
+              ON r.idempotency_key=b.idempotency_key
+            JOIN payment_intents AS direct
+              ON direct.idempotency_key=b.idempotency_key
+            WHERE direct.intent_id<>r.intent_id
+            ORDER BY b.idempotency_key
+            """
+        ).fetchall()
+    ]
+
+    operation_mismatches = [
+        str(row[0])
+        for row in conn.execute(
+            """
+            SELECT b.idempotency_key
+            FROM payment_idempotency_bindings AS b
+            JOIN payment_idempotency_resolutions AS r
+              ON r.idempotency_key=b.idempotency_key
+            JOIN payment_intents AS p ON p.intent_id=r.intent_id
+            LEFT JOIN economic_intents AS e ON e.intent_id=p.intent_id
+            WHERE b.operation NOT IN ('GENERIC','ACTIVATION','CASE')
+               OR (b.operation='GENERIC' AND e.intent_id IS NOT NULL)
+               OR (b.operation='ACTIVATION' AND (e.intent_id IS NULL OR e.purpose<>'ACTIVATION'))
+               OR (b.operation='CASE' AND (e.intent_id IS NULL OR e.purpose<>'CASE'))
+            ORDER BY b.idempotency_key
+            """
+        ).fetchall()
+    ]
+
+    economic_mismatches = [
+        str(row[0])
+        for row in conn.execute(
+            """
+            SELECT b.idempotency_key
+            FROM payment_idempotency_bindings AS b
+            JOIN payment_idempotency_resolutions AS r
+              ON r.idempotency_key=b.idempotency_key
+            JOIN payment_intents AS p ON p.intent_id=r.intent_id
+            LEFT JOIN economic_intents AS e ON e.intent_id=p.intent_id
+            WHERE (
+                b.operation='ACTIVATION'
+                AND NOT (
+                    e.intent_id IS NOT NULL
+                    AND e.purpose='ACTIVATION'
+                    AND e.case_id='activation:' || e.principal_id
+                    AND p.case_id=e.case_id
+                    AND p.entitlement_ref='activation_credit50:' || e.principal_id
+                    AND p.asset='POL'
+                    AND p.expected_value='50'
+                    AND e.nominal_value='50'
+                    AND e.credit_applied='0'
+                    AND e.payable_value='50'
+                )
+            ) OR (
+                b.operation='CASE'
+                AND NOT (
+                    e.intent_id IS NOT NULL
+                    AND e.purpose='CASE'
+                    AND p.case_id=e.case_id
+                    AND p.entitlement_ref='case_active:' || e.case_id
+                    AND p.asset='POL'
+                    AND p.expected_value=e.payable_value
+                    AND e.nominal_value='500'
+                    AND (
+                        (e.credit_applied='50' AND e.payable_value='450')
+                        OR (e.credit_applied='0' AND e.payable_value='500')
+                    )
+                )
+            )
+            ORDER BY b.idempotency_key
+            """
+        ).fetchall()
+    ]
+
+    return {
+        "direct_resolution_conflicts": direct_conflicts,
+        "resolution_operation_mismatches": operation_mismatches,
+        "resolved_economic_invariant_mismatches": economic_mismatches,
+    }
 
 
 def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
@@ -155,53 +265,53 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
 
         integrity_rows = [str(row[0]) for row in conn.execute("PRAGMA integrity_check")]
         foreign_key_rows = [list(row) for row in conn.execute("PRAGMA foreign_key_check")]
-        integrity_ok = integrity_rows == ["ok"]
         result["integrity_check"] = integrity_rows
         result["foreign_key_violation_count"] = len(foreign_key_rows)
-        if not integrity_ok or foreign_key_rows:
+        if integrity_rows != ["ok"] or foreign_key_rows:
             conn.execute("ROLLBACK")
             result["status"] = "DB_INTEGRITY_FAILED"
             _, stable = _record_after(result, before, real)
             return result, 22 if stable else 23
 
-        binding_count = int(conn.execute(
-            "SELECT COUNT(*) FROM payment_idempotency_bindings"
-        ).fetchone()[0])
-        intent_count = int(conn.execute(
-            "SELECT COUNT(*) FROM payment_intents"
-        ).fetchone()[0])
-        resolution_count = int(conn.execute(
-            "SELECT COUNT(*) FROM payment_idempotency_resolutions"
-        ).fetchone()[0])
+        binding_count = int(
+            conn.execute("SELECT COUNT(*) FROM payment_idempotency_bindings").fetchone()[0]
+        )
+        intent_count = int(conn.execute("SELECT COUNT(*) FROM payment_intents").fetchone()[0])
+        resolution_count = int(
+            conn.execute("SELECT COUNT(*) FROM payment_idempotency_resolutions").fetchone()[0]
+        )
 
-        orphan_rows = conn.execute(
-            """
-            SELECT b.idempotency_key
-            FROM payment_idempotency_bindings AS b
-            WHERE NOT EXISTS (
-                SELECT 1 FROM payment_intents AS p
-                WHERE p.idempotency_key = b.idempotency_key
-            )
-            AND NOT EXISTS (
-                SELECT 1 FROM payment_idempotency_resolutions AS r
-                WHERE r.idempotency_key = b.idempotency_key
-            )
-            ORDER BY b.idempotency_key
-            """
-        ).fetchall()
-        orphan_keys = [str(row[0]) for row in orphan_rows]
-        orphan_digest = hashlib.sha256(
-            "\n".join(orphan_keys).encode("utf-8")
-        ).hexdigest()
+        orphan_keys = [
+            str(row[0])
+            for row in conn.execute(
+                """
+                SELECT b.idempotency_key
+                FROM payment_idempotency_bindings AS b
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM payment_intents AS p
+                    WHERE p.idempotency_key=b.idempotency_key
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM payment_idempotency_resolutions AS r
+                    WHERE r.idempotency_key=b.idempotency_key
+                )
+                ORDER BY b.idempotency_key
+                """
+            ).fetchall()
+        ]
 
-        # Do not leak raw idempotency keys; only count + digest are evidence output.
+        semantic = _semantic_alias_rows(conn)
         result.update(
             binding_count=binding_count,
             payment_intent_count=intent_count,
             resolution_count=resolution_count,
             orphan_aliases=len(orphan_keys),
-            orphan_aliases_sha256=orphan_digest,
+            orphan_aliases_sha256=_private_digest(orphan_keys),
         )
+        for label, keys in semantic.items():
+            result[label] = len(keys)
+            result[f"{label}_sha256"] = _private_digest(keys)
+        result["semantic_resolution_failures"] = sum(len(keys) for keys in semantic.values())
         conn.execute("ROLLBACK")
     except sqlite3.Error as exc:
         if conn.in_transaction:
@@ -216,7 +326,7 @@ def audit_db(db: str | os.PathLike[str]) -> tuple[dict[str, Any], int]:
     if not stable:
         result["status"] = "SOURCE_CHANGED_DURING_SCAN"
         return result, 23
-    if result["orphan_aliases"]:
+    if result["orphan_aliases"] or result["semantic_resolution_failures"]:
         result["status"] = "MIGRATION_REQUIRED"
         return result, 20
     result["status"] = "PASS"
