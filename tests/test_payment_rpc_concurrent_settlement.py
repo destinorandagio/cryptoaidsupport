@@ -3,7 +3,7 @@ import tempfile
 import threading
 from pathlib import Path
 
-from evidence_payment import EvidencePaymentEngine, TrustedPolygonRPCAdapter
+from evidence_payment import EvidencePaymentEngine, EvidencePaymentError, TrustedPolygonRPCAdapter
 
 
 WEI = 10**18
@@ -28,9 +28,10 @@ def new_intent(e):
 
 
 class ReadyRPC:
-    def __init__(self, intent):
+    def __init__(self, intent, final_barrier=None):
         self.intent = intent
         self.block_number = 100
+        self.final_barrier = final_barrier
 
     def __call__(self, provider_id, method, params):
         if method == "eth_chainId":
@@ -39,6 +40,8 @@ class ReadyRPC:
             if params == ["finalized", False]:
                 return {"number": "0x6f", "hash": "0xfinalized"}
             if params == [hex(self.block_number), False]:
+                if provider_id == "rpc_b" and self.final_barrier is not None:
+                    self.final_barrier.wait(timeout=10)
                 return {"number": hex(self.block_number), "hash": "0xblock100"}
         if method == "eth_getTransactionByHash":
             tx_hash = params[0]
@@ -92,4 +95,35 @@ def test_twenty_concurrent_same_tx_settlement_retries_converge_idempotently():
     assert all(result["entitlement_granted"] is True for result in results)
     assert e.get_intent(intent["intent_id"])["state"] == "SETTLED"
     assert e.get_intent(intent["intent_id"])["tx_hash"] == "0xabc"
+    assert effect_counts(e) == (1, 1, 1)
+
+
+def test_concurrent_different_verified_txs_have_one_immutable_binding_and_one_loser():
+    e = engine()
+    intent = new_intent(e)
+    e._race_intent_id = intent["intent_id"]
+    adapter = TrustedPolygonRPCAdapter(e, ReadyRPC(intent, threading.Barrier(2)))
+    start = threading.Barrier(2)
+
+    def settle(tx_hash):
+        start.wait(timeout=10)
+        try:
+            return ("ok", tx_hash, adapter.settle_from_tx_hash(
+                intent_id=intent["intent_id"],
+                tx_hash=tx_hash,
+                provider_ids=["rpc_a", "rpc_b"],
+            ))
+        except EvidencePaymentError as exc:
+            return ("error", tx_hash, exc.code)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(settle, ["0xaaa", "0xbbb"]))
+
+    winners = [item for item in outcomes if item[0] == "ok" and item[2]["verdict"] == "SETTLED"]
+    losers = [item for item in outcomes if item[0] == "error"]
+    assert len(winners) == 1, outcomes
+    assert len(losers) == 1, outcomes
+    assert losers[0][2] in {"TX_REPLAY_CONFLICT", "TX_DUPLICATE"}, outcomes
+    bound = e.get_intent(intent["intent_id"])["tx_hash"]
+    assert bound == winners[0][1]
     assert effect_counts(e) == (1, 1, 1)
