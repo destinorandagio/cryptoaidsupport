@@ -102,13 +102,15 @@ def test_server_rpc_provenance_settles_and_binds_certificate():
     cert = e.get_settlement_certificate(intent["intent_id"])
     assert cert["provider_ids"] == ["rpc_a", "rpc_b"]
     assert cert["settled_value"] == "450"
-    assert len(rpc.calls) == 8
+    assert len(rpc.calls) == 10
     assert {call[1] for call in rpc.calls} == {
         "eth_chainId",
         "eth_getTransactionByHash",
         "eth_getTransactionReceipt",
         "eth_getBlockByNumber",
     }
+    for provider in ("rpc_a", "rpc_b"):
+        assert (provider, "eth_getBlockByNumber", ("0x64", False)) in rpc.calls
 
 
 @pytest.mark.parametrize(
