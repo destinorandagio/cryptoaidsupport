@@ -124,24 +124,33 @@ def test_next_action_projection_is_none_when_only_generic_open_tasks(tmp_path: P
     assert projection is None
 
 
-def test_next_action_projection_rejects_whitespace_only_action(tmp_path: Path):
-    db, core, user, session, case = _fixture(tmp_path)
-    core.add_task(
-        case["case_id"],
-        user["user_id"],
-        "Whitespace placeholder",
-        " \t\n\r ",
-        request_id="task-r-whitespace",
-        idempotency_key="task-i-whitespace",
-        expected_version=case["version"],
-    )
+def test_next_action_task_rejects_whitespace_only_action_before_write(tmp_path: Path):
+    _, core, user, _, case = _fixture(tmp_path)
+    with pytest.raises(CoreError) as exc:
+        core.add_task(
+            case["case_id"],
+            user["user_id"],
+            "Whitespace placeholder",
+            " \t\n\r ",
+            request_id="task-r-whitespace",
+            idempotency_key="task-i-whitespace",
+            expected_version=case["version"],
+        )
+    assert exc.value.code == "NEXT_ACTION_INVALID"
 
-    projection = CoreAPI(db).next_action(
-        session_id=session["session_id"],
-        sic_id=user["sic_id"],
-        case_id=case["case_id"],
-    )
-    assert projection is None
+    with core.conn() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM core_case_tasks WHERE case_id=?",
+            (case["case_id"],),
+        ).fetchone()[0] == 0
+        assert conn.execute(
+            "SELECT COUNT(*) FROM core_requests WHERE idempotency_key='task-i-whitespace'"
+        ).fetchone()[0] == 0
+        version = conn.execute(
+            "SELECT version FROM core_cases WHERE case_id=?",
+            (case["case_id"],),
+        ).fetchone()[0]
+    assert version == case["version"]
 
 
 def test_next_action_same_key_payload_drift_and_stale_version_fail_closed(tmp_path: Path):
