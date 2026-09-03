@@ -43,6 +43,8 @@ def pytest_collection_modifyitems(items):
     target_modules = {
         "tests.test_chat02_runtime_facade",
         "tests.test_chat02_http_transport",
+        "test_chat02_runtime_facade",
+        "test_chat02_http_transport",
     }
     for module in {item.module for item in items if item.module.__name__ in target_modules}:
         _install_canonical_block_lookup(module)
