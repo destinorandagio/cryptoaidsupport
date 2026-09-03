@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from evidence_payment import EvidencePaymentEngine, TrustedPolygonRPCAdapter
+from evidence_payment import EvidencePaymentEngine, EvidencePaymentError, TrustedPolygonRPCAdapter
 
 
 WEI = 10**18
@@ -241,3 +241,41 @@ def test_same_rpc_tx_cannot_settle_two_intents():
     )
     assert result["verdict"] == "MANUAL_REVIEW"
     assert result["entitlement_granted"] is False
+
+
+def test_settled_intent_rejects_changed_tx_hash_without_side_effects():
+    e = engine()
+    intent = new_intent(e, key="changed-replay", case_id="case-changed-replay")
+    adapter = TrustedPolygonRPCAdapter(e, FakeRPC(intent, tx_hash="0xabc"))
+
+    first = adapter.settle_from_tx_hash(
+        intent_id=intent["intent_id"], tx_hash="0xabc", provider_ids=["rpc_a", "rpc_b"]
+    )
+    assert first["verdict"] == "SETTLED"
+    certificate_before = e.get_settlement_certificate(intent["intent_id"])
+    with e._connect() as c:
+        event_count_before = c.execute(
+            "SELECT COUNT(*) FROM payment_events WHERE intent_id=?", (intent["intent_id"],)
+        ).fetchone()[0]
+        entitlement_count_before = c.execute(
+            "SELECT COUNT(*) FROM entitlement_ledger WHERE intent_id=?", (intent["intent_id"],)
+        ).fetchone()[0]
+
+    with pytest.raises(EvidencePaymentError) as exc:
+        adapter.settle_from_tx_hash(
+            intent_id=intent["intent_id"], tx_hash="0xdef", provider_ids=["rpc_a", "rpc_b"]
+        )
+    assert exc.value.code == "TX_REPLAY_CONFLICT"
+
+    current = e.get_intent(intent["intent_id"])
+    assert current["state"] == "SETTLED"
+    assert current["tx_hash"] == "0xabc"
+    certificate_after = e.get_settlement_certificate(intent["intent_id"])
+    assert certificate_after == certificate_before
+    with e._connect() as c:
+        assert c.execute(
+            "SELECT COUNT(*) FROM payment_events WHERE intent_id=?", (intent["intent_id"],)
+        ).fetchone()[0] == event_count_before
+        assert c.execute(
+            "SELECT COUNT(*) FROM entitlement_ledger WHERE intent_id=?", (intent["intent_id"],)
+        ).fetchone()[0] == entitlement_count_before == 1
