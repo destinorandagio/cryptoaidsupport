@@ -13,7 +13,7 @@ from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.6"
+RPC_PROVENANCE_VERSION = "1.7"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
 _RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING"})
@@ -344,11 +344,15 @@ class TrustedPolygonRPCAdapter:
             "Payment finality state changed too frequently to converge",
         )
 
-    def _mark_manual_review(self, intent_id: str, reason: str) -> dict[str, Any]:
+    def _mark_manual_review(self, intent_id: str, requested_tx: str, reason: str) -> dict[str, Any]:
+        """Fail closed unless the same transaction already committed canonical SETTLED truth."""
         for _ in range(8):
             current = self.engine.get_intent(intent_id)
+            self._assert_same_bound_tx(current, requested_tx)
             state = current["state"]
-            if state in {"MANUAL_REVIEW", "REJECTED", "EXPIRED", "SETTLED"}:
+            if state == "SETTLED":
+                return self._settled_result(intent_id, requested_tx)
+            if state in {"MANUAL_REVIEW", "REJECTED", "EXPIRED"}:
                 return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
             if state == "INTENT_CREATED":
                 target, step_reason = "USER_ACTION_REQUIRED", "payment action observed"
@@ -427,10 +431,10 @@ class TrustedPolygonRPCAdapter:
                     self._bind_retryable_tx_hash(intent_id, requested_tx)
                 except EvidencePaymentError as bind_exc:
                     if bind_exc.code == "TX_DUPLICATE":
-                        return self._mark_manual_review(intent_id, bind_exc.code)
+                        return self._mark_manual_review(intent_id, requested_tx, bind_exc.code)
                     raise
                 return self._mark_retryable_pending(intent_id, requested_tx, exc.code)
-            return self._mark_manual_review(intent_id, exc.code)
+            return self._mark_manual_review(intent_id, requested_tx, exc.code)
 
         # A mined/canonical/finality-qualified transaction must also acquire the
         # same atomic intent binding used by explicit-pending retry. This closes
@@ -439,7 +443,7 @@ class TrustedPolygonRPCAdapter:
             self._bind_retryable_tx_hash(intent_id, requested_tx)
         except EvidencePaymentError as bind_exc:
             if bind_exc.code == "TX_DUPLICATE":
-                return self._mark_manual_review(intent_id, bind_exc.code)
+                return self._mark_manual_review(intent_id, requested_tx, bind_exc.code)
             raise
 
         current = self._ensure_finality_pending(
@@ -450,7 +454,7 @@ class TrustedPolygonRPCAdapter:
         if current["state"] in {"EXPIRED", "REJECTED", "MANUAL_REVIEW"}:
             return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
         if current["state"] != "FINALITY_PENDING":
-            return self._mark_manual_review(intent_id, "UNEXPECTED_PAYMENT_STATE")
+            return self._mark_manual_review(intent_id, requested_tx, "UNEXPECTED_PAYMENT_STATE")
         return self.engine.settle(intent_id, observation, providers)
 
 
