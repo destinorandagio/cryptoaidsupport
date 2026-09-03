@@ -1,13 +1,13 @@
 """CHAT02 durable resolution for idempotency keys that coalesce to one intent.
 
 The canonical MVP intentionally coalesces duplicate economic work for the same
-principal/Case even when callers use different idempotency keys.  Every accepted
-key must nevertheless stay bound to the exact intent it returned.  Otherwise a
+principal/Case even when callers use different idempotency keys. Every accepted
+key must nevertheless stay bound to the exact intent it returned. Otherwise a
 later replay after that intent becomes REJECTED/EXPIRED could create a different
 intent and, for the first Case, reserve the activation credit again.
 
 This layer adds only an idempotency-resolution mapping inside the same CHAT02
-SQLite authority.  It creates no payment verifier, entitlement ledger, or
+SQLite authority. It creates no payment verifier, entitlement ledger, or
 transaction initiation path.
 """
 from __future__ import annotations
@@ -112,7 +112,13 @@ class EvidencePaymentEngine(_IdempotentEvidencePaymentEngine):
         purpose: str,
         case_id: str,
     ) -> dict[str, Any] | None:
-        """Atomically bind an alias when economic work is already in flight."""
+        """Atomically bind an alias when matching economic work is in flight.
+
+        A settled activation is deliberately not eligible: a *new* activation
+        key must still hit the frozen one-time ACTIVATION_ALREADY_GRANTED guard.
+        A key that was already resolved earlier remains replayable through
+        _resolved_intent, including after settlement.
+        """
         key = str(idempotency_key).strip()
         with self._connect() as c:
             c.execute("BEGIN IMMEDIATE")
@@ -131,8 +137,9 @@ class EvidencePaymentEngine(_IdempotentEvidencePaymentEngine):
                     "JOIN payment_intents p ON p.intent_id=ei.intent_id "
                     "WHERE ei.principal_id=? AND ei.purpose=? AND ei.case_id=? "
                     "AND p.state NOT IN ('EXPIRED','REJECTED') "
+                    "AND (? <> 'ACTIVATION' OR p.state <> 'SETTLED') "
                     "ORDER BY ei.created_at DESC LIMIT 1",
-                    (str(principal_id), str(purpose), str(case_id)),
+                    (str(principal_id), str(purpose), str(case_id), str(purpose)),
                 ).fetchone()
                 if not active:
                     c.execute("COMMIT")
