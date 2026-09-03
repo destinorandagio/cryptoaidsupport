@@ -64,6 +64,22 @@ class ReadyRPC:
         raise AssertionError((provider_id, method, params))
 
 
+class LateFaultRPC:
+    """Hold one verifier in RPC until another same-tx verifier commits SETTLED."""
+
+    def __init__(self, entered, winner_done):
+        self.entered = entered
+        self.winner_done = winner_done
+
+    def __call__(self, provider_id, method, params):
+        if provider_id == "rpc_a" and method == "eth_chainId":
+            self.entered.set()
+            if not self.winner_done.wait(timeout=10):
+                raise AssertionError("winner did not settle before late RPC fault")
+            raise RuntimeError("late provider failure after canonical same-tx settlement")
+        raise AssertionError((provider_id, method, params))
+
+
 def effect_counts(e):
     with e._connect() as c:
         return (
@@ -126,4 +142,40 @@ def test_concurrent_different_verified_txs_have_one_immutable_binding_and_one_lo
     assert losers[0][2] in {"TX_REPLAY_CONFLICT", "TX_DUPLICATE"}, outcomes
     bound = e.get_intent(intent["intent_id"])["tx_hash"]
     assert bound == winners[0][1]
+    assert effect_counts(e) == (1, 1, 1)
+
+
+def test_late_same_tx_rpc_fault_converges_to_committed_settlement_truth():
+    e = engine()
+    intent = new_intent(e)
+    e._race_intent_id = intent["intent_id"]
+    entered = threading.Event()
+    winner_done = threading.Event()
+    loser = TrustedPolygonRPCAdapter(e, LateFaultRPC(entered, winner_done))
+    winner = TrustedPolygonRPCAdapter(e, ReadyRPC(intent))
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        loser_future = pool.submit(
+            loser.settle_from_tx_hash,
+            intent_id=intent["intent_id"],
+            tx_hash="0xabc",
+            provider_ids=["rpc_a", "rpc_b"],
+        )
+        assert entered.wait(timeout=10)
+        winner_result = winner.settle_from_tx_hash(
+            intent_id=intent["intent_id"],
+            tx_hash="0xabc",
+            provider_ids=["rpc_a", "rpc_b"],
+        )
+        winner_done.set()
+        loser_result = loser_future.result(timeout=10)
+
+    assert winner_result["verdict"] == "SETTLED"
+    assert winner_result["entitlement_granted"] is True
+    assert loser_result["verdict"] == "SETTLED"
+    assert loser_result["entitlement_granted"] is True
+    assert loser_result["settlement_certificate_id"] == winner_result["settlement_certificate_id"]
+    assert loser_result["idempotent"] is True
+    assert e.get_intent(intent["intent_id"])["state"] == "SETTLED"
+    assert e.get_intent(intent["intent_id"])["tx_hash"] == "0xabc"
     assert effect_counts(e) == (1, 1, 1)
