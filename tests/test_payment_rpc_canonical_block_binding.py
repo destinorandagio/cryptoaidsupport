@@ -76,6 +76,7 @@ def test_stale_tx_receipt_block_hash_cannot_settle_against_different_canonical_b
         assert c.execute("SELECT COUNT(*) FROM settlement_certificates").fetchone()[0] == 0
         assert c.execute("SELECT COUNT(*) FROM entitlement_ledger").fetchone()[0] == 0
 
-    for provider in ("rpc_a", "rpc_b"):
-        provider_calls = [call for call in rpc.calls if call[0] == provider]
-        assert (provider, "eth_getBlockByNumber", ("0x64", False)) in provider_calls
+    # Fail-fast is intentional: the first provider's canonical mismatch is
+    # sufficient to prevent this evidence from participating in settlement.
+    assert ("rpc_a", "eth_getBlockByNumber", ("0x64", False)) in rpc.calls
+    assert not any(provider == "rpc_b" for provider, _, _ in rpc.calls)
