@@ -7,12 +7,13 @@ CHAT02 EvidencePaymentEngine.
 """
 from __future__ import annotations
 
+import sqlite3
 from decimal import Decimal
 from typing import Any, Callable, Iterable
 
 from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
 
-RPC_PROVENANCE_VERSION = "1.4"
+RPC_PROVENANCE_VERSION = "1.5"
 WEI_PER_POL = 10**18
 RpcCall = Callable[[str, str, list[Any]], Any]
 _RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING"})
@@ -281,6 +282,39 @@ class TrustedPolygonRPCAdapter:
             self.engine.transition_payment(intent_id, "MANUAL_REVIEW", reason)
         return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
 
+    def _bind_retryable_tx_hash(self, intent_id: str, tx_hash: str) -> str:
+        """Atomically bind the first accepted retryable tx to its intent."""
+        requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+        try:
+            with self.engine._connect() as c:
+                c.execute("BEGIN IMMEDIATE")
+                row = c.execute(
+                    "SELECT tx_hash FROM payment_intents WHERE intent_id=?", (intent_id,)
+                ).fetchone()
+                if not row:
+                    raise EvidencePaymentError("NOT_FOUND", "Payment intent not found")
+                recorded = row["tx_hash"]
+                if recorded is not None:
+                    recorded_tx = _hex_identity(recorded, "bound transaction hash")
+                    if recorded_tx != requested_tx:
+                        raise EvidencePaymentError(
+                            "TX_REPLAY_CONFLICT",
+                            "Payment intent is already bound to a different transaction hash",
+                        )
+                    c.execute("COMMIT")
+                    return requested_tx
+                c.execute(
+                    "UPDATE payment_intents SET tx_hash=? WHERE intent_id=? AND tx_hash IS NULL",
+                    (requested_tx, intent_id),
+                )
+                c.execute("COMMIT")
+        except sqlite3.IntegrityError as exc:
+            raise EvidencePaymentError(
+                "TX_DUPLICATE",
+                "Transaction hash is already bound to another payment intent",
+            ) from exc
+        return requested_tx
+
     def _mark_retryable_pending(self, intent_id: str, reason: str) -> dict[str, Any]:
         """Park an explicitly pending transaction without creating settlement truth."""
         current = self.engine.get_intent(intent_id)
@@ -292,8 +326,8 @@ class TrustedPolygonRPCAdapter:
     def settle_from_tx_hash(self, *, intent_id: str, tx_hash: str, provider_ids: Iterable[str]) -> dict[str, Any]:
         """Verify and settle using only server-derived RPC evidence; never client economics."""
         current = self.engine.get_intent(intent_id)
+        requested_tx = _hex_identity(tx_hash, "requested transaction hash")
         if current["state"] == "SETTLED":
-            requested_tx = _hex_identity(tx_hash, "requested transaction hash")
             recorded_tx = _hex_identity(current.get("tx_hash"), "settled transaction hash")
             if requested_tx != recorded_tx:
                 raise EvidencePaymentError(
@@ -311,6 +345,14 @@ class TrustedPolygonRPCAdapter:
         if current["state"] in {"EXPIRED", "REJECTED", "MANUAL_REVIEW"}:
             return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
 
+        if current.get("tx_hash") is not None:
+            recorded_tx = _hex_identity(current.get("tx_hash"), "bound transaction hash")
+            if requested_tx != recorded_tx:
+                raise EvidencePaymentError(
+                    "TX_REPLAY_CONFLICT",
+                    "Payment intent is already bound to a different transaction hash",
+                )
+
         if current["state"] == "INTENT_CREATED":
             current = self.engine.transition_payment(intent_id, "USER_ACTION_REQUIRED", "payment action observed")
         if current["state"] == "USER_ACTION_REQUIRED":
@@ -320,10 +362,16 @@ class TrustedPolygonRPCAdapter:
 
         try:
             observation, providers = self.build_trusted_observation(
-                intent_id=intent_id, tx_hash=tx_hash, provider_ids=provider_ids
+                intent_id=intent_id, tx_hash=requested_tx, provider_ids=provider_ids
             )
         except EvidencePaymentError as exc:
             if exc.code in _RETRYABLE_PENDING_CODES:
+                try:
+                    self._bind_retryable_tx_hash(intent_id, requested_tx)
+                except EvidencePaymentError as bind_exc:
+                    if bind_exc.code == "TX_DUPLICATE":
+                        return self._mark_manual_review(intent_id, bind_exc.code)
+                    raise
                 return self._mark_retryable_pending(intent_id, exc.code)
             return self._mark_manual_review(intent_id, exc.code)
 
