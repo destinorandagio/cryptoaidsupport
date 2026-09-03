@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from .engine import EvidencePaymentError, _block_number
-from .idempotency_engine import EvidencePaymentEngine as _IdempotentEvidencePaymentEngine
+from .idempotency_alias_engine import EvidencePaymentEngine as _IdempotentEvidencePaymentEngine
 
 EVIDENCE_AUTHORIZATION_CONTRACT_VERSION = "1.0"
 FINALITY_CONTRACT_VERSION = "1.1"
