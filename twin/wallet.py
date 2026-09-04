@@ -50,7 +50,7 @@ class WalletSession:
             raise ValueError("wrong chain; Polygon 137 required")
         self.active=True; self.needs_revalidation=False
     def on_event(self,event: str,payload: Any=None)->None:
-        if event=="disconnect": self.active=False; self.needs_revalidation=True; return
+        if event=="disconnect": self.active=False; self.needs_revalidation=True; self.authenticated=False; return
         if event=="connect": self.active=False; self.needs_revalidation=True; self.authenticated=False; return
         if event=="accountsChanged":
             self.active=False; self.needs_revalidation=True; self.authenticated=False
