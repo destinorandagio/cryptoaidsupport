@@ -49,7 +49,7 @@ class WalletSession:
         self.account=normalized; self.chain_id=parsed; self.active=True; self.needs_revalidation=False; self.authenticated=False
     def on_event(self,event: str,payload: Any=None)->None:
         if event=="disconnect": self.active=False; self.needs_revalidation=True; return
-        if event=="connect": self.needs_revalidation=True; self.authenticated=False; return
+        if event=="connect": self.active=False; self.needs_revalidation=True; self.authenticated=False; return
         if event=="accountsChanged":
             accounts=list(payload or [])
             if not accounts: self.account=None; self.active=False; self.needs_revalidation=True; return
