@@ -1,0 +1,21 @@
+name: Telegram Topic Test
+on:
+  workflow_dispatch:
+    inputs:
+      event:
+        description: Routing event
+        required: true
+        default: general
+        type: choice
+        options: [general, support, trade_signal, paper_trade, feedback]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send one harmless routed message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_EVENT: ${{ inputs.event }}
+          TELEGRAM_TEXT: '🧪 CryptoAID System Test — topic routing online.'
+        run: python scripts/telegram_topic_router.py
