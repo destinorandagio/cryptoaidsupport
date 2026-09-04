@@ -43,10 +43,12 @@ def parse_chain_id(value: int | str) -> int:
 class WalletSession:
     sic_id: str; provider_uuid: str; provider_id: str; account: str|None=None; chain_id: int|None=None; active: bool=False; needs_revalidation: bool=True; authenticated: bool=False
     def bind(self, account: str, chain_id: int|str) -> None:
+        self.active=False; self.needs_revalidation=True; self.authenticated=False; self.account=None; self.chain_id=None
         normalized=normalize_address(account); parsed=parse_chain_id(chain_id)
+        self.account=normalized; self.chain_id=parsed
         if parsed!=POLYGON_CHAIN_ID:
-            self.account=normalized; self.chain_id=parsed; self.active=False; self.needs_revalidation=True; raise ValueError("wrong chain; Polygon 137 required")
-        self.account=normalized; self.chain_id=parsed; self.active=True; self.needs_revalidation=False; self.authenticated=False
+            raise ValueError("wrong chain; Polygon 137 required")
+        self.active=True; self.needs_revalidation=False
     def on_event(self,event: str,payload: Any=None)->None:
         if event=="disconnect": self.active=False; self.needs_revalidation=True; return
         if event=="connect": self.active=False; self.needs_revalidation=True; self.authenticated=False; return
