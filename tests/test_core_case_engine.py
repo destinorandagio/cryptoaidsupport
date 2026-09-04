@@ -38,7 +38,10 @@ def test_invalid_transition_stale_and_missing_entitlement():
 
 def test_product_kinds_task_timeline_and_unauthorized_case():
  e=eng(); a=user(e); e.upsert_product('P','CASE','ACTIVE',{}, {'price_source':'MASTER'},1); c=e.open_case(a['user_id'],'SIC-1',None,None,True,'USER','r','c')
- assert e.select_product(c['case_id'],a['user_id'],'P')['kind']=='CASE'; assert e.add_task(c['case_id'],a['user_id'],'Do it','NEXT')['next_action']=='NEXT'; assert len(e.timeline(c['case_id'],a['user_id']))==1
+ selected=e.select_product(c['case_id'],a['user_id'],'P','req-product','idem-product',1)
+ assert selected['kind']=='CASE' and selected['version']==2
+ task=e.add_task(c['case_id'],a['user_id'],'Do it','NEXT',request_id='req-task',idempotency_key='idem-task',expected_version=selected['version'])
+ assert task['next_action']=='NEXT' and task['version']==3; assert len(e.timeline(c['case_id'],a['user_id']))==3
  b=e.register_user('SIC-2',{},'u2','u2')
  with pytest.raises(CaseError):e.get_case(c['case_id'],b['user_id'])
 
