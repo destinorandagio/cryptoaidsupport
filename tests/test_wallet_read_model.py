@@ -38,3 +38,15 @@ def test_rpc_result_must_be_strict_boolean_and_never_truthy_coerced(bad_result):
     now=datetime(2026,9,2,10,30,tzinfo=timezone.utc)
     with pytest.raises(ValueError,match="rpc result must be boolean"):
         validate_rpc_observation({"provider_id":"rpc-1","observed_at":now.isoformat(),"latency_ms":10,"chain_id":137,"result":bad_result,"source":"request-time-health"},now=now)
+@pytest.mark.parametrize("event,payload",[("chainChanged",{"chainId":"0x89"}),("accountsChanged",{"unexpected":"payload"})])
+def test_malformed_wallet_event_invalidates_active_session_before_payload_parse(event,payload):
+    s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1")
+    s.bind("0x"+"ab"*20,137)
+    s.authenticated=True
+    with pytest.raises((TypeError,ValueError)):
+        s.on_event(event,payload)
+    assert s.active is False
+    assert s.needs_revalidation is True
+    assert s.authenticated is False
+    s.bind("0x"+"ab"*20,137)
+    assert s.active is True and s.chain_id==137 and s.needs_revalidation is False
