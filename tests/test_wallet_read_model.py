@@ -11,6 +11,14 @@ def test_duplicate_provider_uuid_is_rejected():
     with pytest.raises(ValueError): select_provider([provider(uid,"A"),provider(uid,"B")],uid)
 def test_connect_is_not_authentication_and_polygon_bind_is_active():
     s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1"); s.on_event("connect",{"chainId":"0x89"}); assert s.authenticated is False and s.needs_revalidation is True; s.bind("0x"+"ab"*20,"0x89"); assert s.active is True and s.chain_id==137 and s.authenticated is False
+def test_reconnect_event_invalidates_previously_active_session_until_fresh_rebind():
+    s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1")
+    s.bind("0x"+"ab"*20,137)
+    assert s.active is True and s.needs_revalidation is False
+    s.on_event("connect",{"chainId":"0x89"})
+    assert s.active is False
+    assert s.needs_revalidation is True
+    assert s.authenticated is False
 def test_wrong_chain_fails_closed():
     s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1")
     with pytest.raises(ValueError): s.bind("0x"+"ab"*20,"0x1")
