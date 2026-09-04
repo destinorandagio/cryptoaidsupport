@@ -1,0 +1,461 @@
+"""CHAT02 trusted Polygon RPC provenance adapter for the 48H MVP.
+
+This module never signs or submits a transaction. It accepts only a transaction
+hash plus server-configured provider identities, derives the economic
+observation from EVM JSON-RPC, and delegates settlement truth to the canonical
+CHAT02 EvidencePaymentEngine.
+"""
+from __future__ import annotations
+
+import sqlite3
+from decimal import Decimal
+from typing import Any, Callable, Iterable
+
+from .engine import CHAIN_ID, PAYMENT_TRANSITIONS, EvidencePaymentError, _block_number
+
+RPC_PROVENANCE_VERSION = "1.7"
+WEI_PER_POL = 10**18
+RpcCall = Callable[[str, str, list[Any]], Any]
+_RETRYABLE_PENDING_CODES = frozenset({"RPC_TX_PENDING"})
+
+
+def _rpc_result(value: Any) -> Any:
+    """Accept a raw result or a JSON-RPC envelope, rejecting provider errors."""
+    if isinstance(value, dict) and ("result" in value or "error" in value):
+        if value.get("error") is not None:
+            raise EvidencePaymentError("RPC_PROVIDER_ERROR", "RPC provider returned an error")
+        return value.get("result")
+    return value
+
+
+def _hex_identity(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise EvidencePaymentError("RPC_MALFORMED", f"Missing {field}")
+    return value.strip().lower()
+
+
+def _address(value: Any, field: str) -> str:
+    return _hex_identity(value, field)
+
+
+def _status(value: Any) -> int:
+    try:
+        return _block_number(value)
+    except (TypeError, ValueError) as exc:
+        raise EvidencePaymentError("RPC_MALFORMED", "Invalid receipt status") from exc
+
+
+def _wei_to_pol(value: Any) -> str:
+    try:
+        wei = _block_number(value)
+    except (TypeError, ValueError) as exc:
+        raise EvidencePaymentError("RPC_MALFORMED", "Invalid native transaction value") from exc
+    amount = Decimal(wei) / Decimal(WEI_PER_POL)
+    text = format(amount, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text or "0"
+
+
+class TrustedPolygonRPCAdapter:
+    """Build server-trusted payment evidence from at least two RPC authorities."""
+
+    def __init__(self, engine: Any, rpc_call: RpcCall):
+        self.engine = engine
+        self.rpc_call = rpc_call
+
+    def _provider_snapshot(self, provider_id: str, tx_hash: str) -> dict[str, Any]:
+        try:
+            chain_raw = _rpc_result(self.rpc_call(provider_id, "eth_chainId", []))
+            # Establish the provider's finalized head before reading transaction
+            # evidence. A second canonical-block read below then binds the
+            # tx/receipt pair to this provider's current canonical chain view.
+            finalized = _rpc_result(self.rpc_call(provider_id, "eth_getBlockByNumber", ["finalized", False]))
+            tx = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionByHash", [tx_hash]))
+            receipt = _rpc_result(self.rpc_call(provider_id, "eth_getTransactionReceipt", [tx_hash]))
+        except EvidencePaymentError:
+            raise
+        except Exception as exc:
+            raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC provider call failed") from exc
+
+        if not isinstance(finalized, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC finalized block is required")
+        if tx is None:
+            # A completely missing tx after the provider's finalized snapshot is
+            # ambiguous: it may be propagation lag or an orphan/reorg view. Keep
+            # that ambiguity on MANUAL_REVIEW rather than weakening the reorg gate.
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction is required")
+        if not isinstance(tx, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction is required")
+
+        tx_block_hash_raw = tx.get("blockHash")
+        tx_block_number_raw = tx.get("blockNumber")
+        if tx_block_hash_raw is None and tx_block_number_raw is None:
+            # Ethereum JSON-RPC explicitly represents a known pending transaction
+            # with null blockHash/blockNumber and no receipt. This is a safe,
+            # retryable non-settlement state because the transaction has not yet
+            # entered a block and therefore cannot grant entitlement.
+            requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+            observed_tx = _hex_identity(tx.get("hash"), "transaction hash")
+            if observed_tx != requested_tx:
+                raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
+            if receipt is not None:
+                raise EvidencePaymentError("RPC_MALFORMED", "Pending transaction must not have a receipt")
+            raise EvidencePaymentError("RPC_TX_PENDING", "RPC transaction is pending and not yet mined")
+        if tx_block_hash_raw is None or tx_block_number_raw is None:
+            raise EvidencePaymentError("RPC_MALFORMED", "Transaction block identity is incomplete")
+        if not isinstance(receipt, dict):
+            # Once a provider claims the tx is mined, a missing receipt is an
+            # inconsistent/ambiguous provider view, not ordinary pending state.
+            raise EvidencePaymentError("RPC_MISSING_DATA", "RPC transaction receipt is required")
+
+        try:
+            chain_id = _block_number(chain_raw)
+            tx_block = _block_number(tx_block_number_raw)
+            receipt_block = _block_number(receipt.get("blockNumber"))
+            finalized_block = _block_number(finalized.get("number"))
+        except (TypeError, ValueError) as exc:
+            raise EvidencePaymentError("RPC_MALFORMED", "Invalid RPC quantity") from exc
+
+        observed_tx = _hex_identity(tx.get("hash"), "transaction hash")
+        receipt_tx = _hex_identity(receipt.get("transactionHash"), "receipt transaction hash")
+        requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+        tx_block_hash = _hex_identity(tx_block_hash_raw, "transaction block hash")
+        receipt_block_hash = _hex_identity(receipt.get("blockHash"), "receipt block hash")
+        if observed_tx != requested_tx or receipt_tx != requested_tx:
+            raise EvidencePaymentError("RPC_TX_MISMATCH", "RPC transaction hash mismatch")
+        if tx_block != receipt_block or tx_block_hash != receipt_block_hash:
+            raise EvidencePaymentError("RPC_BLOCK_MISMATCH", "Transaction and receipt block mismatch")
+
+        # Bind the mutually-consistent tx/receipt pair to the provider's current
+        # canonical block at the same height. Without this post-evidence lookup,
+        # a stale/orphan tx+receipt pair can agree internally and still be paired
+        # with an unrelated finalized height. That evidence must never settle.
+        try:
+            canonical_block = _rpc_result(
+                self.rpc_call(provider_id, "eth_getBlockByNumber", [hex(tx_block), False])
+            )
+        except EvidencePaymentError:
+            raise
+        except Exception as exc:
+            raise EvidencePaymentError("RPC_UNAVAILABLE", "RPC canonical block lookup failed") from exc
+        if not isinstance(canonical_block, dict):
+            raise EvidencePaymentError("RPC_MISSING_DATA", "Canonical transaction block is required")
+        try:
+            canonical_block_number = _block_number(canonical_block.get("number"))
+        except (TypeError, ValueError) as exc:
+            raise EvidencePaymentError("RPC_MALFORMED", "Invalid canonical block number") from exc
+        canonical_block_hash = _hex_identity(canonical_block.get("hash"), "canonical transaction block hash")
+        if canonical_block_number != tx_block or canonical_block_hash != tx_block_hash:
+            raise EvidencePaymentError(
+                "RPC_CANONICAL_BLOCK_MISMATCH",
+                "Transaction and receipt are not bound to the provider's current canonical block",
+            )
+
+        return {
+            "provider_id": provider_id,
+            "chain_id": chain_id,
+            "from": _address(tx.get("from"), "sender"),
+            "to": _address(tx.get("to"), "recipient"),
+            "value": _wei_to_pol(tx.get("value")),
+            "receipt_status": _status(receipt.get("status")),
+            "tx_hash": observed_tx,
+            "block_hash": tx_block_hash,
+            "tx_block_number": tx_block,
+            "finalized_block_number": finalized_block,
+        }
+
+    def build_trusted_observation(
+        self, *, intent_id: str, tx_hash: str, provider_ids: Iterable[str]
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        intent = self.engine.get_intent(intent_id)
+        if intent["asset"] != "POL":
+            raise EvidencePaymentError("RPC_ASSET_UNSUPPORTED", "MVP RPC adapter supports native POL only")
+
+        ids = [str(provider_id).strip() for provider_id in provider_ids]
+        if len(ids) < 2 or any(not provider_id for provider_id in ids) or len(set(ids)) != len(ids):
+            raise EvidencePaymentError("RPC_PROVIDER_QUORUM", "At least two distinct RPC provider identities are required")
+
+        # A retryable pending verdict is itself a quorum statement. Once any
+        # provider reports explicit pending, continue sampling the remaining
+        # authorities. A mixed pending/mined/missing/error view is disagreement.
+        # Fatal non-pending evidence may still fail fast when no pending view has
+        # been observed, preserving the existing canonical/reorg security gate.
+        snapshots: list[dict[str, Any]] = []
+        pending_provider_ids: list[str] = []
+        for provider_id in ids:
+            try:
+                snapshots.append(self._provider_snapshot(provider_id, tx_hash))
+            except EvidencePaymentError as exc:
+                if exc.code in _RETRYABLE_PENDING_CODES:
+                    pending_provider_ids.append(provider_id)
+                    continue
+                if pending_provider_ids:
+                    raise EvidencePaymentError(
+                        "RPC_PROVIDER_DISAGREEMENT",
+                        "RPC providers disagree on pending versus mined or missing transaction state",
+                    ) from exc
+                raise
+
+        if pending_provider_ids:
+            if len(pending_provider_ids) == len(ids) and not snapshots:
+                raise EvidencePaymentError(
+                    "RPC_TX_PENDING",
+                    "All RPC providers report the transaction as explicitly pending",
+                )
+            raise EvidencePaymentError(
+                "RPC_PROVIDER_DISAGREEMENT",
+                "RPC providers disagree on pending versus mined transaction state",
+            )
+
+        economic_keys = (
+            "chain_id", "from", "to", "value", "receipt_status",
+            "tx_hash", "block_hash", "tx_block_number",
+        )
+        agreed = {tuple(snapshot[key] for key in economic_keys) for snapshot in snapshots}
+        if len(agreed) != 1:
+            raise EvidencePaymentError("RPC_PROVIDER_DISAGREEMENT", "RPC providers disagree on payment evidence")
+
+        first = snapshots[0]
+        if first["chain_id"] != CHAIN_ID or first["chain_id"] != intent["chain_id"]:
+            raise EvidencePaymentError("RPC_CHAIN_MISMATCH", "Wrong chain")
+        if first["from"] != str(intent["payer"]).lower():
+            raise EvidencePaymentError("RPC_SENDER_MISMATCH", "Wrong sender")
+        if first["to"] != str(intent["treasury_address"]).lower():
+            raise EvidencePaymentError("RPC_TREASURY_MISMATCH", "Wrong treasury")
+        if first["value"] != str(intent["expected_value"]):
+            raise EvidencePaymentError("RPC_VALUE_MISMATCH", "Wrong payment value")
+        if first["receipt_status"] != 1:
+            raise EvidencePaymentError("RPC_RECEIPT_FAILED", "Transaction receipt is not successful")
+
+        provider_observations = [
+            {
+                "provider_id": snapshot["provider_id"],
+                "tx_hash": snapshot["tx_hash"],
+                "block_hash": snapshot["block_hash"],
+                "receipt_status": snapshot["receipt_status"],
+                "tx_block_number": snapshot["tx_block_number"],
+                "finalized_block_number": snapshot["finalized_block_number"],
+                "chain_id": snapshot["chain_id"],
+                "from": snapshot["from"],
+                "to": snapshot["to"],
+                "value": snapshot["value"],
+                "asset": "POL",
+            }
+            for snapshot in snapshots
+        ]
+        observation = {
+            "chain_id": first["chain_id"],
+            "from": first["from"],
+            "to": first["to"],
+            "value": first["value"],
+            "asset": intent["asset"],
+            "receipt_status": first["receipt_status"],
+            "case_id": intent["case_id"],
+            "entitlement_ref": intent["entitlement_ref"],
+            "tx_hash": first["tx_hash"],
+            "block_hash": first["block_hash"],
+            "block_number": first["tx_block_number"],
+            "rpc_provenance": {
+                "version": RPC_PROVENANCE_VERSION,
+                "provider_ids": sorted(ids),
+                "methods": [
+                    "eth_chainId",
+                    "eth_getBlockByNumber(finalized)-before-tx-evidence",
+                    "eth_getTransactionByHash",
+                    "eth_getTransactionReceipt",
+                    "eth_getBlockByNumber(tx_block)-after-tx-evidence",
+                ],
+            },
+        }
+        return observation, provider_observations
+
+    def _settled_result(self, intent_id: str, requested_tx: str) -> dict[str, Any]:
+        current = self.engine.get_intent(intent_id)
+        recorded_tx = _hex_identity(current.get("tx_hash"), "settled transaction hash")
+        if requested_tx != recorded_tx:
+            raise EvidencePaymentError(
+                "TX_REPLAY_CONFLICT",
+                "Settled payment intent is already bound to a different transaction hash",
+            )
+        certificate = self.engine.get_settlement_certificate(intent_id)
+        return {
+            "intent_id": intent_id,
+            "verdict": "SETTLED",
+            "entitlement_granted": True,
+            "settlement_certificate_id": certificate["certificate_id"],
+            "idempotent": True,
+        }
+
+    @staticmethod
+    def _assert_same_bound_tx(current: dict[str, Any], requested_tx: str) -> None:
+        if current.get("tx_hash") is None:
+            return
+        recorded_tx = _hex_identity(current.get("tx_hash"), "bound transaction hash")
+        if requested_tx != recorded_tx:
+            raise EvidencePaymentError(
+                "TX_REPLAY_CONFLICT",
+                "Payment intent is already bound to a different transaction hash",
+            )
+
+    def _advance_to_verifying(self, intent_id: str, requested_tx: str) -> dict[str, Any]:
+        """Advance pre-verification states without surfacing benign same-tx races."""
+        transitions = {
+            "INTENT_CREATED": ("USER_ACTION_REQUIRED", "payment action observed"),
+            "USER_ACTION_REQUIRED": ("TX_OBSERVED", "transaction hash submitted to server verifier"),
+            "TX_OBSERVED": ("VERIFYING", "server-side RPC provenance verification"),
+        }
+        for _ in range(12):
+            current = self.engine.get_intent(intent_id)
+            self._assert_same_bound_tx(current, requested_tx)
+            state = current["state"]
+            if state not in transitions:
+                return current
+            target, reason = transitions[state]
+            try:
+                self.engine.transition_payment(intent_id, target, reason)
+            except EvidencePaymentError as exc:
+                if exc.code == "INVALID_TRANSITION":
+                    continue
+                raise
+        raise EvidencePaymentError(
+            "PAYMENT_CONCURRENCY_RETRY",
+            "Payment state changed too frequently to establish a stable verifier state",
+        )
+
+    def _ensure_finality_pending(self, intent_id: str, requested_tx: str, reason: str) -> dict[str, Any]:
+        """Converge VERIFYING to FINALITY_PENDING under concurrent same-tx retries."""
+        for _ in range(8):
+            current = self.engine.get_intent(intent_id)
+            self._assert_same_bound_tx(current, requested_tx)
+            state = current["state"]
+            if state in {"FINALITY_PENDING", "SETTLED", "EXPIRED", "REJECTED", "MANUAL_REVIEW"}:
+                return current
+            if state != "VERIFYING":
+                return current
+            try:
+                self.engine.transition_payment(intent_id, "FINALITY_PENDING", reason)
+            except EvidencePaymentError as exc:
+                if exc.code == "INVALID_TRANSITION":
+                    continue
+                raise
+        raise EvidencePaymentError(
+            "PAYMENT_CONCURRENCY_RETRY",
+            "Payment finality state changed too frequently to converge",
+        )
+
+    def _mark_manual_review(self, intent_id: str, requested_tx: str, reason: str) -> dict[str, Any]:
+        """Fail closed unless the same transaction already committed canonical SETTLED truth."""
+        for _ in range(8):
+            current = self.engine.get_intent(intent_id)
+            self._assert_same_bound_tx(current, requested_tx)
+            state = current["state"]
+            if state == "SETTLED":
+                return self._settled_result(intent_id, requested_tx)
+            if state in {"MANUAL_REVIEW", "REJECTED", "EXPIRED"}:
+                return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+            if state == "INTENT_CREATED":
+                target, step_reason = "USER_ACTION_REQUIRED", "payment action observed"
+            elif state == "USER_ACTION_REQUIRED":
+                target, step_reason = "TX_OBSERVED", "transaction hash submitted to server verifier"
+            elif "MANUAL_REVIEW" in PAYMENT_TRANSITIONS.get(state, set()):
+                target, step_reason = "MANUAL_REVIEW", reason
+            else:
+                return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+            try:
+                self.engine.transition_payment(intent_id, target, step_reason)
+            except EvidencePaymentError as exc:
+                if exc.code == "INVALID_TRANSITION":
+                    continue
+                raise
+        return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+
+    def _bind_retryable_tx_hash(self, intent_id: str, tx_hash: str) -> str:
+        """Atomically bind the first server-accepted tx to its intent."""
+        requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+        try:
+            with self.engine._connect() as c:
+                c.execute("BEGIN IMMEDIATE")
+                row = c.execute(
+                    "SELECT tx_hash FROM payment_intents WHERE intent_id=?", (intent_id,)
+                ).fetchone()
+                if not row:
+                    raise EvidencePaymentError("NOT_FOUND", "Payment intent not found")
+                recorded = row["tx_hash"]
+                if recorded is not None:
+                    recorded_tx = _hex_identity(recorded, "bound transaction hash")
+                    if recorded_tx != requested_tx:
+                        raise EvidencePaymentError(
+                            "TX_REPLAY_CONFLICT",
+                            "Payment intent is already bound to a different transaction hash",
+                        )
+                    c.execute("COMMIT")
+                    return requested_tx
+                c.execute(
+                    "UPDATE payment_intents SET tx_hash=? WHERE intent_id=? AND tx_hash IS NULL",
+                    (requested_tx, intent_id),
+                )
+                c.execute("COMMIT")
+        except sqlite3.IntegrityError as exc:
+            raise EvidencePaymentError(
+                "TX_DUPLICATE",
+                "Transaction hash is already bound to another payment intent",
+            ) from exc
+        return requested_tx
+
+    def _mark_retryable_pending(self, intent_id: str, requested_tx: str, reason: str) -> dict[str, Any]:
+        """Park an explicitly pending transaction without creating settlement truth."""
+        current = self._ensure_finality_pending(intent_id, requested_tx, reason)
+        if current["state"] == "SETTLED":
+            return self._settled_result(intent_id, requested_tx)
+        if current["state"] in {"EXPIRED", "REJECTED", "MANUAL_REVIEW"}:
+            return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+        return {"intent_id": intent_id, "verdict": "FINALITY_PENDING", "entitlement_granted": False}
+
+    def settle_from_tx_hash(self, *, intent_id: str, tx_hash: str, provider_ids: Iterable[str]) -> dict[str, Any]:
+        """Verify and settle using only server-derived RPC evidence; never client economics."""
+        requested_tx = _hex_identity(tx_hash, "requested transaction hash")
+        current = self._advance_to_verifying(intent_id, requested_tx)
+        if current["state"] == "SETTLED":
+            return self._settled_result(intent_id, requested_tx)
+        if current["state"] in {"EXPIRED", "REJECTED", "MANUAL_REVIEW"}:
+            return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+
+        try:
+            observation, providers = self.build_trusted_observation(
+                intent_id=intent_id, tx_hash=requested_tx, provider_ids=provider_ids
+            )
+        except EvidencePaymentError as exc:
+            if exc.code in _RETRYABLE_PENDING_CODES:
+                try:
+                    self._bind_retryable_tx_hash(intent_id, requested_tx)
+                except EvidencePaymentError as bind_exc:
+                    if bind_exc.code == "TX_DUPLICATE":
+                        return self._mark_manual_review(intent_id, requested_tx, bind_exc.code)
+                    raise
+                return self._mark_retryable_pending(intent_id, requested_tx, exc.code)
+            return self._mark_manual_review(intent_id, requested_tx, exc.code)
+
+        # A mined/canonical/finality-qualified transaction must also acquire the
+        # same atomic intent binding used by explicit-pending retry. This closes
+        # the concurrent tx-A/tx-B race before either observation can settle.
+        try:
+            self._bind_retryable_tx_hash(intent_id, requested_tx)
+        except EvidencePaymentError as bind_exc:
+            if bind_exc.code == "TX_DUPLICATE":
+                return self._mark_manual_review(intent_id, requested_tx, bind_exc.code)
+            raise
+
+        current = self._ensure_finality_pending(
+            intent_id, requested_tx, "trusted RPC evidence bound"
+        )
+        if current["state"] == "SETTLED":
+            return self._settled_result(intent_id, requested_tx)
+        if current["state"] in {"EXPIRED", "REJECTED", "MANUAL_REVIEW"}:
+            return {"intent_id": intent_id, "verdict": "MANUAL_REVIEW", "entitlement_granted": False}
+        if current["state"] != "FINALITY_PENDING":
+            return self._mark_manual_review(intent_id, requested_tx, "UNEXPECTED_PAYMENT_STATE")
+        return self.engine.settle(intent_id, observation, providers)
+
+
+__all__ = ["TrustedPolygonRPCAdapter", "RPC_PROVENANCE_VERSION"]
