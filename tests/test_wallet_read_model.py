@@ -24,7 +24,15 @@ def test_wrong_chain_fails_closed():
     with pytest.raises(ValueError): s.bind("0x"+"ab"*20,"0x1")
     assert s.active is False and s.needs_revalidation is True
 def test_disconnect_and_account_change_invalidate_session():
-    s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1"); s.bind("0x"+"ab"*20,137); s.on_event("accountsChanged",["0x"+"cd"*20]); assert s.active is False and s.needs_revalidation is True; s.bind("0x"+"cd"*20,137); s.on_event("disconnect"); assert s.active is False and s.needs_revalidation is True
+    s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1")
+    s.bind("0x"+"ab"*20,137)
+    s.on_event("accountsChanged",["0x"+"cd"*20])
+    assert s.active is False and s.needs_revalidation is True
+    s.bind("0x"+"cd"*20,137)
+    s.authenticated=True
+    s.on_event("disconnect")
+    assert s.active is False and s.needs_revalidation is True
+    assert s.authenticated is False
 def test_chain_changed_even_to_polygon_requires_request_time_revalidation():
     s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1"); s.bind("0x"+"ab"*20,137); s.on_event("chainChanged","0x89"); assert s.active is False and s.needs_revalidation is True
 def test_fresh_polygon_rpc_observation_can_be_live():
