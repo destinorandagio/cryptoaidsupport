@@ -32,51 +32,43 @@ def main():
     if not token:
         sys.exit("TELEGRAM_BOT_TOKEN is required")
 
-    cfg_path = Path("config/telegram_topics.json")
+    cfg = json.loads(Path("config/telegram_topics.json").read_text(encoding="utf-8"))
     state_path = Path("data/telegram_topics.runtime.json")
-    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+
+    # FAIL CLOSED: a persisted registry means setup has already run.
+    # Never create another batch automatically. Reset requires an explicit code change.
+    if state_path.exists():
+        sys.exit("SAFE STOP: topic registry already exists. Refusing to create duplicates.")
 
     chat = call(token, "getChat", {"chat_id": chat_id})
     if chat.get("type") != "supergroup":
         sys.exit("Target must be a Telegram supergroup")
     if not chat.get("is_forum"):
-        sys.exit("BLOCKED: Telegram Topics/Forum is OFF. Enable Topics in the group settings, then rerun this workflow.")
+        sys.exit("BLOCKED: Telegram Topics/Forum is OFF. Enable Topics, then run once.")
 
     me = call(token, "getMe", {})
     member = call(token, "getChatMember", {"chat_id": chat_id, "user_id": me["id"]})
     if member.get("status") not in {"administrator", "creator"} or not member.get("can_manage_topics", False):
         sys.exit("BLOCKED: bot must be admin with Manage Topics permission")
 
-    existing = {}
-    if state_path.exists():
-        try:
-            existing = json.loads(state_path.read_text(encoding="utf-8")).get("topics", {})
-        except Exception:
-            existing = {}
-
-    topics = dict(existing)
-    created = []
-    skipped = []
+    topics = {}
     for item in cfg["topics"]:
-        key, name = item["key"], item["name"]
-        if key in topics and topics[key].get("message_thread_id"):
-            skipped.append(key)
-            continue
-        result = call(token, "createForumTopic", {"chat_id": chat_id, "name": name})
-        topics[key] = {"name": name, "message_thread_id": result["message_thread_id"]}
-        created.append(key)
+        result = call(token, "createForumTopic", {"chat_id": chat_id, "name": item["name"]})
+        topics[item["key"]] = {
+            "name": item["name"],
+            "message_thread_id": result["message_thread_id"]
+        }
 
     output = {
+        "config_version": cfg["version"],
         "group": chat_id,
         "group_title": chat.get("title"),
-        "is_forum": True,
         "topics": topics,
-        "routing": cfg.get("routing", {}),
-        "created": created,
-        "skipped": skipped,
+        "routing": cfg.get("routing", {})
     }
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print("SUCCESS: exactly", len(topics), "topics created")
     print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
