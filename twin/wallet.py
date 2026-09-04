@@ -51,12 +51,15 @@ class WalletSession:
         if event=="disconnect": self.active=False; self.needs_revalidation=True; return
         if event=="connect": self.active=False; self.needs_revalidation=True; self.authenticated=False; return
         if event=="accountsChanged":
+            self.active=False; self.needs_revalidation=True; self.authenticated=False
             accounts=list(payload or [])
-            if not accounts: self.account=None; self.active=False; self.needs_revalidation=True; return
-            new=normalize_address(str(accounts[0]))
-            if self.account!=new: self.account=new; self.active=False; self.needs_revalidation=True
+            if not accounts: self.account=None; return
+            self.account=normalize_address(str(accounts[0]))
             return
-        if event=="chainChanged": self.chain_id=parse_chain_id(payload); self.active=False; self.needs_revalidation=True; return
+        if event=="chainChanged":
+            self.active=False; self.needs_revalidation=True; self.authenticated=False
+            self.chain_id=parse_chain_id(payload)
+            return
         raise ValueError("unsupported wallet event")
 
 _REQUIRED_RPC_FIELDS={"provider_id","observed_at","latency_ms","chain_id","result","source"}
