@@ -115,7 +115,7 @@ def test_payment_projection_is_server_authority_bound_and_never_equates_settleme
 
 
 def test_protected_runtime_bridge_change_rolls_installed_pwa_shell_and_dynamic_truth_is_never_cached():
-    assert "const SHELL_VERSION='2.1.11'" in SW
+    assert "const SHELL_VERSION='2.1.12'" in SW
     assert "./assets/runtime-bridge.js" in SW
     assert "url.pathname.includes('/api/')" in SW
     assert "url.pathname.includes('/evidence/')" in SW
