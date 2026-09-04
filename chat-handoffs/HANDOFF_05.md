@@ -1,89 +1,72 @@
-# HANDOFF_05 — CRYPTO AID SUPER UI/UX/PWA — v1.7.0
+# HANDOFF_05 — CRYPTO AID UI/UX/PWA — v2.1.2
 
-cycle=20260902-1140  
-stage=05/06 UI_UX_PWA  
-owner=CHAT04_UI_UX_PWA  
-status=HANDOFF_READY_NO_GO_VERSION_SYNC_PENDING  
-release_state=NO_GO_CHAT03_VERSION_SYNC_CI_ORIGIN_DEVICE_SERIAL_GATES  
-shared_public_html_mutated=NO  
+cycle=20260902-1841
+stage=05/06 UI_UX_PWA
+owner=CHAT04_UI_UX_PWA
+growth_owner=CHAT09_GROWTH_MARKETING_PARTNERSHIP
+status=HANDOFF_READY_ENGINEERING_CANDIDATE_NO_GO
+release_state=NO_GO_GLOBAL_SERIAL_RUNTIME_QA_GATES
+branch=feat/chat04-sicid-login-freshmain-1642
+parent_main_observed=8a5666ced267acac8f4c638d204e40908d2e1e0b
+runtime_logic_test_head=3c510c75b0d2d77256ed43ab9d8a1ec6249dcb98
+ui_version=2.1.1
+pwa_shell_version=2.1.1
+shared_production_public_html_mutated=NO
 production_MASTER_mutated=NO
 
-## SYNC_INPUTS
+## P0 CLOSED IN THIS CYCLE — PRIVATE RECOVERY / PROFILE PROJECTION
 
-Global control-plane ownership/contracts fresh-read. Current Core consumer contract is v0.3.13; current CHAT02 Evidence+Payment is v0.6.7. Current-main CHAT03 Twin/Wallet/DAPPMAP contracts are 1.0.0. Knowledge MASTER V1 is present and consumed only as upstream baseline. No separately discoverable canonical CHAT06/07/08/09/10 handoff documents were available; no authority was invented.
+Fresh source review found a release-blocking privacy gap: Search and +CASE already required a LIVE SIC-ID projection, but Recovery and Profile did not. `renderRecovery()` could consume and render cached/stale `nextAction`, timeline and persisted payment presentation from `window.__CRYPTOAID_STATE__` even when SIC-ID was no longer LIVE. Profile could also show a non-LIVE cached SIC-ID string.
 
-A late concurrent CHAT03 handoff dated 20260902-1130 was then fresh-read from `feat/chat03-twin-wallet-sync-v1-1` / PR #3. It is readback-verified on GitHub/Drive, closes its Core v0.3.13/H03 v0.6.7 parent drift and proposes Twin/Wallet/DAPPMAP `1.1.0`. It explicitly detects this CHAT04 consumer pin at `1.0.0` and requires `VERSION_SYNC_REQUIRED_BEFORE_MERGE`. CHAT04 therefore does not silently consume the unmerged `1.1.0` contract; current main remains fail-closed on 1.0.0 until coordinated version sync/merge.
+UI 2.1.1 now fails closed:
 
-## CONTRACT_VERSIONS
+- protected routes are Search, +CASE, Recovery and Profile;
+- Recovery checks LIVE identity before consuming private Case projection fields;
+- without LIVE identity it renders only a locked TO_VERIFY state, disables Next Action, clears payment presentation with `renderPayment(null)` and does not read/render upstream nextAction/timeline values;
+- Profile displays the SIC-ID value only while the Core projection is LIVE;
+- a `caid:state-updated` transition from LIVE to non-LIVE ejects any protected view to HOME after the private projection is scrubbed;
+- wallet remains optional and is never identity.
 
-- Core: `0.3.13`.
-- Evidence/Payment: `0.6.7`.
-- Current-main Twin / Wallet matrix / DAPPMAP: `1.0.0`.
-- CHAT03 PR #3 proposed Twin / Wallet matrix / DAPPMAP: `1.1.0`, pending coordinated sync.
-- Knowledge baseline: `CRYPTOAID_KNOWLEDGE_MASTER_V1`, INGESTED; CHAT06 context-pack version unpinned/unavailable.
-- UI: `1.7.0`.
+Because this changes security-sensitive `app.js`, the PWA shell is advanced to `caid-shell-v2.1.1` so already-installed clients can refresh the privacy gate. Existing `skipWaiting()`, old-cache cleanup, `clients.claim()` and `/api/` `/evidence/` `/payment` cache exclusions remain unchanged.
 
-## UX_DELTA
+## GOLDEN PATH PRESENTATION
 
-Repo-native isolated candidate: `frontend/public_html/`.
+Landing → LIVE SIC-ID request/projection → Search → Twin/TO_VERIFY → +CASE 4-step → local-only Evidence preflight → upstream payment-state presentation → My Recovery → one Next Action → Profile.
 
-Affected routes/components:
+Navigation remains HOME | SEARCH | +CASE | RECOVERY | PROFILE. CONNECT WALLET remains persistent and optional. No frontend prices/payment verification/Case truth/Knowledge authority were introduced.
 
-- `#home`: white-dominant 9:16-friendly beginner landing, search-first CTA, safety principles, derived circuit/node/block motion.
-- header: persistent `CONNECT WALLET`, request adapter only.
-- `#search`: Twin adapter boundary, no-match => TO_VERIFY + +CASE continuation.
-- `#case`: four-step Situation/Project/Evidence/Review wizard; UNKNOWN beginner path; local SHA-256 Evidence preflight; no upload authority.
-- `#recovery`: Core-projected My Recovery, one primary Next Action, timeline and fail-closed payment-state presentation.
-- `#profile`: SIC-ID projection only and motion control.
-- bottom nav: exact `HOME | SEARCH | +CASE | RECOVERY | PROFILE`, red 58px central +CASE.
-- `sw.js`: explicit shell-only caching; API/Evidence/payment paths excluded.
-- `offline.html`: reconnect/resume guidance with no private Case/payment cache.
+## ENGINEERING EVIDENCE
 
-## OWNERSHIP / SAFETY PROOF
+- exact code/test head before handoff metadata: `3c510c75b0d2d77256ed43ab9d8a1ec6249dcb98`;
+- local `node --check` app.js PASS;
+- local `node --check` sw.js PASS;
+- local Python compile of `tests/test_frontend_contract.py` PASS;
+- focused privacy/PWA assertions 6/6 PASS;
+- full GitHub Actions CI on final metadata head must be read before promotion; isolated candidate evidence is not serial runtime acceptance.
 
-Static tests assert no frontend economic truth (`50 POL`, `450 POL`, `500 POL` absent), no `window.ethereum`, no `personal_sign`, no generic `eth_sendTransaction`. UI receives Case/SIC-ID/next-action/payment-intent state through projections/adapters. Payment display requires upstream `persisted=true`, `verified=true`, `expired=false`, plus upstream display amount/purpose. Transaction submission is explicitly not Case activation. Evidence is PRIVATE BY DEFAULT and only locally hashed here.
+## ACCESSIBILITY / PERFORMANCE
 
-## BROWSER_STATUS
+No HTML/CSS redesign or new framework/asset/tracker was introduced. Existing skip-link, focus-visible, heading focus transfer, 44px touch target, 390px overflow guard and reduced-motion contracts remain untouched. Real-browser keyboard/focus and performance remain factual Antigravity gates.
 
-Local static contract suite: 9/9 PASS. JS/SW syntax PASS. Manifest parse PASS.
+## AG COORDINATION
 
-Chromium injected-document probe PASS at 390×844 and 1440×900: no horizontal overflow (`scrollWidth` exactly viewport width); CONNECT top-right and 44px tall; +CASE 58×58; exact 5-item nav; Search miss visibly TO_VERIFY; Case route visible; focus outline 3px. Reduced-motion Chromium reports motion animation `none`.
+Do not credit isolated PR17 as final release evidence. On the single exact serial Golden SHA published by CHAT00, Antigravity must execute all prior 24 assertions plus:
 
-Real origin: `NOT_TESTED_RUNTIME_BLOCKED_CHROMIUM_URL_POLICY_ERR_BLOCKED_BY_ADMINISTRATOR`; actual Service Worker registration, installability and offline→reconnect remain NOT_TESTED. Physical MetaMask/TokenPocket/Reown remains HUMAN_GATE.
+25. PRIVATE PROJECTION DOM SCRUB: seed a synthetic non-LIVE projection containing a SIC-ID plus sensitive `nextAction`, timeline and persisted payment display values. Direct `#recovery` and `#profile` must fail closed to HOME/LOGIN_OR_RESUME; the DOM must not contain the stale SIC-ID, action title/description, timeline labels, payment amount or purpose. Then establish a LIVE SIC-ID projection and prove authorized rendering can occur. Transition LIVE → CACHED/TO_VERIFY and prove private values are scrubbed immediately and the protected view returns to HOME. Run at 390x844 and desktop; persist exact SHA, OS/browser/version, serve command, URL, timestamp, screenshots/hashes, DOM/network/console and Service Worker/cache state.
 
-Repository CI run `33616070813` failed before CHAT04 tests could execute because `tests/test_core_case_engine.py` imports `CaseError`, but current `core.case_engine` does not expose it. CHAT03 PR CI fails on the same CHAT01/Core collection regression. CHAT04 did not modify Core.
+No real signing/payment/transaction/deploy is authorized.
 
-## A11Y
+## GROWTH
 
-Skip link; labels/fieldset/legend; aria-live status; keyboard focus and radio focus; route heading focus; ≥44px controls; reduced-motion; 390px no overflow. Contrast on white: red ≈6.96:1, main ink ≈18.45:1, muted ≈6.06:1. Automated real-origin axe audit NOT_TESTED. Plugin catalog returned no matching accessibility/Playwright/PWA plugin; no installation performed.
+CHAT09 advances only to v0.4.1 contract alignment: privacy-safe conversion copy may invite the user to resume SIC-ID to see private Recovery/Profile state, but may not imply authentication success, purchase requirement, recovery guarantee, urgency or ROI. Feature freeze remains active; no campaign/runtime expansion occurred.
 
-## PERF
+## GLOBAL BLOCKERS
 
-Self-contained runtime: 7 files / 31,357 bytes total; CSS 9,171 B; JS 10,151 B; HTML 9,194 B; SVG 798 B; manifest 338 B; offline 736 B; SW 969 B. External runtime HTTP assets: 0. SHA-256 list is persisted in `frontend/SOURCE_MANIFEST.sha256`.
+1. CHAT00 exact serial Golden candidate containing this delta is not yet accepted/published.
+2. Antigravity real-origin assertions 1-25 are absent on the final serial SHA.
+3. CHAT05 full Golden Journey/privacy/security acceptance is pending.
+4. CHAT10 final package/manifest/backup/restore/rollback is pending.
+5. Physical wallet/sign/payment/tx/deploy remain HUMAN_GATE/NOT_TESTED.
 
-## COLLISIONS
-
-- CHAT03 PR #3 `1.1.0` proposal vs current-main CHAT04 `1.0.0` consumer pin: explicit version-sync gate.
-- CHAT00-owned `control/latest-state.json` is stale versus newer owner handoffs; not overwritten by CHAT04.
-- legacy dark `web3/ui/cryptoaid-brand.css` is not used as current white-dominant UI authority.
-- shared legacy production `public_html` remains DO_NOT_DEPLOY and untouched.
-
-## FIXED
-
-Frontend now has beginner-first progressive disclosure, upstream-only wallet and payment adapters, fail-closed TO_VERIFY Search, UNKNOWN Case choice, private local Evidence hash UX, one primary Next Action, dynamic truth labels, safe shell-only PWA caching, exact mobile nav, 390px overflow guard, focus-visible and reduced-motion. Late CHAT03 version drift is explicitly recorded instead of silently assumed compatible.
-
-## BLOCKED
-
-1. Coordinated CHAT03/CHAT04 contract version sync before PR #3 merge/final composition.
-2. CHAT01 Core `CaseError` public export mismatch keeps repository CI red.
-3. CHAT06/07/08/09/10 versioned canonical handoffs not discovered.
-4. Real-origin Chromium blocked by administrator URL policy; PWA origin tests remain NOT_TESTED.
-5. MetaMask/TokenPocket/Reown physical/origin tests remain HUMAN_GATE.
-6. No serial cutover to shared production `public_html`.
-
-## NEXT
-
-CHAT01 restores Core CI → CHAT03/CHAT04 complete 1.1.0 contract sync/compatibility gate → merge and fresh-read CHAT03 authority → publish missing CHAT06/CHAT10 versioned contracts → rerun CI → real-origin browser/PWA/accessibility → exact serial disposable composition → Stage06 release QA → HUMAN_GATE → production cutover only after GO.
-
-GLOBAL_RELEASE=NO_GO  
-READBACK_REQUIRED=YES
+GO_NO_GO: NO_GO_GLOBAL_SERIAL_RUNTIME_QA_GATES
+READBACK_REQUIRED: true

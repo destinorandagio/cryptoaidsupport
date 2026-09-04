@@ -86,10 +86,11 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
     payments.transition_payment(intent["intent_id"], "USER_ACTION_REQUIRED", "user action")
     payments.transition_payment(intent["intent_id"], "TX_OBSERVED", "synthetic observation")
     payments.transition_payment(intent["intent_id"], "VERIFYING", "provider verification")
-    payments.transition_payment(intent["intent_id"], "FINALITY_PENDING", "await confirmations")
+    payments.transition_payment(intent["intent_id"], "FINALITY_PENDING", "await deterministic finality")
 
     tx_hash = "0x" + "ab" * 32
     block_hash = "0x" + "cd" * 32
+    tx_block_number = 100
     observation = {
         "chain_id": 137,
         "from": payer,
@@ -101,12 +102,19 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
         "entitlement_ref": "ENT-GOLDEN-1",
         "tx_hash": tx_hash,
         "block_hash": block_hash,
+        "block_number": tx_block_number,
         "confirmations": 12,
         "required_confirmations": 2,
     }
     providers = [
-        {"tx_hash": tx_hash, "block_hash": block_hash, "receipt_status": 1},
-        {"tx_hash": tx_hash, "block_hash": block_hash, "receipt_status": 1},
+        {
+            "provider_id": "rpc_a", "tx_hash": tx_hash, "block_hash": block_hash,
+            "receipt_status": 1, "tx_block_number": tx_block_number, "finalized_block_number": 101,
+        },
+        {
+            "provider_id": "rpc_b", "tx_hash": tx_hash, "block_hash": block_hash,
+            "receipt_status": 1, "tx_block_number": tx_block_number, "finalized_block_number": 102,
+        },
     ]
     settled = payments.settle(intent["intent_id"], observation, providers)
     assert settled["verdict"] == "SETTLED" and settled["entitlement_granted"] is True
@@ -117,7 +125,15 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
     )
     assert active["state"] == "ACTIVE"
 
-    task = core.add_task(opened["case_id"], user["user_id"], "Submit recovery details", "OPEN_RECOVERY_CHECKLIST")
+    task = core.add_task(
+        opened["case_id"],
+        user["user_id"],
+        "Submit recovery details",
+        "OPEN_RECOVERY_CHECKLIST",
+        request_id="task-r1",
+        idempotency_key="task-i1",
+        expected_version=active["version"],
+    )
     assert task["next_action"] == "OPEN_RECOVERY_CHECKLIST"
 
     lookup = admin.user_lookup(roles=[ADMIN_ROLE], sic_id=user["sic_id"])
@@ -125,8 +141,10 @@ def test_mvp_golden_path_core_payment_admin(tmp_path: Path):
     summary = admin.case_summary(roles=[ADMIN_ROLE], case_id=opened["case_id"])
     assert summary["state"] == "ACTIVE" and summary["open_tasks"] == 1
     timeline = admin.crm_timeline(roles=[ADMIN_ROLE], sic_id=user["sic_id"])
-    assert timeline[0]["new_state"] == "ACTIVE"
-    assert timeline[0]["authorization"] == "ENTITLEMENT_GRANTED"
+    active_event = next(item for item in timeline if item["authorization"] == "ENTITLEMENT_GRANTED")
+    assert active_event["new_state"] == "ACTIVE"
+    assert timeline[0]["audit_event"] == "CASE_TASK_CREATED"
+    assert timeline[0]["case_version"] == task["version"]
 
     with pytest.raises(AdminError) as exc:
         admin.user_lookup(roles=[], sic_id=user["sic_id"])

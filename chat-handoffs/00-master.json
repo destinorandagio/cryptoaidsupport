@@ -1,27 +1,58 @@
 {
-  "CHAT_ID":"CHAT00",
-  "DOMAIN":"MASTER_CTO_GLOBAL_ORCHESTRATOR",
-  "TIMESTAMP":"2026-09-02T18:24:00+02:00",
-  "VERSION":"0.8.0",
-  "PARENT_VERSION":"0.7.0",
-  "GIT_SHA":"4223c3a01b8b7c9e1c58e5590259d2db891a4b49",
-  "INPUT_VERSIONS":{"MAIN":"b54a84576550fa7fa6af65ac4b33ca71493d890e","CHAT01_08_PR26":"fe13ef0fd98b0ce1c399cb52eb213f123f0745d5","CHAT07_PR24":"b2c29c2937838e51926ca43dc9a75ef65e6f8299","CHAT02_PR8":"58d06fc0a2dbbaf0c60e7a242807b7245b4f19e2","CHAT10_PAYMENT_CONTRACT_PR23":"97ab885dd49151db48a2d6385acb0d293d58fa57"},
-  "OUTPUT_VERSION":"0.8.0",
-  "FILES_CHANGED":["control/latest-state.json","chat-handoffs/00-master.json"],
-  "CONTRACTS_CHANGED":["fresh serial pre-candidate scope pinned to exact CHAT01/08 owner blobs","Antigravity full Golden held until payment P0 and full serial tuple close"],
-  "SCHEMA_CHANGED":false,
-  "STATE":"INTEGRATED",
-  "SYNC_INPUTS":["current main","PR26","PR24","PR23","latest CHAT00 handoff","latest QA handoff","canonical Antigravity runtime task"],
-  "BUILT":["branch integration/chat00-p0-20260902-1819-fix2","draft PR27","fresh Core/Admin support authorization composition on current main","Drive Antigravity task refresh"],
-  "TESTED":["PR27 exact-head CI"],
-  "TEST_PASS":["CI run 33654464268 SUCCESS on 093df1017e5f47ebceda287265e5d5b85402b027"],
-  "TEST_FAIL":[],
-  "NOT_TESTED":["PR27 local target runtime","full Golden Journey","CHAT02 repaired payment idempotency semantics","production origin","real wallet","real payment","production deploy"],
-  "FIXED":["retired stale PR10 as current candidate","recomposed exact owner blobs after main advanced during build"],
-  "BLOCKERS":["payment idempotency binding P0","finalized-boundary settlement proof","durable support transport","full fresh serial tuple","real-origin PWA Golden E2E","final package/rollback/restore","CHAT05 final acceptance"],
-  "DEPENDENCIES":["CHAT02 owner repair","CHAT07 durable transport","CHAT03/06 Search/Twin accepted input","CHAT04 LIVE SIC-ID/UI accepted input","CHAT10 package/runtime","CHAT05 final QA"],
-  "COLLISIONS":["main advances concurrently; every candidate must be rebuilt on fresh main before acceptance","AI gateway on main requires fail-closed privacy boundaries before Telegram/runtime enablement"],
-  "HUMAN_GATES":["real wallet signing","real payment/transaction","production secrets","production deploy","public cutover"],
-  "NEXT":["consume CHAT02 repaired exact head when persisted and green","compose accepted PR19 + Core/Admin + CHAT02 + Search/Twin + LIVE SIC-ID/UI + Support/Admin on one fresh main","run full exact-head CI","release exact head to Antigravity for real-origin/browser/PWA acceptance","CHAT05 independent final gate"],
-  "GO_NO_GO":"NO_GO"
+  "CHAT_ID": "CHAT00",
+  "DOMAIN": "MASTER_CTO_GLOBAL_ORCHESTRATOR",
+  "TIMESTAMP": "2026-09-02T19:10:00+02:00",
+  "VERSION": "1.1.0-candidate",
+  "PARENT_VERSION": "0.8.0",
+  "BASE_MAIN_SHA": "8a5666ced267acac8f4c638d204e40908d2e1e0b",
+  "BRANCH": "integration/chat00-golden-20260902-1900",
+  "PRE_HANDOFF_COMPOSED_SHA": "b6f898880ca4a645ed865626e3c5a337c2cbaf46",
+  "INPUTS": {
+    "CHAT03_06_PR6": "4ffe0d5662c1594af8bca81975057390e2634060",
+    "CHAT01_08_PR26": "06c88f9f5710ae817ecb1458d6177b4f4aef14c8",
+    "CHAT02_PR8": "735458d2969a4503cedad8d7016bbcff5b2dc59d",
+    "CHAT04_09_PR17": "9118af2cfbfcab69fe60cad1282bccc229d2fd4b",
+    "CHAT07_PR31": "07452363ff09bf80163d0af4900874a086046e72",
+    "CHAT00_10_PR19": "82239db8455777555e4980fe1b10201f2c17d896",
+    "HANDOFF_06": "20260902-1830-v1.1-delta"
+  },
+  "STATE": "ONE_HEAD_SERIAL_CANDIDATE_BUILT_CI_PENDING",
+  "BUILT": [
+    "fresh-main integration branch",
+    "serial composition of accepted/review-only owner candidates without owner-branch modification",
+    "payment-authority/deployer quarantine included",
+    "one-head Golden candidate control tuple"
+  ],
+  "CLOSED_THIS_RUN": [
+    "absence of any one-head serial Golden engineering candidate",
+    "current-main external-AI default-on exposure within the candidate via PR31 composition",
+    "Evidence lineage/idempotency/privacy owner deltas are now present on one candidate SHA"
+  ],
+  "BLOCKERS": [
+    "final exact-head CI and workflow matrix must pass after this handoff update",
+    "CHAT02+CHAT05 semantic acceptance of P0-016 authority quarantine remains required",
+    "authenticated durable Case-linked Telegram support transport remains incomplete",
+    "Antigravity exact-head local runtime/filesystem/browser/PWA evidence absent",
+    "final canonical public_html recursive hygiene/package/backup/restore/rollback absent",
+    "CHAT05 full Golden Journey and mandatory negatives not executed"
+  ],
+  "NOT_TESTED": [
+    "target-host runtime",
+    "production private Evidence filesystem",
+    "independent production Polygon providers",
+    "real-origin 390x844/desktop/a11y/PWA",
+    "physical wallet adapters",
+    "real sign/payment/tx/deploy"
+  ],
+  "COLLISIONS": [
+    "ledger contains historical duplicate lock IDs 0132 and 0135; all observed conflicting rows are released",
+    "main remains unprotected and can advance; candidate must be fresh-diffed before any later promotion"
+  ],
+  "HUMAN_GATES": ["real wallet signing", "real payment/transaction", "production secrets", "production deploy", "public cutover"],
+  "NEXT": [
+    "run final exact-head CI/workflow matrix on draft PR to main",
+    "issue exact SHA to Antigravity for local runtime/browser/PWA acceptance",
+    "CHAT05 Golden QA then CHAT10 final clean package/rollback/restore"
+  ],
+  "GO_NO_GO": "NO_GO"
 }

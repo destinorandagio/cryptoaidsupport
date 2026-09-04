@@ -1,143 +1,64 @@
 {
   "CHAT_ID": "10",
   "DOMAIN": "DEVOPS_CI_CD_INFRA_OBSERVABILITY_RELIABILITY",
-  "TIMESTAMP": "2026-09-02T16:22:00Z",
-  "VERSION": "0.5.0",
-  "PARENT_VERSION": "0.4.0",
-  "GIT_SHA": "b54a84576550fa7fa6af65ac4b33ca71493d890e",
-  "INPUT_VERSIONS": {
-    "MASTER_HANDOFF": "chat-handoffs/00-master.json@main",
-    "CHAT10_PREVIOUS": "0.4.0",
-    "MAIN_BEFORE_BUILD": "1f6379b4e236901cf8e4b0812582f65f01a3a417",
-    "EXACT_INTEGRATION_PR": "PR10@f36f00d5cb1c310b6dde24d482cd06c296735c3e",
-    "RELEASE_SCRIPT": "scripts/mvp_release_candidate.py@aa97227def83d57f6372c35650bc873d83bbe7b0"
+  "TIMESTAMP": "2026-09-02T19:11:00+02:00",
+  "VERSION": "0.8.0-candidate",
+  "PARENT_VERSION": "0.7.0",
+  "BRANCH": "integration/chat00-golden-20260902-1900",
+  "BASE_MAIN_SHA": "8a5666ced267acac8f4c638d204e40908d2e1e0b",
+  "PRE_HANDOFF_COMPOSED_SHA": "b6f898880ca4a645ed865626e3c5a337c2cbaf46",
+  "STATE": "ONE_HEAD_SERIAL_RC_CI_PENDING",
+  "CI_VERSION": "CI_MAIN_v1+AUTHORITY_GUARD+CHAT03_CONTRACT+ACQUISITION_SAFETY+RC_PACKAGE",
+  "RUNTIME_VERSION": "github-ubuntu-24.04/python-3.12/php-8.3-baseline",
+  "COMPOSED_INPUTS": {
+    "PR6": "4ffe0d5662c1594af8bca81975057390e2634060",
+    "PR26": "06c88f9f5710ae817ecb1458d6177b4f4aef14c8",
+    "PR8": "735458d2969a4503cedad8d7016bbcff5b2dc59d",
+    "PR17": "9118af2cfbfcab69fe60cad1282bccc229d2fd4b",
+    "PR31": "07452363ff09bf80163d0af4900874a086046e72",
+    "PR19": "82239db8455777555e4980fe1b10201f2c17d896"
   },
-  "OUTPUT_VERSION": "CHAT10_RC_PIPELINE_v1.0",
-  "FILES_CHANGED": [
-    ".github/workflows/release-candidate.yml",
-    "chat-handoffs/10-devops-infra.json"
-  ],
-  "CONTRACTS_CHANGED": [
-    "CHAT10 release candidate artifact contract: deterministic package + manifest + restore verification + explicit no-deploy human gate"
-  ],
-  "SCHEMA_CHANGED": false,
-  "STATE": "TESTED",
-  "CI_VERSION": "CI_MAIN_v1+CHAT10_RC_PIPELINE_v1.0",
-  "RUNTIME_VERSION": "python-3.12.14/github-ubuntu-24.04",
-  "ENV_VERSION": "GITHUB_ACTIONS_STAGING_ONLY_v1",
-  "OBSERVABILITY_VERSION": "RC_MANIFEST_v1.0",
-  "BACKUP_VERSION": "RC_ARTIFACT_RETENTION_14D_v1",
+  "BUILD_STATUS": "SERIAL_CANDIDATE_BUILT_FINAL_CI_PENDING",
+  "HEALTH_STATUS": "CURRENT_MAIN_CI_GREEN_TARGET_RUNTIME_NOT_VERIFIED",
+  "BACKUP_STATUS": "STAGING_RC_ARTIFACT_PIPELINE_PREVIOUSLY_GREEN_NOT_FINAL_COMPOSED_BACKUP",
+  "RESTORE_STATUS": "DISPOSABLE_RUNNER_SMOKE_PREVIOUSLY_GREEN_FINAL_EXACT_HEAD_PENDING",
+  "ROLLBACK_STATUS": "NOT_TESTED_TARGET_HOST",
   "BUILT": [
-    "Release Candidate Package workflow",
-    "deterministic PWA shell package",
-    "PWA content manifest",
-    "release metadata manifest",
-    "restore verification evidence",
-    "GitHub Actions artifact"
-  ],
-  "TESTED": [
-    "workflow run 33654401860 completed success",
-    "package-verify job 100329222701 success",
-    "deterministic package creation",
-    "manifest creation",
-    "restore verification",
-    "artifact upload",
-    "production deploy absence"
-  ],
-  "TEST_PASS": {
-    "release_candidate_workflow": true,
-    "file_count": 7,
-    "content_manifest_sha256": "c9205d5b323a97df69f3eb63fd8f0c5958ec27bf340a30937d348f07e0abbf01",
-    "package_sha256": "8beabe660c26a3ca040262aaaf0a887009158270df819c502f6facb8e17ff05b",
-    "restored_manifest_sha256": "c9205d5b323a97df69f3eb63fd8f0c5958ec27bf340a30937d348f07e0abbf01",
-    "release_manifest_file_sha256": "24cd0cff41d34a7d179a3ec1f7373afa28e4ce12cb270079f56144e7ff083ab2",
-    "artifact_id": 9856083531,
-    "artifact_bundle_sha256": "8a4645e644309d7dfbcf1aee1faf1308f70e8919cc52eb17b079b9bee8b9fe1d",
-    "restore_verified": true,
-    "deploy_performed": false
-  },
-  "TEST_FAIL": [],
-  "NOT_TESTED": [
-    "target-host deployment",
-    "production environment",
-    "production secrets",
-    "real wallet signing",
-    "real payment/transaction",
-    "full canonical public_html composed release",
-    "rollback on target host",
-    "full Golden Journey on exact integrated candidate"
-  ],
-  "FIXED": [
-    "missing dedicated reproducible release-candidate packaging pipeline",
-    "missing artifacted release manifest for PWA shell",
-    "missing automated restore verification in dedicated release workflow"
+    "one exact serial integration branch",
+    "fail-closed Case-payment authority quarantine in deployment plan/manifest/deployer/exporter",
+    "PWA shell privacy candidate",
+    "reproducible package/restore tooling retained"
   ],
   "BLOCKERS": [
-    "QA05-P0-010 Core replay subject/payload binding",
-    "QA05-P0-013 Polygon finalized-boundary settlement",
-    "Antigravity real-origin runtime/browser/PWA evidence on accepted exact head",
-    "CHAT05 full exact-candidate Golden Journey",
-    "canonical public_html recursive release hygiene and final composed package",
-    "target-host rollback/restore evidence",
-    "durable authenticated Case-linked support/admin delivery"
+    "final exact-head CI/workflow matrix pending",
+    "P0-016 semantic owner+QA acceptance pending",
+    "authenticated durable Case-linked support transport pending",
+    "Antigravity local PHP/SQLite/private-Evidence/browser/PWA evidence pending",
+    "final canonical public_html recursive hygiene and full composed package pending",
+    "target-host backup/rollback/restore evidence pending",
+    "CHAT05 Golden Journey pending"
   ],
-  "DEPENDENCIES": [
-    "CHAT00 MASTER acceptance",
-    "CHAT05 independent QA/security gate",
-    "domain-owner acceptance for PR10 composition",
-    "Antigravity local/runtime evidence"
-  ],
-  "COLLISIONS": [
-    "PR10 remains open draft REVIEW_ONLY while main has advanced beyond its original base"
-  ],
-  "HUMAN_GATES": [
-    "production deploy",
+  "NOT_TESTED": [
+    "target-host runtime/deployment",
+    "real wallet signing/payment/transaction",
     "production secrets",
-    "DNS/public cutover",
-    "real wallet/device signing",
-    "real payment/transaction",
-    "irreversible infrastructure changes"
+    "production private Evidence filesystem",
+    "real independent Polygon providers",
+    "exact final real-origin browser/PWA/a11y",
+    "production rollback/restore"
   ],
-  "BUILD_STATUS": "PASS_STAGING_PWA_SHELL_ONLY",
-  "HEALTH_STATUS": "CI_RELEASE_PIPELINE_HEALTHY_TARGET_RUNTIME_NOT_VERIFIED",
-  "TEST_STATUS": "PASS_FOR_CHAT10_RC_PIPELINE_SCOPE",
-  "BACKUP_STATUS": "ARTIFACT_CREATED_RETENTION_14D_NOT_PRODUCTION_BACKUP",
-  "RESTORE_STATUS": "PASS_DISPOSABLE_GITHUB_RUNNER",
-  "ROLLBACK_STATUS": "NOT_TESTED_TARGET_HOST",
+  "HUMAN_GATES": ["production deploy", "production secrets", "DNS/public cutover", "real wallet signing", "real payment/transaction"],
+  "ANTIGRAVITY_REQUIREMENTS": [
+    "test only the final exact candidate SHA supplied after CI",
+    "persist OS/runtime/browser versions, exact commands, exit codes, timestamp and SHA",
+    "prove SQLite integrity/FK, private Evidence containment/race/no-orphan bytes, sandbox settlement negatives",
+    "prove real-origin 390x844 + desktop + PWA install/offline/reconnect + console/network evidence",
+    "no production deploy, real signing, real payment, real transaction or secret disclosure"
+  ],
   "NEXT": [
-    "Antigravity: execute real-origin runtime/browser/PWA verification against the accepted exact head and return commands, exit codes, screenshots/results, git diff and blockers",
-    "CHAT05: independently verify Golden Journey and security blockers before release",
-    "CHAT10: once an accepted integrated head is frozen, run final composed package, backup, restore and rollback evidence without production deploy"
+    "open draft Golden PR to main and collect all exact-head checks",
+    "if green, retarget shared Antigravity runtime task to exact SHA",
+    "after CHAT05 acceptance build final clean package + manifest + backup/restore/rollback evidence"
   ],
-  "GO_NO_GO": "NO_GO_PRODUCTION__GO_CHAT10_CONTINUE",
-  "antigravity_task": {
-    "target": "ANTIGRAVITY",
-    "action": "TEST_VERIFY",
-    "scope": [
-      "accepted exact integrated head only",
-      "real local origin",
-      "browser PWA installability/offline shell",
-      "runtime startup/restart",
-      "health endpoints/services where present",
-      "rollback rehearsal in disposable/local environment"
-    ],
-    "expected_evidence": [
-      "exact git sha",
-      "commands executed",
-      "exit codes",
-      "test results",
-      "browser viewport/results",
-      "runtime logs with secrets redacted",
-      "files changed if any",
-      "git diff",
-      "blockers"
-    ],
-    "forbidden": [
-      "production deploy",
-      "real transaction",
-      "real payment",
-      "real signing",
-      "secret disclosure"
-    ]
-  }
+  "GO_NO_GO": "NO_GO"
 }

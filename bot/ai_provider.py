@@ -1,7 +1,8 @@
 """CryptoAID optional AI provider layer.
 
-Server-side only. Never expose provider API keys to browser/client code.
-The provider is an accelerator for synthesis, not a source of truth.
+External AI is an optional synthesis accelerator, never a source of truth.
+The 48H MVP keeps it explicit-opt-in and fails closed before network I/O when
+user text looks secret, private, identifying, or Case/evidence-like.
 """
 from __future__ import annotations
 
@@ -14,10 +15,23 @@ import httpx
 
 DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-SECRET_PATTERNS = [
-    re.compile(r"\b(?:seed phrase|private key|password|2fa|otp)\b", re.I),
-    re.compile(r"\b0x[a-fA-F0-9]{64}\b"),
-]
+_SECRET_TERM_RE = re.compile(
+    r"\b(seed\s*phrase|mnemonic|private\s*key|secret\s*key|password|passphrase|2fa|otp|one[- ]time\s+code)\b",
+    re.I,
+)
+_RAW_PRIVATE_KEY_RE = re.compile(r"\b(?:0x)?[0-9a-fA-F]{64}\b")
+_EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)
+_PHONE_RE = re.compile(r"(?<!\w)\+?\d[\d .()\/-]{7,}\d(?!\w)")
+_WALLET_RE = re.compile(r"\b0x[0-9a-fA-F]{40}\b")
+_URL_RE = re.compile(r"https?://\S+", re.I)
+_CASE_LIKE_RE = re.compile(
+    r"\b(case|incident|evidence|scam(?:med)?|hack(?:ed)?|stolen|"
+    r"lost\s+(?:funds|crypto|tokens?)|transaction\s+hash|tx\s+hash|"
+    r"recovery\s+(?:case|request))\b",
+    re.I,
+)
+_WORD_RE = re.compile(r"[A-Za-z]+")
+_MNEMONIC_LENGTHS = {12, 15, 18, 21, 24}
 
 
 class AIUnavailable(RuntimeError):
@@ -31,26 +45,55 @@ class AIResponse:
     model: str
 
 
+def _looks_like_mnemonic(text: str) -> bool:
+    """Conservative fail-closed detector for unlabeled mnemonic-like input."""
+    value = (text or "").strip()
+    words = _WORD_RE.findall(value)
+    if len(words) not in _MNEMONIC_LENGTHS:
+        return False
+    non_words = _WORD_RE.sub("", value)
+    return not re.search(r"[^\s,;:-]", non_words)
+
+
+def external_ai_safe_user_message(text: str) -> bool:
+    """Return True only for short, generic, non-identifying/non-Case user text."""
+    value = (text or "").strip()
+    if not value or len(value) > 500:
+        return False
+    if _SECRET_TERM_RE.search(value) or _RAW_PRIVATE_KEY_RE.search(value):
+        return False
+    if _looks_like_mnemonic(value):
+        return False
+    if _EMAIL_RE.search(value) or _PHONE_RE.search(value):
+        return False
+    if _WALLET_RE.search(value) or _URL_RE.search(value):
+        return False
+    if _CASE_LIKE_RE.search(value):
+        return False
+    return True
+
+
 def redact(text: str) -> str:
+    """Defense-in-depth redaction for verified context and allowed generic text."""
     value = text or ""
-    for pattern in SECRET_PATTERNS:
+    for pattern in (_RAW_PRIVATE_KEY_RE, _EMAIL_RE, _PHONE_RE, _WALLET_RE):
         value = pattern.sub("[REDACTED]", value)
+    value = _SECRET_TERM_RE.sub("[REDACTED]", value)
     return value[:6000]
 
 
 def enabled() -> bool:
-    return bool(os.getenv("GROQ_API_KEY")) and os.getenv("AI_ENABLED", "true").lower() == "true"
+    """External AI is disabled unless operators explicitly opt in and provide a key."""
+    return bool(os.getenv("GROQ_API_KEY")) and os.getenv("AI_ENABLED", "false").lower() == "true"
 
 
 async def synthesize(*, verified_context: str, user_message: str, language: str = "en") -> AIResponse:
-    """Synthesize a response strictly from verified context.
-
-    Groq is never allowed to create project facts. If no key exists or provider fails,
-    callers must fall back to deterministic knowledge output.
-    """
+    """Synthesize strictly from verified context, with fail-closed privacy gate."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key or not enabled():
         raise AIUnavailable("groq_disabled_or_missing")
+    if not external_ai_safe_user_message(user_message):
+        raise AIUnavailable("sensitive_or_case_like_input")
 
     safe_context = redact(verified_context)
     safe_user = redact(user_message)
