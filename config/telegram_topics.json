@@ -1,7 +1,10 @@
 {
-  "version": 3,
+  "version": 4,
   "group": "@cryptoAIDsupporter",
-  "topics": [
+  "preexisting_topics": [
+    {"key":"security","name":"🚨 SECURITY & SCAM"}
+  ],
+  "create_topics": [
     {"key":"general","name":"🏠 GENERAL"},
     {"key":"support","name":"🆘 CRYPTOAID SUPPORT"},
     {"key":"trade_ai","name":"🤖 TRADE AI"},
@@ -19,9 +22,9 @@
     "support":"support",
     "case_report":"support",
     "search":"support",
-    "security_alert":"support",
-    "risk_rejection":"support",
-    "scam_report":"support",
+    "security_alert":"security",
+    "risk_rejection":"security",
+    "scam_report":"security",
     "paper_trade":"trade_ai",
     "trade_result":"trade_ai",
     "performance":"trade_ai",
