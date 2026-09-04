@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import scripts.audit_payment_idempotency_aliases_v14 as audit_v14
 from scripts.audit_payment_idempotency_aliases_v14 import audit_db
 
 
@@ -106,6 +107,8 @@ def test_qa42_direct_case_binding_to_activation_fails_closed(tmp_path: Path) -> 
     assert result["direct_operation_mismatches"] == 1
     assert result["direct_economic_invariant_mismatches"] == 1
     assert result["direct_semantic_failures"] == 2
+    assert result["interphase_source_stable"] is True
+    assert len(result["interphase_comparison_sha256"]) == 64
     assert "never-print-direct-key" not in json.dumps(result)
     assert hashlib.sha256(db.read_bytes()).hexdigest() == before
 
@@ -127,7 +130,7 @@ def test_qa42_direct_case_wrong_economics_fails_closed(tmp_path: Path) -> None:
     assert "direct-case-key" not in json.dumps(result)
 
 
-def test_valid_direct_case_binding_passes_v14(tmp_path: Path) -> None:
+def test_valid_direct_case_binding_passes_v15_interphase_fence(tmp_path: Path) -> None:
     db = tmp_path / "direct-valid.sqlite"
     conn = _make_db(db)
     _binding(conn, "valid-direct-key", "CASE")
@@ -139,13 +142,51 @@ def test_valid_direct_case_binding_passes_v14(tmp_path: Path) -> None:
 
     assert code == 0
     assert result["status"] == "PASS"
-    assert result["contract"] == "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_4"
+    assert result["contract"] == "CHAT10_TARGETDB_IDEMPOTENCY_ALIAS_AUDIT_V1_5"
     assert result["resolution_count"] == 0
     assert result["direct_operation_mismatches"] == 0
     assert result["direct_economic_invariant_mismatches"] == 0
     assert result["direct_semantic_failures"] == 0
     assert result["source_stable"] is True
+    assert result["interphase_source_stable"] is True
     assert result["v14_source_stable"] is True
+    assert len(result["interphase_comparison_sha256"]) == 64
+    assert (
+        result["interphase_source_stability_contract"]
+        == "V1_3_DATABASE_AFTER_EQUALS_V1_4_DATABASE_BEFORE_DB_WAL_V1"
+    )
+
+
+def test_interphase_db_wal_mismatch_fails_before_direct_phase(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db = tmp_path / "interphase-drift.sqlite"
+    conn = _make_db(db)
+    _binding(conn, "safe-direct-key", "CASE")
+    _case(conn, "pi_case", "safe-direct-key")
+    conn.commit()
+    conn.close()
+    before_digest = hashlib.sha256(db.read_bytes()).hexdigest()
+
+    original_audit = audit_v14.v13.audit_db
+    base_result, base_code = original_audit(db)
+    assert base_code == 0
+    altered = json.loads(json.dumps(base_result))
+    altered["database_after"]["database"]["sha256"] = "0" * 64
+
+    def split_snapshot_result(_db):
+        return altered, 0
+
+    monkeypatch.setattr(audit_v14.v13, "audit_db", split_snapshot_result)
+
+    result, code = audit_v14.audit_db(db)
+
+    assert code == 23
+    assert result["status"] == "SOURCE_CHANGED_BETWEEN_PHASES"
+    assert result["interphase_source_stable"] is False
+    assert len(result["interphase_comparison_sha256"]) == 64
+    assert "direct_semantic_failures" not in result
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before_digest
 
 
 def test_v14_preserves_v13_provenance_required(tmp_path: Path) -> None:
@@ -166,6 +207,7 @@ def test_v14_preserves_v13_provenance_required(tmp_path: Path) -> None:
     assert code == 25
     assert result["status"] == "PROVENANCE_REQUIRED"
     assert result["direct_semantic_failures"] == 0
+    assert result["interphase_source_stable"] is True
     assert "never-print-provenance-alias" not in json.dumps(result)
 
 
@@ -188,5 +230,6 @@ def test_cli_v14_never_emits_raw_direct_key(tmp_path: Path) -> None:
     payload = json.loads(completed.stdout)
     assert payload["direct_operation_mismatches"] == 1
     assert payload["status"] == "MIGRATION_REQUIRED"
+    assert payload["interphase_source_stable"] is True
     assert "cli-secret-direct-key" not in completed.stdout
     assert completed.stderr == ""
