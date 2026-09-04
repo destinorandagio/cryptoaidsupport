@@ -22,6 +22,20 @@ def _run_chain_normalizer(value):
     return json.loads(completed.stdout)
 
 
+def _run_account_normalizer(value):
+    node = shutil.which("node")
+    assert node, "Node.js is required for executable wallet account validation coverage"
+    line = next(line for line in BRIDGE.splitlines() if line.startswith("const normalizeAccount="))
+    script = f"{line}\nprocess.stdout.write(JSON.stringify(normalizeAccount(JSON.parse(process.argv[1]))));"
+    completed = subprocess.run(
+        [node, "-e", script, json.dumps(value)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(completed.stdout)
+
+
 def _run_wallet_event_transition(kind, payload):
     node = shutil.which("node")
     assert node, "Node.js is required for executable wallet lifecycle coverage"
@@ -69,6 +83,45 @@ def test_wallet_chain_parsing_is_fail_closed_for_polygon_137():
     assert _run_chain_normalizer("137") == 137
     assert _run_chain_normalizer("0x1") == 1
     assert _run_chain_normalizer("not-a-chain") is None
+
+
+def test_wallet_provider_chain_id_requires_complete_grammar_without_prefix_junk():
+    for malformed in [
+        "0x89garbage",
+        "137garbage",
+        "0x89zz",
+        "0x89.1",
+        "137.0",
+        "0x",
+        "",
+        None,
+        {},
+        [],
+    ]:
+        assert _run_chain_normalizer(malformed) is None
+
+
+def test_wallet_provider_account_requires_exact_evm_address_before_live():
+    good = "0x" + ("ab" * 20)
+    assert _run_account_normalizer(good) == good
+    for malformed in [
+        "not-an-address",
+        "0xB",
+        "0x123",
+        "0x" + ("ab" * 19),
+        "0x" + ("ab" * 21),
+        "0x" + ("gg" * 20),
+        " " + good,
+        good + " ",
+        "",
+        None,
+        {},
+        [],
+    ]:
+        assert _run_account_normalizer(malformed) is None
+
+    connect = BRIDGE.split("async function connectWallet", 1)[1].split("window.addEventListener('caid:sicid-login-request'", 1)[0]
+    assert "normalizeAccount(accounts[0])" in connect
 
 
 def test_runtime_auth_boundary_and_handled_errors_are_visible():
