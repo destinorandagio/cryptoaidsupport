@@ -36,6 +36,7 @@ def _run_connect_race(mode):
             "class Provider{",
             "  constructor(mode){this.mode=mode;this.handlers=new Map();}",
             "  on(name,fn){const list=this.handlers.get(name)||[];list.push(fn);this.handlers.set(name,list);}",
+            "  removeListener(name,fn){const list=this.handlers.get(name)||[];this.handlers.set(name,list.filter(item=>item!==fn));}",
             "  emit(name,payload){for(const fn of this.handlers.get(name)||[])fn(payload);}",
             "  request({method}){",
             "    if(method==='eth_requestAccounts'){",
