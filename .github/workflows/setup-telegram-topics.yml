@@ -1,0 +1,37 @@
+name: Setup Telegram Topics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: setup-telegram-topics
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Create / reconcile Telegram forum topics
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: '@cryptoAIDsupporter'
+        run: python scripts/setup_telegram_topics.py
+      - name: Persist topic thread IDs
+        run: |
+          if git diff --quiet -- data/telegram_topics.runtime.json; then
+            echo "No topic registry changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/telegram_topics.runtime.json
+          git commit -m "chore(telegram): persist forum topic thread ids"
+          git push
