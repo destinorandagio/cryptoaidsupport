@@ -1,0 +1,20 @@
+name: Telegram Admin Audit
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * *'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit bot permissions on group and channel
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: '@cryptoAIDsupporter'
+          TELEGRAM_CHANNEL_ID: '@cryptoaidsup'
+        run: python scripts/telegram_admin_audit.py
