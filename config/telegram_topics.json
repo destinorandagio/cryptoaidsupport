@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "group": "@cryptoAIDsupporter",
+  "topics": [
+    {"key":"hub","name":"🏠 CRYPTOAID HUB"},
+    {"key":"support_recovery","name":"🆘 SUPPORT & RECOVERY"},
+    {"key":"search","name":"🔎 DAPP · TOKEN · WALLET SEARCH"},
+    {"key":"security_alerts","name":"🚨 SCAM & SECURITY ALERTS"},
+    {"key":"report_case","name":"🧾 REPORT A SCAM / CASE"},
+    {"key":"trade_ai","name":"🤖 TRADE AI"},
+    {"key":"ai_signals","name":"📡 AI SIGNALS"},
+    {"key":"paper_trading","name":"💹 PAPER & AUTO TRADING"},
+    {"key":"market_intelligence","name":"📊 MARKET INTELLIGENCE"},
+    {"key":"trade_risk","name":"🛡️ TRADE RISK"},
+    {"key":"performance","name":"🏆 PERFORMANCE"},
+    {"key":"web3_knowledge","name":"🧠 WEB3 KNOWLEDGE"},
+    {"key":"lab","name":"🧪 CRYPTOAID LAB"},
+    {"key":"news_ecosystem","name":"📢 NEWS & ECOSYSTEM"},
+    {"key":"ideas_feedback","name":"💡 IDEAS & FEEDBACK"},
+    {"key":"community","name":"💬 COMMUNITY"}
+  ],
+  "routing": {
+    "security_alert":"security_alerts",
+    "case_report":"report_case",
+    "support":"support_recovery",
+    "search":"search",
+    "trade_signal":"ai_signals",
+    "paper_trade":"paper_trading",
+    "market_scan":"market_intelligence",
+    "risk_rejection":"trade_risk",
+    "trade_result":"performance",
+    "knowledge":"web3_knowledge",
+    "lab":"lab",
+    "release":"news_ecosystem",
+    "feedback":"ideas_feedback",
+    "community":"community"
+  }
+}
