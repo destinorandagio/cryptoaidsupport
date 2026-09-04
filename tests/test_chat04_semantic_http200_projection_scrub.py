@@ -87,4 +87,4 @@ def test_all_protected_projection_consumers_use_fail_closed_publisher():
 def test_semantic_projection_fix_requires_precached_bridge_rollover():
     sw = (ROOT / "frontend" / "public_html" / "sw.js").read_text()
     assert "./assets/runtime-bridge.js" in sw
-    assert "const SHELL_VERSION='2.1.11'" in sw
+    assert "const SHELL_VERSION='2.1.12'" in sw
