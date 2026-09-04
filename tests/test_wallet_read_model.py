@@ -50,3 +50,28 @@ def test_malformed_wallet_event_invalidates_active_session_before_payload_parse(
     assert s.authenticated is False
     s.bind("0x"+"ab"*20,137)
     assert s.active is True and s.chain_id==137 and s.needs_revalidation is False
+
+@pytest.mark.parametrize("bad_account,bad_chain",[("not-an-address",137),("0x"+"ab"*20,"0x89junk")])
+def test_malformed_bind_invalidates_previously_active_authenticated_session_before_parse(bad_account,bad_chain):
+    s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1")
+    s.bind("0x"+"ab"*20,137)
+    s.authenticated=True
+    with pytest.raises(ValueError):
+        s.bind(bad_account,bad_chain)
+    assert s.active is False
+    assert s.authenticated is False
+    assert s.needs_revalidation is True
+    assert s.account is None
+    assert s.chain_id is None
+
+def test_wrong_chain_bind_clears_prior_authentication_and_never_preserves_active_session():
+    s=WalletSession("sic-1","550e8400-e29b-41d4-a716-446655440000","p1")
+    s.bind("0x"+"ab"*20,137)
+    s.authenticated=True
+    with pytest.raises(ValueError,match="Polygon 137 required"):
+        s.bind("0x"+"cd"*20,"0x1")
+    assert s.active is False
+    assert s.authenticated is False
+    assert s.needs_revalidation is True
+    assert s.account=="0x"+"cd"*20
+    assert s.chain_id==1
